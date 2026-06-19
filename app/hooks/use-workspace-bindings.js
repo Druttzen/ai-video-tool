@@ -4,6 +4,8 @@ import {
   pickProjectActionInput,
   pickWorkspaceContextExtras,
 } from "../lib/workspace-bindings-input";
+import { useManuscriptChat } from "./use-manuscript-chat";
+import { useHelpDialog } from "./use-help-dialog";
 import { useProjectActions } from "./use-project-actions";
 import { useWorkspaceValue } from "./use-workspace-value";
 
@@ -25,8 +27,24 @@ export function useWorkspaceBindings({
     pickProjectActionInput(projectState, analyzers, pipeline, snapshot, externals),
   );
 
+  const manuscript = useManuscriptChat({
+    coProducerLlmSettings: projectState.coProducerLlmSettings,
+    patch: projectState.patch,
+    captureSnapshot: snapshot.captureSnapshot,
+    setStatusWithTime,
+    projectContext: {
+      idea: projectState.idea,
+      selectedGenres: projectState.selectedGenres,
+      lyricTheme: projectState.lyricTheme,
+    },
+  });
+
+  const help = useHelpDialog();
+
   return useWorkspaceValue({
     ...actions,
+    ...manuscript,
+    ...help,
     ...pickWorkspaceContextExtras(projectState, analyzers, pipeline, snapshot, externals),
     copyToClipboard,
   });

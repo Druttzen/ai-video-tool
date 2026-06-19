@@ -66,8 +66,8 @@ export const SUNO_GUIDED_STEPS = [
   },
   {
     id: 7,
-    name: "Copy to Sora",
-    line: "Copy paste-ready Main prompt and Scene list into Sora. Re-import finished output to iterate.",
+    name: "Copy & export",
+    line: "Copy paste-ready Main prompt and Scene list — or export a Director job JSON.",
     where: "Prompt Preview (right column) and guided copy blocks below.",
     next: "Generate in Sora → if drift, return here and tighten the opening sentence first.",
     optimal: "Factory presets are great starting points; save custom presets for recurring looks.",

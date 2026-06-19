@@ -32,21 +32,43 @@ export function subscribeToUpdateStatus(callback) {
   return window.electronAPI.onUpdateStatus(callback);
 }
 
-/**
- * Write job JSON and launch Open-Sora pipeline runner.
- * @param {{ job: object, imagePayload?: { base64: string, name: string }|null, mode?: string, pythonPath?: string }} payload
- */
-export async function launchOpenSoraJob(payload) {
+export async function launchDirectorJob({ job, imagePayload, settings }) {
   if (!isElectronApp()) {
     return { ok: false, error: "Requires Electron desktop app" };
   }
-  return window.electronAPI.launchOpenSoraJob(payload);
+  return window.electronAPI.launchDirectorJob({ job, imagePayload, settings });
 }
 
-/** @param {{ installPath: string, pythonPath?: string }} payload */
-export async function openOpenSoraUi(payload) {
-  if (!isElectronApp()) {
-    return { ok: false, error: "Requires Electron desktop app" };
+/** @returns {Promise<{ ok: boolean, stats?: import('./system-stats-types').SystemStats, error?: string }>} */
+export async function getSystemStatsFromHost() {
+  if (!isElectronApp() || !window.electronAPI?.getSystemStats) {
+    return { ok: false, error: "Native system stats require the desktop app" };
   }
-  return window.electronAPI.openOpenSoraUi(payload);
+  return window.electronAPI.getSystemStats();
+}
+
+/** @returns {Promise<{ ok: boolean, progress?: number, remainingSec?: number, status?: string, message?: string, error?: string }>} */
+export async function getDirectorBuildStatus(payload) {
+  if (!isElectronApp() || !window.electronAPI?.getDirectorBuildStatus) {
+    return { ok: false, error: "Build progress requires the desktop app" };
+  }
+  return window.electronAPI.getDirectorBuildStatus(payload);
+}
+
+/** @returns {Promise<{ ok: boolean, message?: string, error?: string }>} */
+export async function cancelDirectorBuild(payload) {
+  if (!isElectronApp() || !window.electronAPI?.cancelDirectorBuild) {
+    return { ok: false, error: "Cancel build requires the desktop app" };
+  }
+  return window.electronAPI.cancelDirectorBuild(payload);
+}
+
+/** @deprecated use launchDirectorJob */
+export async function launchOpenSoraJob(payload) {
+  return launchDirectorJob(payload);
+}
+
+/** @deprecated */
+export async function openOpenSoraUi() {
+  return { ok: false, error: "Removed — use Director Engine export or Advanced local pipeline" };
 }

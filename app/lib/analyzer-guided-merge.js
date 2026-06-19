@@ -80,7 +80,9 @@ export function stripAnalyzerRuleLine(rules, kind) {
         ? ["IMAGE:", "IMAGE STYLE:"]
         : kind === "ref"
           ? ["REF:", "STYLE-DNA:", "STYLE DNA:"]
-          : [];
+          : kind === "suno"
+            ? ["SUNO-TRACK:", "SUNO:"]
+            : [];
   return rules
     .split("\n")
     .map((l) => l.trimEnd())

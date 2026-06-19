@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useState } from "react";
 import { Panel } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 import { saveStyleDnaSettings, isSpotifyStyleDnaReady } from "../lib/style-dna-settings";
 import { searchTrackStyleDna } from "../lib/track-style-dna";
@@ -46,6 +47,16 @@ export const CenterStyleDnaSearchPanel = memo(function CenterStyleDnaSearchPanel
       title="Style-DNA Search"
       hint="Search by artist/title, Spotify track URL, or YouTube link. Spotify audio features give the richest Suno tokens; MusicBrainz is the free fallback."
       data-testid="style-dna-search-panel"
+      actions={
+        <PanelActions
+          topic="style-dna"
+          onClear={() => {
+            setQuery("");
+            setResults([]);
+            setError("");
+          }}
+        />
+      }
     >
       <p className="mb-3 text-[11px] leading-relaxed text-white/50">
         Online reference lookup — not audio fingerprinting. Add Spotify credentials for danceability,

@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { SunoGuidedPath } from "./suno-guided-path";
+import { PanelActions } from "./panel-actions";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 
 export const CenterGuidedPathPanel = memo(function CenterGuidedPathPanel() {
@@ -24,6 +25,13 @@ export const CenterGuidedPathPanel = memo(function CenterGuidedPathPanel() {
       customPresets={ws.customPresets}
       guidedStep={ws.guidedStep}
       setGuidedStep={ws.setGuidedStep}
+      headerActions={
+        <PanelActions
+          topic="guided-path"
+          onClear={() => ws.setGuidedStep(0)}
+          clearLabel="Reset"
+        />
+      }
       onApplyFactoryPreset={(name) => {
         ws.applyPreset(name);
         ws.setGuidedStep(0);

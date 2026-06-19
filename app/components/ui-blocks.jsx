@@ -91,15 +91,18 @@ export function SearchablePillGrid({ label, options, groups, selected, onToggle,
   );
 }
 
-export function Panel({ title, hint, children, ...rest }) {
+export function Panel({ title, hint, children, actions, ...rest }) {
   return (
     <section
       className="rounded-3xl border border-white/10 bg-white/[0.065] p-4 shadow-2xl shadow-black/30 backdrop-blur"
       {...rest}
     >
-      <div className="mb-3">
-        <h2 className="text-lg font-black">{title}</h2>
-        {hint && <p className="mt-1 text-xs text-white/45">{hint}</p>}
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-black">{title}</h2>
+          {hint && <p className="mt-1 text-xs text-white/45">{hint}</p>}
+        </div>
+        {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>
       {children}
     </section>

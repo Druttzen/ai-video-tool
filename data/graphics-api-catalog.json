@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "graphicsApis": [
+    {
+      "id": "auto",
+      "label": "Auto (OS + GPU best pick)",
+      "description": "Picks the best API for your platform and GPU.",
+      "platforms": ["win32", "linux", "darwin"],
+      "kind": "graphics"
+    },
+    {
+      "id": "directx12",
+      "label": "DirectX 12",
+      "description": "Windows modern graphics — games, compositors, DirectML path.",
+      "platforms": ["win32"],
+      "kind": "graphics",
+      "vendors": ["nvidia", "amd", "intel"]
+    },
+    {
+      "id": "directx11",
+      "label": "DirectX 11",
+      "description": "Windows legacy-compatible graphics API.",
+      "platforms": ["win32"],
+      "kind": "graphics",
+      "vendors": ["nvidia", "amd", "intel"]
+    },
+    {
+      "id": "vulkan",
+      "label": "Vulkan",
+      "description": "Cross-platform low-overhead graphics — AMD/NVIDIA/Intel.",
+      "platforms": ["win32", "linux"],
+      "kind": "graphics",
+      "vendors": ["nvidia", "amd", "intel"]
+    },
+    {
+      "id": "opengl",
+      "label": "OpenGL",
+      "description": "Legacy cross-platform graphics — wide compatibility.",
+      "platforms": ["win32", "linux", "darwin"],
+      "kind": "graphics"
+    },
+    {
+      "id": "metal",
+      "label": "Metal",
+      "description": "Apple macOS / iOS native graphics API.",
+      "platforms": ["darwin"],
+      "kind": "graphics",
+      "vendors": ["apple"]
+    },
+    {
+      "id": "webgpu",
+      "label": "WebGPU",
+      "description": "Browser / export hint for WebGPU-capable targets.",
+      "platforms": ["win32", "linux", "darwin"],
+      "kind": "graphics"
+    }
+  ],
+  "computeBackends": [
+    {
+      "id": "auto",
+      "label": "Auto compute",
+      "description": "CUDA on NVIDIA, DirectML on Windows, MPS on Mac, else CPU.",
+      "platforms": ["win32", "linux", "darwin"],
+      "kind": "compute"
+    },
+    {
+      "id": "cuda",
+      "label": "CUDA (NVIDIA)",
+      "description": "PyTorch / diffusion pipelines on NVIDIA GPUs.",
+      "platforms": ["win32", "linux"],
+      "kind": "compute",
+      "vendors": ["nvidia"],
+      "env": {
+        "AI_VIDEO_COMPUTE_BACKEND": "cuda",
+        "CUDA_DEVICE_ORDER": "PCI_BUS_ID"
+      }
+    },
+    {
+      "id": "directml",
+      "label": "DirectML (DirectX 12)",
+      "description": "Windows ML inference via DirectX 12 — any DX12 GPU.",
+      "platforms": ["win32"],
+      "kind": "compute",
+      "vendors": ["nvidia", "amd", "intel"],
+      "env": {
+        "AI_VIDEO_COMPUTE_BACKEND": "directml",
+        "AI_VIDEO_GRAPHICS_API": "directx12",
+        "ORT_DML_ENABLE": "1"
+      }
+    },
+    {
+      "id": "vulkan",
+      "label": "Vulkan compute",
+      "description": "Vulkan compute / ggml-vulkan style backends.",
+      "platforms": ["win32", "linux"],
+      "kind": "compute",
+      "env": {
+        "AI_VIDEO_COMPUTE_BACKEND": "vulkan",
+        "AI_VIDEO_GRAPHICS_API": "vulkan",
+        "GGML_VK_VISIBLE_DEVICES": "0"
+      }
+    },
+    {
+      "id": "rocm",
+      "label": "ROCm (AMD)",
+      "description": "AMD GPU compute on Linux / Windows.",
+      "platforms": ["linux", "win32"],
+      "kind": "compute",
+      "vendors": ["amd"],
+      "env": {
+        "AI_VIDEO_COMPUTE_BACKEND": "rocm",
+        "HSA_OVERRIDE_GFX_VERSION": "10.3.0"
+      }
+    },
+    {
+      "id": "mps",
+      "label": "Metal Performance Shaders",
+      "description": "Apple Silicon / macOS PyTorch MPS backend.",
+      "platforms": ["darwin"],
+      "kind": "compute",
+      "vendors": ["apple"],
+      "env": {
+        "AI_VIDEO_COMPUTE_BACKEND": "mps",
+        "AI_VIDEO_GRAPHICS_API": "metal",
+        "PYTORCH_ENABLE_MPS_FALLBACK": "1"
+      }
+    },
+    {
+      "id": "oneapi",
+      "label": "oneAPI / SYCL (Intel)",
+      "description": "Intel Arc and Xe compute via oneAPI.",
+      "platforms": ["win32", "linux"],
+      "kind": "compute",
+      "vendors": ["intel"],
+      "env": {
+        "AI_VIDEO_COMPUTE_BACKEND": "oneapi",
+        "SYCL_DEVICE_FILTER": "level_zero:gpu"
+      }
+    },
+    {
+      "id": "cpu",
+      "label": "CPU only",
+      "description": "Software fallback — slow but universal.",
+      "platforms": ["win32", "linux", "darwin"],
+      "kind": "compute",
+      "env": {
+        "AI_VIDEO_COMPUTE_BACKEND": "cpu",
+        "CUDA_VISIBLE_DEVICES": ""
+      }
+    }
+  ],
+  "graphicsEnv": {
+    "directx12": { "AI_VIDEO_GRAPHICS_API": "directx12", "DXGI_ADAPTER": "0" },
+    "directx11": { "AI_VIDEO_GRAPHICS_API": "directx11" },
+    "vulkan": { "AI_VIDEO_GRAPHICS_API": "vulkan", "VK_LOADER_DEBUG": "none" },
+    "opengl": { "AI_VIDEO_GRAPHICS_API": "opengl" },
+    "metal": { "AI_VIDEO_GRAPHICS_API": "metal" },
+    "webgpu": { "AI_VIDEO_GRAPHICS_API": "webgpu" }
+  },
+  "validationModes": [
+    { "id": "off", "label": "Off (fastest)" },
+    { "id": "vulkan-layers", "label": "Vulkan validation layers (debug)" },
+    { "id": "d3d-debug", "label": "DirectX debug layer (debug)" }
+  ]
+}

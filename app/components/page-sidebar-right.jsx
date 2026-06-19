@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { memo } from "react";
 import { Panel } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
 import {
   SUNO_LIMITS_NOTE,
   SUNO_LYRICS_CHAR_TYPICAL_MAX,
@@ -20,6 +21,21 @@ const SunoLanguageIndexPanel = dynamic(
     loading: () => (
       <Panel title="Suno Language Index" hint="Loading reference…">
         <p className="text-xs text-white/45">Loading vocabulary index…</p>
+      </Panel>
+    ),
+  },
+);
+
+const VideoCreatorIndexPanel = dynamic(
+  () =>
+    import("./video-creator-index-panel").then((mod) => ({
+      default: mod.VideoCreatorIndexPanel,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <Panel title="Video Creator Index" hint="Loading reference…">
+        <p className="text-xs text-white/45">Loading video index…</p>
       </Panel>
     ),
   },
@@ -47,7 +63,11 @@ export const PageSidebarRight = memo(function PageSidebarRight() {
 
   return (
     <aside className="space-y-4">
-      <Panel title="Prompt Preview" hint="Paste-ready Style and Lyrics — no internal labels or tips.">
+      <Panel
+        title="Prompt Preview"
+        hint="Paste-ready Style and Lyrics — no internal labels or tips."
+        actions={<PanelActions topic="prompt-preview" clearDisabled />}
+      >
         {sunoSlices ? (
           <div className="space-y-3">
             <div>
@@ -109,7 +129,7 @@ export const PageSidebarRight = memo(function PageSidebarRight() {
         ) : null}
       </Panel>
       {promptEngine === "Sora-like" && (
-        <Panel title="Sora-like Validator" hint="Checks structured style/prompt constraints before copying.">
+        <Panel title="Sora-like Validator" hint="Checks structured style/prompt constraints before copying." actions={<PanelActions topic="prompt-preview" clearDisabled />}>
           {sunoSlices ? (
             <div className="mb-3 rounded-2xl border border-white/10 bg-black/35 p-3 text-[10px] leading-relaxed text-white/55">
               <div className="font-bold text-cyan-100/90">Suno field lengths (paste-ready)</div>
@@ -147,7 +167,12 @@ export const PageSidebarRight = memo(function PageSidebarRight() {
         </Panel>
       )}
       <SunoLanguageIndexPanel copyToClipboard={copyToClipboard} onApplyGenreAnchors={applyGenreAnchors} />
-      <Panel title="History / Compare" hint="Restore earlier prompt states.">
+      <VideoCreatorIndexPanel copyToClipboard={copyToClipboard} />
+      <Panel
+        title="History / Compare"
+        hint="Restore earlier prompt states."
+        actions={<PanelActions topic="history" onClear={clearHistory} />}
+      >
         <button
           onClick={clearHistory}
           className="mb-3 w-full rounded-2xl border border-red-300/30 bg-red-300/10 px-4 py-2 text-sm font-bold text-red-200 hover:bg-red-300/20"
@@ -192,7 +217,7 @@ export const PageSidebarRight = memo(function PageSidebarRight() {
           </div>
         )}
       </Panel>
-      <Panel title="Track Scoring" hint="Use after generation to compare outputs.">
+      <Panel title="Track Scoring" hint="Use after generation to compare outputs." actions={<PanelActions topic="scoring" clearDisabled />}>
         {Object.entries(scores).map(([key, value]) => (
           <div key={key} className="mb-3 rounded-2xl bg-black/25 p-3">
             <div className="mb-2 flex justify-between text-sm">

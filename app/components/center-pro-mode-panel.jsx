@@ -2,6 +2,8 @@
 
 import { memo } from "react";
 import { Panel, TextBox } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
+import { DEFAULT_STATE } from "../lib/video-config";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 
 export const CenterProModePanel = memo(function CenterProModePanel() {
@@ -9,7 +11,20 @@ export const CenterProModePanel = memo(function CenterProModePanel() {
   if (!ws.proMode) return null;
 
   return (
-    <Panel title="Advanced Override" hint="Optional text editing for exact control.">
+    <Panel
+      title="Advanced Override"
+      hint="Optional text editing for exact control."
+      actions={
+        <PanelActions
+          topic="pro-mode"
+          onClear={() => {
+            ws.setRules(DEFAULT_STATE.rules);
+            ws.setNotes("");
+            ws.setStructure(DEFAULT_STATE.structure);
+          }}
+        />
+      }
+    >
       <div className="grid gap-3 md:grid-cols-2">
         <label>
           <div className="mb-1 text-xs font-bold uppercase tracking-wider text-white/45">Tempo</div>

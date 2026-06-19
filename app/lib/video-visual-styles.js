@@ -1,12 +1,19 @@
 import {
-  mergeVisualOptions,
-  openSoraCameraMoves,
-  openSoraColorProfiles,
-  openSoraLightingTerms,
-} from "./open-sora-terms";
+  mergeDirectorOptions,
+  getDirectorCameraMoves,
+  getDirectorColorProfiles,
+  getDirectorLightingTerms,
+} from "./director-catalog";
+import {
+  getIndexCameraMovement,
+  getIndexColorGrades,
+  getIndexLightingSources,
+  getIndexLightingTerms,
+  getIndexVisualStyles,
+} from "./video-creator-index";
 
-/** Visual style chips — base set + Open-Sora color profiles. */
-export const visualStyleOptions = mergeVisualOptions(
+/** Visual style chips — base set + Director vocabulary + web index. */
+export const visualStyleOptions = mergeDirectorOptions(
   [
     "Cinematic",
     "Documentary",
@@ -24,11 +31,11 @@ export const visualStyleOptions = mergeVisualOptions(
     "Handheld raw",
     "Studio clean",
   ],
-  openSoraColorProfiles,
+  [...getDirectorColorProfiles(), ...getIndexVisualStyles()],
 );
 
-/** Camera motion — base + Open-Sora camera_terms.py */
-export const cameraMotionOptions = mergeVisualOptions(
+/** Camera motion — base + Director vocabulary */
+export const cameraMotionOptions = mergeDirectorOptions(
   [
     "Static tripod",
     "Slow dolly in",
@@ -45,11 +52,11 @@ export const cameraMotionOptions = mergeVisualOptions(
     "Steadicam glide",
     "Macro close-up",
   ],
-  openSoraCameraMoves,
+  [...getDirectorCameraMoves(), ...getIndexCameraMovement()],
 );
 
-/** Lighting — base + Open-Sora lighting_terms.py */
-export const lightingOptions = mergeVisualOptions(
+/** Lighting — base + Director vocabulary */
+export const lightingOptions = mergeDirectorOptions(
   [
     "Golden hour",
     "Blue hour",
@@ -66,7 +73,7 @@ export const lightingOptions = mergeVisualOptions(
     "Cold moonlight",
     "Mixed tungsten + LED",
   ],
-  openSoraLightingTerms,
+  [...getDirectorLightingTerms(), ...getIndexLightingTerms(), ...getIndexLightingSources()],
 );
 
 export const pacingOptions = [
@@ -146,5 +153,49 @@ export const stylePresets = {
     structure: "soft open → floating drift → surreal scale shift → gentle return",
     mood: { warmth: 60, tension: 20, energy: 25, realism: 40, scale: 80, intimacy: 70 },
     rules: "soft focus edges ok, slow motion acceptable, avoid harsh cuts",
+  },
+  "Music Video Performance": {
+    visualStyles: ["Music video", "Commercial"],
+    cameraMotions: ["Tracking shot", "Orbit arc"],
+    lighting: ["High-key studio", "Neon night"],
+    pacing: ["Medium cut rhythm"],
+    aspect: "16:9",
+    duration: "12s",
+    structure: "establishing wide → performance medium → chorus energy wide → hold",
+    mood: { warmth: 55, tension: 45, energy: 80, realism: 70, scale: 50, intimacy: 55 },
+    rules: "lip-sync on vocals, cut on beat, performance + B-roll, no watermark",
+  },
+  "Concert Arena": {
+    visualStyles: ["Music video", "Cinematic"],
+    cameraMotions: ["Crane up", "gimbal orbit"],
+    lighting: ["Stage/Arena", "Volumetric haze"],
+    pacing: ["Fast montage"],
+    aspect: "16:9",
+    duration: "15s",
+    structure: "crowd wide → stage push → performer hero → laser hold",
+    mood: { warmth: 40, tension: 55, energy: 95, realism: 75, scale: 90, intimacy: 35 },
+    rules: "haze and beams consistent, crowd silhouettes, no unreadable strobe",
+  },
+  "Synthwave Highway": {
+    visualStyles: ["Noir", "Cinematic"],
+    cameraMotions: ["Tracking shot", "Slow dolly in"],
+    lighting: ["Neon night", "Rain reflections"],
+    pacing: ["Slow meditative"],
+    aspect: "2.39:1",
+    duration: "12s",
+    structure: "coastal wide → dashboard insert → neon reflection hold",
+    mood: { warmth: 35, tension: 40, energy: 65, realism: 72, scale: 70, intimacy: 45 },
+    rules: "anamorphic flare ok, magenta/cyan palette, wet asphalt reflections",
+  },
+  "Lo-fi Bedroom": {
+    visualStyles: ["Vintage film", "Documentary"],
+    cameraMotions: ["Static tripod", "Slow dolly in"],
+    lighting: ["Practical lamps", "Candle warm"],
+    pacing: ["Slow meditative"],
+    aspect: "16:9",
+    duration: "10s",
+    structure: "window rain → desk medium → lyric notebook close",
+    mood: { warmth: 70, tension: 15, energy: 25, realism: 85, scale: 25, intimacy: 85 },
+    rules: "warm clutter, vinyl texture, gentle push only",
   },
 };

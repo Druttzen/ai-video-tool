@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -27,51 +29,79 @@ def main() -> int:
         return 3
 
     os.chdir(install)
-    sys.path.insert(0, str(install))
 
-    try:
-        from opensora_pipeline import OpenSoraConfig, run_opensora_job
-    except ImportError as e:
-        print(f"Failed to import opensora_pipeline from {install}: {e}", file=sys.stderr)
+    config_path = job.get("configPath") or "configs/diffusion/inference/t2i2v_256px.py"
+    if not Path(config_path).is_file():
+        print(f"Inference config not found: {install / config_path}", file=sys.stderr)
         return 4
 
-    extra = dict(job.get("extra_options") or {})
-    if job.get("cond_type") and job.get("ref_image"):
-        extra["cond_type"] = job["cond_type"]
-        extra["ref"] = job["ref_image"]
+    prompt = job.get("prompt") or ""
+    if not prompt.strip():
+        print("Job prompt is empty", file=sys.stderr)
+        return 5
 
     seed = int(job.get("seed") or 0)
     if seed <= 0:
-        import time
-
         seed = int(time.time()) % 10_000_000
 
-    cfg = OpenSoraConfig(
-        prompt=job["prompt"],
-        steps=int(job.get("steps") or 16),
-        cfg=float(job.get("cfg") or 7.5),
-        seed=seed,
-        resolution=job.get("resolution") or "640x360",
-        device=job.get("device") or "cuda",
-        save_dir=job.get("save_dir") or "outputs",
-        fps=int(job.get("fps") or 16),
-        extra_options=extra,
-        diagnostic=bool(job.get("diagnostic")),
-        silent=bool(job.get("silent")),
-    )
+    num_steps = int(job.get("numSteps") or job.get("steps") or 50)
+    num_frames = int(job.get("numFrames") or 129)
+    cfg = float(job.get("cfg") or 7.5)
+    aspect_ratio = job.get("aspectRatio") or "16:9"
+    resolution_tier = job.get("resolutionTier") or "256px"
+    fps = int(job.get("fps") or 24)
+    save_dir = job.get("save_dir") or "outputs"
+    motion_score = job.get("motionScore")
+    if motion_score is None:
+        extra = job.get("extra_options") or {}
+        motion_score = extra.get("motion_score", 4)
 
-    print(f"=== AI Video Creator → Open-Sora ===")
+    cmd = [
+        sys.executable,
+        "scripts/diffusion/inference.py",
+        config_path,
+        "--save-dir",
+        save_dir,
+        "--prompt",
+        prompt,
+        "--seed",
+        str(seed),
+        "--aspect_ratio",
+        aspect_ratio,
+        "--resolution",
+        resolution_tier,
+        "--sampling_option.num_steps",
+        str(num_steps),
+        "--sampling_option.num_frames",
+        str(num_frames),
+        "--sampling_option.guidance",
+        str(cfg),
+        "--motion-score",
+        str(motion_score),
+        "--fps_save",
+        str(fps),
+    ]
+
+    if job.get("ref_image"):
+        cmd.extend(["--cond_type", job.get("cond_type") or "i2v_head", "--ref", job["ref_image"]])
+
+    if job.get("refinePrompt"):
+        cmd.append("--refine-prompt")
+
+    print("=== AI Video Creator → Open-Sora 2.0 ===")
     print(f"Install: {install}")
-    print(f"Prompt: {cfg.prompt[:120]}...")
+    print(f"Config: {config_path}")
+    print(f"Prompt: {prompt[:120]}...")
     if job.get("ref_image"):
         print(f"I2V ref: {job['ref_image']}")
 
-    log_text, video_path = run_opensora_job(cfg)
-    print(log_text)
-    if video_path:
-        print(f"VIDEO:{video_path}")
-        return 0
-    return 1
+    try:
+        result = subprocess.run(cmd, cwd=install, text=True)
+    except Exception as e:
+        print(f"Pipeline launch failed: {e}", file=sys.stderr)
+        return 6
+
+    return 0 if result.returncode == 0 else result.returncode
 
 
 if __name__ == "__main__":

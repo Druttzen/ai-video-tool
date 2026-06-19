@@ -4,6 +4,7 @@
  */
 
 import { attachCharacterVoiceFieldsToProjectExport } from "./voice-character-studio-session";
+import { loadGpuWorkflowSettings } from "./gpu-workflow-functions";
 import {
   extractCharacterVoicePresetsFromProject,
   normalizeCharacterPresetsMap,
@@ -58,6 +59,11 @@ export function buildProjectBundleExport(project, customPresets = {}, appVersion
     bundle.characterVoiceStudioSession = characterVoiceStudioSession;
   }
 
+  const gpuWorkflow = loadGpuWorkflowSettings();
+  if (gpuWorkflow?.enabledIds?.length) {
+    bundle.gpuWorkflow = gpuWorkflow;
+  }
+
   return bundle;
 }
 
@@ -84,6 +90,7 @@ export function parseProjectBundleImport(raw) {
     return {
       project,
       customPresets: normalizeCustomPresetsMap(raw.customPresets),
+      gpuWorkflow: raw.gpuWorkflow && typeof raw.gpuWorkflow === "object" ? raw.gpuWorkflow : null,
       bundleMeta: {
         exportedAt: raw.exportedAt || null,
         bundleVersion: raw.bundleVersion ?? PROJECT_BUNDLE_VERSION,
@@ -95,6 +102,7 @@ export function parseProjectBundleImport(raw) {
   return {
     project: { ...raw },
     customPresets: normalizeCustomPresetsMap(raw.customPresets),
+    gpuWorkflow: raw.gpuWorkflow && typeof raw.gpuWorkflow === "object" ? raw.gpuWorkflow : null,
     bundleMeta: null,
   };
 }

@@ -5,6 +5,10 @@ export { referencePromptBlocks, stylePromptCatalog } from "./style-prompt-catalo
 
 import { SUNO_CATALOG_SYNC } from "./suno-catalog-synced";
 import {
+  mapSunoRhythmsToCamera,
+  mapSunoSoundsToLighting,
+} from "./suno-to-video-mapper";
+import {
   formatPromptSymbolGuidePlain,
   formatVocalArtifactGuidePlain,
   promptSymbolExamples,
@@ -14,6 +18,7 @@ import {
 } from "./prompt-symbol-guide";
 
 import { SUNO_LIMITS_PRINCIPLE } from "./suno-limits";
+import { getIndexPrinciples } from "./video-creator-index";
 
 function mergeUniqueStrings(base, extra) {
   const seen = new Set(base.map((s) => s.toLowerCase()));
@@ -52,6 +57,10 @@ const BASE_PRINCIPLES = [
   "Keep lyrics field focused on structure and lyrical content.",
   "Use clear section tags to reduce arrangement drift.",
   "Add explicit negative constraints for cleaner control.",
+  "Music video: map Suno bracket tags → scene beats; cut on chorus/drop.",
+  "Music video: match lighting to sonic palette (bass-heavy → neon/low-key; acoustic → golden/practical).",
+  "Music video: lip-sync performance when vocals present; B-roll on instrumental sections.",
+  ...getIndexPrinciples().slice(0, 4),
 ];
 
 const BASE_STRUCTURE_TAGS = [
@@ -343,8 +352,59 @@ REGULAR LINE
 
 /**
  * Single source of truth for Apply Genre Anchors (sounds, rhythms, optional rule line).
- * Keys match lowercase `genreOptions` labels from video-config.
+ * Music keys from Suno tracks; visual keys from video-config genreOptions.
  */
+export const VIDEO_GENRE_ANCHOR_ENTRIES = [
+  {
+    keys: ["cinematic", "photorealistic"],
+    sounds: ["Volumetric haze", "Golden hour"],
+    rhythms: ["Slow dolly in", "Tracking shot"],
+    rule: "cinematic framing with motivated camera and controlled depth",
+  },
+  {
+    keys: ["music video", "commercial"],
+    sounds: ["High-key studio", "Neon night"],
+    rhythms: ["Tracking shot", "Medium cut rhythm"],
+    rule: "performance + B-roll, beat-synced cuts, hero lighting on chorus",
+  },
+  {
+    keys: ["noir"],
+    sounds: ["Low-key noir", "Rain reflections"],
+    rhythms: ["Slow dolly in", "Static tripod"],
+    rule: "high contrast shadows, motivated practicals, moody pacing",
+  },
+  {
+    keys: ["documentary", "handheld raw"],
+    sounds: ["Overcast soft", "Practical lamps"],
+    rhythms: ["Handheld follow", "Static tripod"],
+    rule: "observational camera, natural light, unpolished authenticity",
+  },
+  {
+    keys: ["anime", "fantasy"],
+    sounds: ["Mixed tungsten + LED", "Volumetric haze"],
+    rhythms: ["Orbit arc", "Whip pan"],
+    rule: "stylized color grade, exaggerated motion, clear silhouette reads",
+  },
+  {
+    keys: ["horror", "sci-fi"],
+    sounds: ["Cold moonlight", "Silhouette backlight"],
+    rhythms: ["Slow dolly in", "Whip pan"],
+    rule: "tension through negative space and unsettling camera reveals",
+  },
+  {
+    keys: ["vintage film", "dream sequence"],
+    sounds: ["Candle warm", "Golden hour"],
+    rhythms: ["Steadicam glide", "Cross-dissolve dream"],
+    rule: "soft grain, nostalgic palette, fluid dreamlike motion",
+  },
+  {
+    keys: ["drone aerial"],
+    sounds: ["Hard noon sun", "Blue hour"],
+    rhythms: ["Drone flyover", "Crane up"],
+    rule: "establishing scale first, then descend into subject",
+  },
+];
+
 export const GENRE_ANCHOR_ENTRIES = [
   {
     keys: ["techno", "industrial"],
@@ -586,12 +646,20 @@ export function collectGenreAnchors(selectedGenres) {
   const rhythms = [];
   const rules = [];
 
-  for (const entry of GENRE_ANCHOR_ENTRIES) {
+  for (const entry of VIDEO_GENRE_ANCHOR_ENTRIES) {
     const hit = entry.keys.some((k) => genreSet.has(k));
     if (!hit) continue;
     sounds.push(...entry.sounds);
     rhythms.push(...entry.rhythms);
     if (entry.rule) rules.push(entry.rule);
+  }
+
+  for (const entry of GENRE_ANCHOR_ENTRIES) {
+    const hit = entry.keys.some((k) => genreSet.has(k));
+    if (!hit) continue;
+    sounds.push(...mapSunoSoundsToLighting(entry.sounds));
+    rhythms.push(...mapSunoRhythmsToCamera(entry.rhythms));
+    if (entry.rule) rules.push(`Suno track cue: ${entry.rule}`);
   }
 
   return {

@@ -72,7 +72,7 @@ describe("suno-rules", () => {
   });
 
   it("SUNO_AUTO_FIX_DEFAULTS provides genre and structure fallbacks", () => {
-    expect(SUNO_AUTO_FIX_DEFAULTS.genres).toEqual(["Techno"]);
+    expect(SUNO_AUTO_FIX_DEFAULTS.genres).toEqual(["Music video", "Cinematic"]);
     expect(SUNO_AUTO_FIX_DEFAULTS.structure.length).toBeGreaterThan(8);
   });
 });

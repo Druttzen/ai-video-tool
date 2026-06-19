@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: `AI Video Creator v${APP_VERSION}`,
   description:
-    "Visual prompt engine for AI music tools — presets, analyzers, Sora-like prompts, and export.",
+    "Visual prompt studio for AI Video Creator — Director Engine, scene craft, analyzers, export.",
 };
 
 export default function RootLayout({ children }) {

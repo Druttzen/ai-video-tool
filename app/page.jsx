@@ -2,6 +2,8 @@
 
 import { AppHeader, SplashOverlay } from "./components/app-shell";
 import { ActionToast } from "./components/action-toast";
+import { GlobalToolbar } from "./components/global-toolbar";
+import { HelpDialog } from "./components/help-dialog";
 import { ProjectWorkspaceContext } from "./context/project-workspace-context";
 import { PageSidebarLeft } from "./components/page-sidebar-left";
 import { PageWorkspaceCenter } from "./components/page-workspace-center";
@@ -46,6 +48,19 @@ export default function Page() {
         />
 
         <ProjectWorkspaceContext.Provider value={workspace}>
+          <input
+            id="global-import-bundle"
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={workspace.importProject}
+          />
+          <GlobalToolbar />
+          <HelpDialog
+            topic={workspace.helpTopic}
+            open={workspace.helpOpen}
+            onClose={workspace.closeHelp}
+          />
           <div className="grid gap-4 lg:grid-cols-[300px_1fr_380px]">
             <PageSidebarLeft />
             <PageWorkspaceCenter />

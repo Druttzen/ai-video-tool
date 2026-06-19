@@ -42,7 +42,7 @@ export const HISTORY_KEY = "ai_video_creator_prompt_history_v1";
 export const APP_VERSION =
   typeof process !== "undefined" && process.env.NEXT_PUBLIC_APP_VERSION
     ? process.env.NEXT_PUBLIC_APP_VERSION
-    : "0.2.0";
+    : "1.0.0";
 export const AUTHOR = "DJ M@D";
 
 export const DEFAULT_STATE = {
@@ -67,7 +67,7 @@ export const DEFAULT_STATE = {
   lyricStyle: "Silent visual",
   lyricDensity: 55,
   promptFormat: "Balanced",
-  promptEngine: "Open-Sora",
+  promptEngine: "Director",
   coProducerOutput: "",
   generatedLyrics: "",
   generatedLyricsStyle: "",
@@ -107,7 +107,7 @@ export const BLANK_STATE = {
   lyricStyle: "Silent visual",
   lyricDensity: 50,
   promptFormat: "Balanced",
-  promptEngine: "Open-Sora",
+  promptEngine: "Director",
   coProducerOutput: "",
   generatedLyrics: "",
   generatedLyricsStyle: "",

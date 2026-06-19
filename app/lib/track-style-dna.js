@@ -4,7 +4,12 @@
 
 import { clamp, uniq } from "./music-helpers";
 import { resolveCatalogTags } from "./analyzer-suggestions";
-import { genreOptions, rhythmOptions, soundOptions } from "./suno-music-styles";
+import { genreOptions, rhythmOptions, soundOptions } from "./video-config";
+import {
+  mapSunoGenresToVisual,
+  mapSunoRhythmsToCamera,
+  mapSunoSoundsToLighting,
+} from "./suno-to-video-mapper";
 import {
   applyMoodPatch,
   mergeAnalyzerRuleLine,
@@ -224,27 +229,34 @@ export function mergeStyleDnaIntoIdea(prev, dna) {
  * @param {object} dna
  */
 export function buildStyleDnaPatch(dna) {
+  const visualGenres = mapSunoGenresToVisual(dna.genres || []);
+  const lighting = mapSunoSoundsToLighting(dna.sounds || []);
+  const cameras = mapSunoRhythmsToCamera(dna.rhythms || []);
+
   /** @type {Record<string, unknown>} */
   const patch = {
     rules: (prev) => mergeAnalyzerRuleLine(prev, "ref", compactStyleDnaRule(dna)),
     idea: (prev) => mergeStyleDnaIntoIdea(prev, dna),
+    promptEngine: "Director",
+    lyricMode: "Multi-beat scene",
   };
 
   if (dna.tempo) patch.tempo = dna.tempo;
-  if (dna.genres?.length) {
-    patch.selectedGenres = (prev) => mergeGuidedGenres(prev, dna.genres);
+  if (visualGenres.length) {
+    patch.selectedGenres = (prev) => mergeGuidedGenres(prev, visualGenres);
   }
-  if (dna.sounds?.length) {
-    patch.selectedSounds = (prev) => mergeGuidedSounds(prev, dna.sounds);
+  if (lighting.length) {
+    patch.selectedSounds = (prev) => mergeGuidedSounds(prev, lighting);
   }
-  if (dna.rhythms?.length) {
-    patch.selectedRhythms = (prev) => mergeGuidedRhythms(prev, dna.rhythms);
+  if (cameras.length) {
+    patch.selectedRhythms = (prev) => mergeGuidedRhythms(prev, cameras);
   }
   if (dna.mood) {
     patch.mood = (prev) => applyMoodPatch(prev, dna.mood);
   }
   if (dna.vocalRole) {
-    patch.vocal = dna.vocalRole;
+    const v = String(dna.vocalRole).toLowerCase();
+    patch.vocal = v.includes("instrumental") ? "Silent visual" : "Music-driven";
   }
 
   return patch;

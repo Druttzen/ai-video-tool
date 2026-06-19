@@ -3,13 +3,18 @@
 import { memo } from "react";
 import { VariationCompare } from "./variation-compare";
 import { Panel } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 
 export const CenterVariationsPanel = memo(function CenterVariationsPanel() {
   const ws = useProjectWorkspace();
 
   return (
-    <Panel title="Variation Engine" hint="Auto-generate prompt versions while keeping your core identity.">
+    <Panel
+      title="Variation Engine"
+      hint="Auto-generate prompt versions while keeping your core identity."
+      actions={<PanelActions topic="variations" onClear={() => ws.clearVariations()} />}
+    >
       <button
         onClick={ws.generateVariations}
         className="w-full rounded-2xl bg-fuchsia-300 px-4 py-2 font-bold text-black hover:bg-fuchsia-200"

@@ -11,6 +11,7 @@
  */
 export function pickProjectActionInput(projectState, analyzers, pipeline, snapshot, externals) {
   return {
+    applyAudioToMusicVideo: analyzers.applyAudioToMusicVideo,
     applyAudioToSunoStyle: analyzers.applyAudioToSunoStyle,
     audioAnalysis: analyzers.audioAnalysis,
     audioPreviewUrl: analyzers.audioPreviewUrl,
@@ -118,6 +119,7 @@ export function pickWorkspaceContextExtras(projectState, analyzers, pipeline, sn
   return {
     analyzeAudioFile: analyzers.analyzeAudioFile,
     analyzeImageFile: analyzers.analyzeImageFile,
+    applyAudioToMusicVideo: analyzers.applyAudioToMusicVideo,
     applyAudioToSunoStyle: analyzers.applyAudioToSunoStyle,
     applyImageToSunoStyle: analyzers.applyImageToSunoStyle,
     attachAudioFile: analyzers.attachAudioFile,

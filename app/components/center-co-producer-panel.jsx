@@ -7,6 +7,7 @@ import {
   CoProducerLyricsBlock,
 } from "./co-producer-lyrics-block";
 import { Panel } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
 import { fixes, promptFormatOptions } from "../lib/video-config";
 import { saveCoProducerLlmSettings } from "../lib/co-producer-llm";
 import { getLyricStyleDirection } from "../lib/lyric-generator";
@@ -24,7 +25,11 @@ export const CenterCoProducerQuickPanel = memo(function CenterCoProducerQuickPan
   const ws = useProjectWorkspace();
 
   return (
-    <Panel title="Step 4 — Co‑Producer Buttons" hint="One-click creative direction.">
+    <Panel
+      title="Step 4 — Co‑Producer Buttons"
+      hint="One-click creative direction."
+      actions={<PanelActions topic="co-producer-quick" clearDisabled />}
+    >
       <div className="flex flex-wrap gap-2">
         {CO_PRODUCER_DIRECTIONS.map((x) => (
           <button
@@ -47,6 +52,16 @@ export const CenterCoProducerPanel = memo(function CenterCoProducerPanel() {
     <Panel
       title="Co‑Producer AI"
       hint="Improve Prompt analyzes balance and gaps; quick fixes append rule lines. Hooks and lyrics follow your Lyric Style."
+      actions={
+        <PanelActions
+          topic="co-producer"
+          onClear={() => {
+            ws.setCoProducerOutput("");
+            ws.setGeneratedLyrics("");
+            ws.setGeneratedHooks("");
+          }}
+        />
+      }
     >
       <p className="mb-3 text-[11px] leading-relaxed text-white/50">
         <strong className="text-white/65">Copy guide:</strong> Lyric Style Generator = bracketed Suno direction only.
@@ -121,8 +136,7 @@ export const CenterCoProducerPanel = memo(function CenterCoProducerPanel() {
             onChange={(e) => ws.setPromptEngine(e.target.value)}
             className="w-full rounded-2xl border border-white/10 bg-black/30 p-3 text-white outline-none"
           >
-            <option>Standard</option>
-            <option>Open-Sora</option>
+            <option>Director</option>
             <option>Sora-like</option>
           </select>
         </label>

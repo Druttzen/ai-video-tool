@@ -45,7 +45,7 @@ function joinTags(arr) {
 
 /**
  * Sonoteller-style editable local analysis report.
- * @param {{ analysis: object, audioUrl?: string|null, loudness?: { integratedLUFS: number, truePeakDbTP: number }|null, loudnessBusy?: boolean, onChange: (patch: object) => void, onApply: () => void, onClear?: () => void, onAttachAudio?: (file: File) => void, onAddLyricsForTrack?: () => void, onAnalyzeVocalCharacter?: () => void, onExportEnhanced?: (presetId: string, opts?: { format?: string, scope?: string }) => void, exportBusy?: boolean, exportProgress?: { phase: string, pct: number }|null }} props
+ * @param {{ analysis: object, audioUrl?: string|null, loudness?: { integratedLUFS: number, truePeakDbTP: number }|null, loudnessBusy?: boolean, onChange: (patch: object) => void, onApply: () => void, onApplyMusicVideo?: () => void, onClear?: () => void, onAttachAudio?: (file: File) => void, onAddLyricsForTrack?: () => void, onAnalyzeVocalCharacter?: () => void, onExportEnhanced?: (presetId: string, opts?: { format?: string, scope?: string }) => void, exportBusy?: boolean, exportProgress?: { phase: string, pct: number }|null }} props
  */
 export const AudioTrackEditor = memo(function AudioTrackEditor({
   analysis,
@@ -54,6 +54,7 @@ export const AudioTrackEditor = memo(function AudioTrackEditor({
   loudnessBusy = false,
   onChange,
   onApply,
+  onApplyMusicVideo,
   onClear,
   onAttachAudio,
   onAddLyricsForTrack,
@@ -421,6 +422,18 @@ export const AudioTrackEditor = memo(function AudioTrackEditor({
         >
           Merge into Suno fields →
         </button>
+        {onApplyMusicVideo ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onApplyMusicVideo();
+            }}
+            className="flex-1 min-w-[140px] rounded-2xl border border-violet-400/40 bg-violet-500/20 py-2 text-xs font-bold text-violet-50 hover:bg-violet-500/30"
+          >
+            Map to music video →
+          </button>
+        ) : null}
         {onClear ? (
           <button
             type="button"

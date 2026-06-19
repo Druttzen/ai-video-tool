@@ -1,0 +1,507 @@
+{
+  "version": "1.1.0",
+  "app": "ai-video-tool",
+  "syncedAt": "2026-06-03",
+  "sources": [
+    "OpenAI Sora 2 Cookbook (2025)",
+    "Runway Gen-4 / Gen-4.5 docs",
+    "Kling 2.6 / 3.0 community guides",
+    "Google Veo 3 / 3.1 structured prompt patterns",
+    "ai-boost/awesome-prompts video_gen_prompting.txt",
+    "VidScore AI Video Prompt Guide (2026)",
+    "MasterPrompting.net Sora Runway Kling guide",
+    "AI Video Bootcamp cinematic prompt matrix (2026)"
+  ],
+  "principles": [
+    "Treat every prompt as a cinematographer's brief: subject, action, camera, environment, lighting, duration.",
+    "One primary camera move + one subject action per shot — multiple moves cause jitter.",
+    "Separate camera motion from subject motion to avoid confused movement.",
+    "Name lens, framing, and light source explicitly — vague 'cinematic' yields randomness.",
+    "Shorter clips (4–12s) follow direction more reliably than long single takes.",
+    "Music video: map Suno bracket tags → scene beats; cut on chorus/drop.",
+    "Audio-first MV: generate Suno track → analyze → BOTH merge → Director render.",
+    "Use negative constraints in Rules: no watermark, stable anatomy, no morphing, solid rigid objects.",
+    "Image-to-video locks composition; text describes motion and light changes only.",
+    "For physics-heavy shots add causal chains: what hits what, and what happens next."
+  ],
+  "workflows": [
+    {
+      "id": 1,
+      "key": "suno-track",
+      "title": "Suno track only",
+      "models": ["Director", "Sora 2", "Runway Gen-4"],
+      "steps": ["Analyze audio in Analyzers", "Map track → music video", "Director render"]
+    },
+    {
+      "id": 2,
+      "key": "suno-paste",
+      "title": "Suno paste only",
+      "steps": ["Paste Style + Lyrics", "Apply Suno paste → video", "Director render"]
+    },
+    {
+      "id": 3,
+      "key": "both",
+      "title": "Full sync (track + paste)",
+      "steps": ["Track in Analyzers + Suno paste in studio", "BOTH merge", "Director render"]
+    },
+    {
+      "id": 4,
+      "key": "manuscript",
+      "title": "Manuscript chat",
+      "steps": ["Write brief in AI Manuscript Chat", "Apply to project", "Director render"]
+    },
+    {
+      "id": 5,
+      "key": "audio-first-mv",
+      "title": "Audio-first music video (Suno → Kling/Sora)",
+      "steps": [
+        "Generate track in Suno",
+        "Export WAV → analyze BPM/sections",
+        "Timeline script with beat timestamps",
+        "Per-beat clips 4–8s → stitch"
+      ],
+      "source": "Kling 2.6 timeline + Suno workflow"
+    },
+    {
+      "id": 6,
+      "key": "keyframe-interpolation",
+      "title": "Keyframe interpolation (Veo / i2v)",
+      "steps": [
+        "Midjourney or still frame for start + end",
+        "Upload start/end to i2v model",
+        "Prompt describes motion between frames only"
+      ],
+      "source": "Veo 3.1 interpolation"
+    },
+    {
+      "id": 7,
+      "key": "runway-director-mode",
+      "title": "Runway Director Mode hybrid",
+      "steps": [
+        "Text prompt: subject + action + mood only",
+        "Use Runway camera panel for pan/tilt/dolly",
+        "Motion Brush for foreground/background parallax"
+      ],
+      "source": "Runway Gen-4.5"
+    },
+    {
+      "id": 8,
+      "key": "export-bundle",
+      "title": "Export / import project bundle",
+      "steps": ["Save Progress locally", "Export Bundle JSON", "Share or re-import on another machine"]
+    }
+  ],
+  "bundles": {
+    "exportFields": [
+      "idea",
+      "selectedGenres",
+      "selectedRhythms",
+      "selectedSounds",
+      "mood",
+      "structure",
+      "rules",
+      "generatedLyrics",
+      "sunoPasteStyle",
+      "sunoPasteLyrics",
+      "customPresets",
+      "coProducerLlmSettings"
+    ],
+    "presetBundles": [
+      {
+        "name": "Cinematic Opening",
+        "visualStyles": ["Cinematic", "Photorealistic"],
+        "camera": ["Slow dolly in", "Crane up"],
+        "lighting": ["Golden hour", "Volumetric haze"]
+      },
+      {
+        "name": "Neon Night Chase",
+        "visualStyles": ["Cinematic", "Noir"],
+        "camera": ["Tracking shot", "Whip pan"],
+        "lighting": ["Neon night", "Rain reflections"]
+      },
+      {
+        "name": "Music Video Performance",
+        "visualStyles": ["Music video", "Commercial"],
+        "camera": ["Tracking shot", "Orbit arc"],
+        "lighting": ["High-key studio", "Neon night"]
+      },
+      {
+        "name": "Documentary Intimacy",
+        "visualStyles": ["Documentary", "Handheld raw"],
+        "camera": ["Handheld follow", "Static tripod"],
+        "lighting": ["Overcast soft", "Practical lamps"]
+      },
+      {
+        "name": "Anime Action Beat",
+        "visualStyles": ["Anime"],
+        "camera": ["Orbit arc", "Whip pan"],
+        "lighting": ["High-key studio", "Mixed tungsten + LED"]
+      },
+      {
+        "name": "Concert Arena",
+        "visualStyles": ["Music video", "Cinematic"],
+        "camera": ["Crane up", "gimbal orbit"],
+        "lighting": ["Stage/Arena", "Volumetric haze"]
+      }
+    ]
+  },
+  "manuscript": {
+    "templates": [
+      {
+        "label": "Music video logline",
+        "text": "A [protagonist] in [setting] during [time]. Chorus hits on [visual beat]. Verse is [camera style]. Mood: [emotion]. 15s, 16:9."
+      },
+      {
+        "label": "Sora physics scene",
+        "text": "Subject: [object]. Action: [causal chain — A causes B]. Camera: slow dolly in, 35mm. Light: golden hour through dust. 8s."
+      },
+      {
+        "label": "Runway commercial",
+        "text": "Premium commercial look. Product hero on [surface]. Camera orbit slow. Hard key + rim. Crisp motion, no morphing. 6s 1:1."
+      },
+      {
+        "label": "Kling dialogue beat",
+        "text": "Beat 0-4s: medium shot, [scene]. Beat 4-8s: close-up, [reaction]. Dialogue (Character, tone): \"[line]\". Lip-sync."
+      }
+    ],
+    "structureTags": [
+      "establishing wide",
+      "performance medium",
+      "chorus energy wide",
+      "tension build",
+      "impact cut",
+      "emotional hold",
+      "B-roll insert",
+      "hero close"
+    ]
+  },
+  "directorSettings": {
+    "qualityPresets": ["DRAFT", "STANDARD", "PREMIUM"],
+    "renderBackends": ["export", "local-python"],
+    "aspectRatios": ["16:9", "9:16", "1:1", "4:3", "2.39:1", "21:9", "1.85:1"],
+    "fps": ["24", "30", "60"],
+    "durations": ["4s", "6s", "8s", "10s", "12s", "15s", "20s"],
+    "shotTypes": [
+      "Extreme wide shot",
+      "Wide shot",
+      "Medium shot",
+      "Medium close-up",
+      "Close-up",
+      "Extreme close-up",
+      "POV",
+      "Over-the-shoulder",
+      "Two-shot",
+      "Bird's eye",
+      "Dutch angle"
+    ],
+    "cameraBodies": [
+      "ARRI Alexa Mini LF",
+      "ARRI Alexa Mini",
+      "RED Komodo 6K",
+      "RED V-Raptor",
+      "Sony FX3 S-Cinetone",
+      "Sony A7S III",
+      "Blackmagic Pocket 6K",
+      "Blackmagic URSA 12K"
+    ],
+    "lenses": [
+      "14mm wide prime",
+      "24mm prime",
+      "35mm prime",
+      "50mm prime",
+      "85mm portrait",
+      "24-70mm zoom",
+      "70-200mm zoom",
+      "1.8 anamorphic set",
+      "2x anamorphic set"
+    ],
+    "filmFormats": ["Super 16", "Super 35", "35mm film", "65mm film", "70mm film", "IMAX 70mm"]
+  },
+  "styles": {
+    "visual": [
+      "Cinematic",
+      "Documentary",
+      "Photorealistic",
+      "Anime",
+      "Stop motion",
+      "Vintage film",
+      "Noir",
+      "Sci-fi",
+      "Fantasy",
+      "Horror",
+      "Commercial",
+      "Music video",
+      "Drone aerial",
+      "Handheld raw",
+      "Studio clean",
+      "Stylized",
+      "Hyperreal",
+      "Lo-fi VHS",
+      "Watercolor",
+      "3D animated"
+    ],
+    "stylePhrases": [
+      "anamorphic 2.0x lens, shallow DOF, film grain",
+      "documentary realism, available light, observational",
+      "premium commercial, clean highlights, polished grade",
+      "film noir, low-key, deep shadows, rain-slick surfaces",
+      "music video energy, performance + B-roll, beat-synced cuts",
+      "desaturated palette with warm gold highlights",
+      "teal-orange grade, strong color separation",
+      "Kodak Vision3 500T film emulation, soft halation"
+    ],
+    "colorGrades": [
+      "Kodak 2383",
+      "Kodak Vision3 250D",
+      "Kodak Vision3 500T",
+      "Fuji Eterna",
+      "Fuji Pro 400H",
+      "teal-orange grade",
+      "Bleach bypass",
+      "Log + LUT",
+      "cinematic LUT",
+      "film emulation"
+    ]
+  },
+  "camera": {
+    "movement": [
+      "Static tripod",
+      "Locked-off camera",
+      "Slow dolly in",
+      "Slow dolly out",
+      "Dolly zoom",
+      "Pan left",
+      "Pan right",
+      "Tilt up",
+      "Tilt down",
+      "Truck left",
+      "Truck right",
+      "Tracking shot",
+      "Crane up",
+      "Crane down",
+      "Boom up",
+      "Boom down",
+      "Handheld follow",
+      "Handheld ENG",
+      "Steadicam glide",
+      "Gimbal orbit",
+      "Gimbal follow",
+      "Orbit arc",
+      "Whip pan",
+      "Zoom in",
+      "Zoom out",
+      "Rack focus",
+      "POV walk",
+      "Drone flyover",
+      "FPV chase",
+      "Macro close-up"
+    ],
+    "modifiers": ["slow", "fast", "steady", "shaky", "floating", "subtle drift", "crisp motion"],
+    "runwayTokens": [
+      "Camera pan left",
+      "Camera pan right",
+      "Camera tilt up",
+      "Camera tilt down",
+      "Truck left",
+      "Truck right",
+      "Zoom in",
+      "Zoom out",
+      "Dolly in",
+      "Dolly out",
+      "Boom up",
+      "Boom down"
+    ],
+    "framing": [
+      "shallow depth of field",
+      "deep focus",
+      "bokeh background",
+      "wide establishing",
+      "eye level",
+      "low angle",
+      "high angle",
+      "over-the-shoulder"
+    ]
+  },
+  "lighting": {
+    "quality": [
+      "soft diffuse",
+      "hard directional",
+      "volumetric",
+      "HDR specular",
+      "high contrast",
+      "low contrast"
+    ],
+    "sources": [
+      "Golden hour",
+      "Blue hour",
+      "Morning sun",
+      "Hard noon sun",
+      "Overcast soft",
+      "Neon night",
+      "Practical lamps",
+      "Window light",
+      "Overhead fluorescent",
+      "Candle warm",
+      "Cold moonlight",
+      "Stage spotlight",
+      "LED panel"
+    ],
+    "direction": [
+      "45° key right",
+      "45° key left",
+      "rim from behind",
+      "silhouette backlight",
+      "flat fill",
+      "negative fill",
+      "bounce light",
+      "top light"
+    ],
+    "terms": [
+      "rim light",
+      "edge light",
+      "back light",
+      "volumetric fog",
+      "god rays",
+      "bounce light",
+      "soft key light",
+      "hard key light",
+      "practical lights",
+      "neon reflections",
+      "light shafts",
+      "motivated practicals"
+    ],
+    "setups": [
+      "3-point lighting",
+      "High-contrast noir",
+      "Soft cinematic",
+      "Neon reflections",
+      "Stage/Arena"
+    ],
+    "palettes": [
+      "warm amber + cream + walnut",
+      "teal + coral + concrete grey",
+      "cool daylight 5600K with tungsten practicals",
+      "neon magenta + cyan + black"
+    ]
+  },
+  "mood": {
+    "sliders": ["darkness", "energy", "aggression", "emotion", "complexity", "space"],
+    "words": [
+      "tender and hopeful",
+      "tense and urgent",
+      "melancholic beauty",
+      "playful energy",
+      "epic awe",
+      "quiet intimacy",
+      "dreamlike ethereal",
+      "raw and powerful",
+      "mysterious electric",
+      "beautiful decay"
+    ],
+    "promptLines": [
+      "Mood: dreamlike, ethereal atmosphere",
+      "Mood: tense and urgent, high stakes",
+      "Mood: nostalgic warmth, gentle pacing",
+      "Mood: epic awe, wide scale"
+    ]
+  },
+  "rules": {
+    "universal": [
+      "photorealistic, consistent wardrobe, no text overlays, no watermark",
+      "stable anatomy, no extra limbs, no morphing",
+      "remains solid and rigid throughout",
+      "no clipping, no defiance of gravity",
+      "consistent lighting direction across cuts",
+      "lip-sync when vocals present",
+      "cut on beat where possible"
+    ],
+    "musicVideo": [
+      "music video: performance + B-roll",
+      "Suno track sync, bracket beats as scene cuts",
+      "hero lighting on chorus",
+      "no dialogue unless specified"
+    ],
+    "modelFixes": {
+      "morphing": "remains solid and rigid throughout",
+      "weightless": "heavy, dense, solid object physics",
+      "jitter": "one camera move only, locked tripod if drift",
+      "blur": "crisp motion, sharp subject",
+      "soraPhysics": "causal chain: impact then reaction with momentum"
+    },
+    "negativePrompts": [
+      "no text overlays",
+      "no watermark",
+      "no blurring",
+      "no morphing",
+      "no extra limbs",
+      "no background music in dialogue scenes"
+    ]
+  },
+  "models": {
+    "Sora 2": {
+      "bestFor": "physics simulation, fluid dynamics, complex interactions",
+      "tips": ["Use causal chains", "Scaffold multi-shot with timestamps", "4/8/12s most reliable"]
+    },
+    "Runway Gen-4.5": {
+      "bestFor": "commercials, VFX, product shots, kinetic camera",
+      "tips": ["Force-reaction syntax", "Exact camera tokens", "Motion Brush + text reinforce"]
+    },
+    "Kling 2.6": {
+      "bestFor": "music videos, dialogue, lip-sync",
+      "tips": ["Timeline beat script", "Dialogue under 5s per line", "Character Elements for consistency"]
+    },
+    "Veo 3.1": {
+      "bestFor": "brand series, structured JSON prompts, interpolation",
+      "tips": ["JSON cinematography block", "Start+end frame interpolation", "Reference image in prose"]
+    },
+    "Director Engine": {
+      "bestFor": "standalone prompt studio, export JSON, optional local GPU",
+      "tips": ["Use scene templates", "Wizard for beginners", "Quality presets DRAFT/STANDARD/PREMIUM"]
+    }
+  },
+  "promptTemplates": {
+    "universal": "[STYLE] [SHOT] [CAMERA] [SUBJECT+ACTION beats] [ENV] [LIGHT] [DURATION]",
+    "soraMultiShot": "Shot 1 (0-5s): [angle]+[action]. Shot 2 (5-10s): [angle]+[continuation]. Physics: [rules].",
+    "klingTimeline": "Beat 0-4s: [camera]+[scene]. Beat 4-8s: [change]+[action]. Audio: [SFX/dialogue].",
+    "veoStructured": "Cinematography: camera gear, lens, shot type, movement. Subject: description, action, expression. Lighting: key, fill, contrast.",
+    "musicVideo": "Music video for [track mood]. Structure: establishing → performance → chorus wide → hold. Cut on beat."
+  },
+  "sceneTemplates": {
+    "Synthwave highway": {
+      "topic": "a driver on a neon coastal highway at night",
+      "env": "wet asphalt, magenta/cyan sky, palm silhouettes",
+      "camera": "low tracking shot, anamorphic flare",
+      "mood": "nostalgic velocity",
+      "length": "12",
+      "fps": "24",
+      "ratio": "2.39:1"
+    },
+    "Lo-fi bedroom": {
+      "topic": "an artist writing lyrics by lamp light while rain hits the window",
+      "env": "small bedroom, vinyl records, warm clutter",
+      "camera": "static medium, gentle push-in",
+      "mood": "intimate and reflective",
+      "length": "10",
+      "fps": "24",
+      "ratio": "16:9"
+    },
+    "Trap performance": {
+      "topic": "a rapper performing under single overhead spotlight",
+      "env": "dark warehouse, haze, hard shadows",
+      "camera": "handheld orbit, whip on drop",
+      "mood": "aggressive confidence",
+      "length": "8",
+      "fps": "30",
+      "ratio": "9:16"
+    },
+    "Orchestral swell": {
+      "topic": "musicians rising in a candlelit hall as strings swell",
+      "env": "wood panels, warm haze, golden practicals",
+      "camera": "slow crane reveal",
+      "mood": "epic awe",
+      "length": "15",
+      "fps": "24",
+      "ratio": "21:9"
+    }
+  }
+}

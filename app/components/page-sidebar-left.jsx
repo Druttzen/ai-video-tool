@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { Panel, Pill, Slider } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
 import { stylePresets } from "../lib/video-config";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 
@@ -33,7 +34,11 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
 
   return (
     <aside className="space-y-4">
-      <Panel title="Style Presets" hint="Load factory or custom styles.">
+      <Panel
+        title="Style Presets"
+        hint="Load factory or custom styles."
+        actions={<PanelActions topic="presets" clearDisabled />}
+      >
         <div className="space-y-2">
           {Object.keys(stylePresets).map((name) => (
             <button
@@ -88,18 +93,33 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
       <Panel
         title="Save / Load"
         hint="Export bundle includes project state, custom style presets, and voice character profile. Legacy flat JSON still imports."
+        actions={
+          <PanelActions
+            topic="save-load"
+            onSave={saveProject}
+            onLoad={() => document.getElementById("global-import-bundle")?.click()}
+            onClear={() => {
+              if (typeof window !== "undefined" && !window.confirm("Reset entire project to defaults?")) return;
+              resetAll();
+            }}
+            clearLabel="Reset"
+          />
+        }
       >
         <div className="grid gap-2">
           <button onClick={saveProject} className="rounded-2xl bg-emerald-300 px-4 py-2 font-bold text-black hover:bg-emerald-200">
             Save Progress
           </button>
+          <button
+            type="button"
+            onClick={() => document.getElementById("global-import-bundle")?.click()}
+            className="rounded-2xl bg-white px-4 py-2 font-bold text-black hover:bg-cyan-100"
+          >
+            Import Bundle
+          </button>
           <button onClick={exportProject} className="rounded-2xl bg-cyan-300 px-4 py-2 font-bold text-black hover:bg-cyan-200">
             Export Bundle
           </button>
-          <label className="cursor-pointer rounded-2xl bg-white px-4 py-2 text-center font-bold text-black hover:bg-cyan-100">
-            Import Bundle
-            <input type="file" accept="application/json" onChange={importProject} className="hidden" />
-          </label>
           <button
             onClick={revertSnapshot}
             className="rounded-2xl border border-amber-400/40 bg-amber-500/15 px-4 py-2 font-bold text-amber-100 hover:bg-amber-500/25"
@@ -116,7 +136,7 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
         </div>
       </Panel>
 
-      <Panel title="Mode" hint="Controls stability vs creativity.">
+      <Panel title="Mode" hint="Controls stability vs creativity." actions={<PanelActions topic="global" clearDisabled />}>
         <div className="grid grid-cols-3 gap-2">
           {["Control", "Hybrid", "Chaos"].map((m) => (
             <Pill
@@ -133,7 +153,7 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
         </div>
       </Panel>
 
-      <Panel title="Pro Mode" hint="Advanced controls and stronger prompt shaping.">
+      <Panel title="Pro Mode" hint="Advanced controls and stronger prompt shaping." actions={<PanelActions topic="pro-mode" clearDisabled />}>
         <button
           onClick={() => {
             const next = !proMode;

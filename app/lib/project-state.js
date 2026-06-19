@@ -68,7 +68,8 @@ export function normalizeLoadPayload(data) {
     lyricStyle: data.lyricStyle ?? DEFAULT_STATE.lyricStyle,
     lyricDensity: data.lyricDensity ?? DEFAULT_STATE.lyricDensity,
     promptFormat: data.promptFormat ?? DEFAULT_STATE.promptFormat,
-    promptEngine: data.promptEngine ?? DEFAULT_STATE.promptEngine ?? "Standard",
+    promptEngine:
+      data.promptEngine === "Open-Sora" ? "Director" : (data.promptEngine ?? DEFAULT_STATE.promptEngine ?? "Director"),
     coProducerOutput: data.coProducerOutput ?? DEFAULT_STATE.coProducerOutput,
     generatedLyrics: data.generatedLyrics ?? DEFAULT_STATE.generatedLyrics,
     generatedLyricsStyle: data.generatedLyricsStyle ?? DEFAULT_STATE.generatedLyricsStyle ?? "",

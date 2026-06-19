@@ -1,6 +1,7 @@
 "use client";
 
 import { Panel } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
 import {
   formatPromptSymbolGuidePlain,
   formatVocalArtifactGuidePlain,
@@ -23,7 +24,11 @@ export function flattenStylePromptCatalogLines(catalog) {
  */
 export function SunoLanguageIndexPanel({ copyToClipboard, onApplyGenreAnchors }) {
   return (
-    <Panel title="Suno Language Index" hint="Community-derived prompting vocabulary (non-official).">
+    <Panel
+      title="Suno Language Index"
+      hint="Community-derived prompting vocabulary (non-official)."
+      actions={<PanelActions topic="suno-language" clearDisabled />}
+    >
       <div className="space-y-3 text-xs text-white/80">
         {sunoLanguageIndex.catalogSync?.syncedAt ? (
           <p className="rounded-2xl border border-white/10 bg-black/20 p-2 text-[10px] text-white/45">

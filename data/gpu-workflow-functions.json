@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "presets": {
+    "essentials": {
+      "label": "Essentials",
+      "description": "Scan hardware, estimate time, VRAM warnings.",
+      "functionIds": ["scan-hardware", "build-estimate", "vram-guard"]
+    },
+    "localStudio": {
+      "label": "Local GPU studio",
+      "description": "Full local render pipeline with auto-optimize and progress.",
+      "functionIds": [
+        "scan-hardware",
+        "auto-optimize",
+        "local-render",
+        "vram-guard",
+        "render-progress",
+        "build-estimate"
+      ]
+    },
+    "maxQuality": {
+      "label": "Max quality",
+      "description": "Push resolution, preset, motion, and I2V to tier limits.",
+      "functionIds": [
+        "scan-hardware",
+        "auto-optimize",
+        "max-resolution",
+        "premium-quality",
+        "motion-fx-boost",
+        "i2v-accelerated",
+        "vram-guard"
+      ]
+    },
+    "fullStack": {
+      "label": "Full GPU stack",
+      "description": "All GPU-enhanced functions enabled.",
+      "functionIds": [
+        "scan-hardware",
+        "auto-optimize",
+        "local-render",
+        "max-resolution",
+        "premium-quality",
+        "motion-fx-boost",
+        "i2v-accelerated",
+        "vram-guard",
+        "build-estimate",
+        "render-progress",
+        "seed-variations",
+        "auto-graphics-api"
+      ]
+    }
+  },
+  "functions": [
+    {
+      "id": "scan-hardware",
+      "label": "Scan GPU & RAM",
+      "description": "Detect VRAM, GPU model, CPU cores, and RAM before each GPU step.",
+      "category": "preflight",
+      "icon": "cpu",
+      "requiresElectron": false,
+      "defaultEnabled": true,
+      "hooks": ["workflow", "before_render"]
+    },
+    {
+      "id": "auto-optimize",
+      "label": "Auto-optimize build",
+      "description": "Set steps, frames, resolution, and motion to your tier maximum.",
+      "category": "optimize",
+      "requiresElectron": false,
+      "defaultEnabled": true,
+      "hooks": ["workflow", "before_render"]
+    },
+    {
+      "id": "local-render",
+      "label": "Local GPU render",
+      "description": "Switch Director to local Python pipeline when a folder is configured.",
+      "category": "render",
+      "requiresElectron": true,
+      "requiresPipeline": true,
+      "hooks": ["workflow", "before_render"]
+    },
+    {
+      "id": "max-resolution",
+      "label": "Max resolution boost",
+      "description": "Use the highest resolution tier your VRAM allows.",
+      "category": "quality",
+      "hooks": ["workflow", "before_render"]
+    },
+    {
+      "id": "premium-quality",
+      "label": "Premium quality preset",
+      "description": "Apply PREMIUM preset capped to your hardware tier.",
+      "category": "quality",
+      "hooks": ["workflow", "before_render"]
+    },
+    {
+      "id": "motion-fx-boost",
+      "label": "Motion FX boost",
+      "description": "Raise motion score to tier max for dynamic camera and movement.",
+      "category": "fx",
+      "hooks": ["workflow", "before_render"]
+    },
+    {
+      "id": "i2v-accelerated",
+      "label": "GPU image-to-video",
+      "description": "Enable I2V when a reference image is loaded for GPU-conditioned renders.",
+      "category": "fx",
+      "hooks": ["workflow", "before_render"]
+    },
+    {
+      "id": "vram-guard",
+      "label": "VRAM guard",
+      "description": "Warn or block builds when load exceeds safe VRAM limits.",
+      "category": "preflight",
+      "defaultEnabled": true,
+      "hooks": ["before_render"]
+    },
+    {
+      "id": "build-estimate",
+      "label": "Build time estimate",
+      "description": "Show estimated render duration in the load panel.",
+      "category": "ui",
+      "defaultEnabled": true,
+      "hooks": []
+    },
+    {
+      "id": "render-progress",
+      "label": "Render progress & cancel",
+      "description": "Progress bar, countdown, and cancel while building.",
+      "category": "ui",
+      "defaultEnabled": true,
+      "hooks": []
+    },
+    {
+      "id": "seed-variations",
+      "label": "Seed variations",
+      "description": "Queue extra seed variants on local GPU (2–4 clips per build).",
+      "category": "batch",
+      "requiresElectron": true,
+      "requiresPipeline": true,
+      "hooks": ["before_render"],
+      "config": { "minSeeds": 2, "maxSeeds": 4, "defaultSeeds": 3 }
+    },
+    {
+      "id": "auto-graphics-api",
+      "label": "Auto graphics API",
+      "description": "Pick DirectX, Vulkan, Metal, or CUDA/DirectML compute stack for your GPU.",
+      "category": "optimize",
+      "defaultEnabled": true,
+      "hooks": ["workflow", "before_render"]
+    }
+  ]
+}

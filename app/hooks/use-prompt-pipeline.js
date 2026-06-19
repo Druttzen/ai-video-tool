@@ -13,7 +13,10 @@ import {
   buildSunoPastedLyricsField,
   buildSunoPastedStyleLine,
 } from "../lib/suno-guided-workflow";
-import { buildOpenSoraFieldSlices, buildOpenSoraPrompt } from "../lib/open-sora-prompt-builder";
+import {
+  buildDirectorFieldSlices,
+  buildDirectorPrompt,
+} from "../lib/director-prompt-builder";
 import { applySunoPasteToSlices } from "../lib/suno-reimport";
 import { buildUsableAnalyzerStylePrompt } from "../lib/analyzer-guided-merge";
 import { buildSunoVoiceStyleCompact } from "../lib/suno-voice-style";
@@ -157,8 +160,8 @@ export function usePromptPipeline(input) {
   );
 
   const prompt = useMemo(() => {
-    if (input.promptEngine === "Open-Sora") {
-      return buildOpenSoraPrompt({
+    if (input.promptEngine === "Director" || input.promptEngine === "Open-Sora") {
+      return buildDirectorPrompt({
         idea: input.idea,
         selectedGenres: input.selectedGenres,
         selectedRhythms: input.selectedRhythms,
@@ -207,8 +210,8 @@ export function usePromptPipeline(input) {
   ]);
 
   const sunoBuiltFieldSlices = useMemo(() => {
-    if (input.promptEngine === "Open-Sora") {
-      return buildOpenSoraFieldSlices({
+    if (input.promptEngine === "Director" || input.promptEngine === "Open-Sora") {
+      return buildDirectorFieldSlices({
         idea: input.idea,
         selectedGenres: input.selectedGenres,
         selectedRhythms: input.selectedRhythms,
@@ -313,7 +316,7 @@ export function usePromptPipeline(input) {
         intensityText,
         mode: input.mode,
         voiceStyleReference: input.voiceStyleLine,
-        ...(input.promptEngine === "Sora-like" || input.promptEngine === "Open-Sora"
+        ...(input.promptEngine === "Sora-like" || input.promptEngine === "Director" || input.promptEngine === "Open-Sora"
           ? {
               pastedStyleLen: sunoFieldSlices.style.length,
               pastedLyricsLen: sunoFieldSlices.lyrics.length,

@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "outputPresets": {
+    "draft-web": {
+      "label": "Draft web",
+      "outputResolution": "640×360",
+      "fps": 24,
+      "bitrateMbps": 2,
+      "videoCodec": "h264",
+      "container": "mp4"
+    },
+    "social-hd": {
+      "label": "Social HD (720p)",
+      "outputResolution": "1280×720",
+      "fps": 30,
+      "bitrateMbps": 8,
+      "videoCodec": "h264",
+      "container": "mp4"
+    },
+    "youtube-1080": {
+      "label": "YouTube 1080p",
+      "outputResolution": "1920×1080",
+      "fps": 30,
+      "bitrateMbps": 12,
+      "videoCodec": "h264",
+      "container": "mp4"
+    },
+    "tiktok-vertical": {
+      "label": "TikTok / Reels (9:16)",
+      "outputResolution": "1080×1920",
+      "aspectRatio": "9:16",
+      "fps": 30,
+      "bitrateMbps": 8,
+      "videoCodec": "h264",
+      "container": "mp4"
+    },
+    "cinema-24": {
+      "label": "Cinema 24fps",
+      "outputResolution": "1920×1080",
+      "fps": 24,
+      "bitrateMbps": 20,
+      "videoCodec": "h265",
+      "container": "mov"
+    },
+    "4k-master": {
+      "label": "4K master",
+      "outputResolution": "3840×2160",
+      "fps": 24,
+      "bitrateMbps": 50,
+      "videoCodec": "h265",
+      "container": "mov"
+    }
+  },
+  "resolutions": [
+    { "id": "426x240", "label": "426×240 (240p)", "width": 426, "height": 240, "tier": "256px", "aspectRatio": "16:9" },
+    { "id": "640x360", "label": "640×360 (360p)", "width": 640, "height": 360, "tier": "256px", "aspectRatio": "16:9" },
+    { "id": "854x480", "label": "854×480 (480p)", "width": 854, "height": 480, "tier": "384px", "aspectRatio": "16:9" },
+    { "id": "896x512", "label": "896×512 (512 pipeline)", "width": 896, "height": 512, "tier": "512px", "aspectRatio": "16:9" },
+    { "id": "1024x576", "label": "1024×576 (576p)", "width": 1024, "height": 576, "tier": "512px", "aspectRatio": "16:9" },
+    { "id": "1280x720", "label": "1280×720 (720p HD)", "width": 1280, "height": 720, "tier": "768px", "aspectRatio": "16:9" },
+    { "id": "1920x1080", "label": "1920×1080 (1080p Full HD)", "width": 1920, "height": 1080, "tier": "1024px", "aspectRatio": "16:9" },
+    { "id": "2560x1440", "label": "2560×1440 (1440p QHD)", "width": 2560, "height": 1440, "tier": "1024px", "aspectRatio": "16:9" },
+    { "id": "3840x2160", "label": "3840×2160 (4K UHD)", "width": 3840, "height": 2160, "tier": "1024px", "aspectRatio": "16:9" },
+    { "id": "720x720", "label": "720×720 (1:1 square)", "width": 720, "height": 720, "tier": "512px", "aspectRatio": "1:1" },
+    { "id": "1080x1080", "label": "1080×1080 (1:1 square HD)", "width": 1080, "height": 1080, "tier": "768px", "aspectRatio": "1:1" },
+    { "id": "1080x1920", "label": "1080×1920 (9:16 vertical)", "width": 1080, "height": 1920, "tier": "768px", "aspectRatio": "9:16" },
+    { "id": "720x1280", "label": "720×1280 (9:16 vertical HD)", "width": 720, "height": 1280, "tier": "512px", "aspectRatio": "9:16" },
+    { "id": "2560x1080", "label": "2560×1080 (21:9 ultrawide)", "width": 2560, "height": 1080, "tier": "1024px", "aspectRatio": "21:9" }
+  ],
+  "fpsOptions": [
+    { "value": 12, "label": "12 fps (preview)" },
+    { "value": 15, "label": "15 fps" },
+    { "value": 23.976, "label": "23.976 fps (film NTSC)" },
+    { "value": 24, "label": "24 fps (cinema)" },
+    { "value": 25, "label": "25 fps (PAL)" },
+    { "value": 29.97, "label": "29.97 fps (NTSC)" },
+    { "value": 30, "label": "30 fps (web / social)" },
+    { "value": 48, "label": "48 fps (high motion)" },
+    { "value": 50, "label": "50 fps (PAL high)" },
+    { "value": 60, "label": "60 fps (smooth / gaming)" }
+  ],
+  "bitrateOptions": [
+    { "value": 1, "label": "1 Mbit/s (ultra light)" },
+    { "value": 2, "label": "2 Mbit/s (web preview)" },
+    { "value": 5, "label": "5 Mbit/s (standard web)" },
+    { "value": 8, "label": "8 Mbit/s (HD social)" },
+    { "value": 12, "label": "12 Mbit/s (1080p streaming)" },
+    { "value": 16, "label": "16 Mbit/s (high 1080p)" },
+    { "value": 20, "label": "20 Mbit/s (broadcast 1080p)" },
+    { "value": 35, "label": "35 Mbit/s (ProRes-like)" },
+    { "value": 50, "label": "50 Mbit/s (4K streaming)" },
+    { "value": 80, "label": "80 Mbit/s (4K master)" }
+  ],
+  "videoCodecs": [
+    { "value": "h264", "label": "H.264 / AVC (universal)" },
+    { "value": "h265", "label": "H.265 / HEVC (smaller files)" },
+    { "value": "vp9", "label": "VP9 (WebM / YouTube)" },
+    { "value": "av1", "label": "AV1 (modern web)" },
+    { "value": "prores", "label": "ProRes (edit master)" }
+  ],
+  "containers": [
+    { "value": "mp4", "label": "MP4 (.mp4)" },
+    { "value": "mov", "label": "QuickTime (.mov)" },
+    { "value": "webm", "label": "WebM (.webm)" },
+    { "value": "mkv", "label": "Matroska (.mkv)" }
+  ],
+  "audioCodecs": [
+    { "value": "aac", "label": "AAC (recommended)" },
+    { "value": "mp3", "label": "MP3" },
+    { "value": "opus", "label": "Opus (WebM)" },
+    { "value": "pcm", "label": "PCM (lossless)" }
+  ],
+  "audioBitrateOptions": [
+    { "value": 96, "label": "96 kbps (voice)" },
+    { "value": 128, "label": "128 kbps (standard)" },
+    { "value": 192, "label": "192 kbps (music)" },
+    { "value": 256, "label": "256 kbps (high quality)" },
+    { "value": 320, "label": "320 kbps (max AAC)" }
+  ],
+  "durationPresets": [
+    { "value": "5", "label": "5 seconds" },
+    { "value": "8", "label": "8 seconds" },
+    { "value": "10", "label": "10 seconds" },
+    { "value": "15", "label": "15 seconds" },
+    { "value": "20", "label": "20 seconds" },
+    { "value": "30", "label": "30 seconds" },
+    { "value": "60", "label": "60 seconds" }
+  ]
+}

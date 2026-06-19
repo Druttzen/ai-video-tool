@@ -35,6 +35,7 @@ export const SunoGuidedPath = memo(function SunoGuidedPath({
   onLoadCustomPreset,
   guidedStep: guidedStepProp,
   setGuidedStep: setGuidedStepProp,
+  headerActions = null,
 }) {
   const [internalStep, setInternalStep] = useState(0);
   const controlled =
@@ -96,6 +97,7 @@ export const SunoGuidedPath = memo(function SunoGuidedPath({
       <Panel
         title="Suno — guided path"
         hint="Eight guided steps + final Style/Lyrics paste (1000-char Style cap); step 1 ties to Style Presets."
+        actions={headerActions}
       >
         <p className="text-sm text-white/70">
           Set <strong className="text-cyan-200">Prompt Engine</strong> in Co-Producer to{" "}
@@ -119,6 +121,7 @@ export const SunoGuidedPath = memo(function SunoGuidedPath({
     <Panel
       title={`Suno path — ${cur.name} (${step + 1} / ${total})`}
       hint="Jump any step from the row below; load presets on step 1. Style preview builds in layers — final paste reorders for Suno."
+      actions={headerActions}
     >
       <nav className="mt-1 flex flex-wrap gap-1" aria-label="Suno guided steps">
         {SUNO_GUIDED_STEPS.map((s, i) => {

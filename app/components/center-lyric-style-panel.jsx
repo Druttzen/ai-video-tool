@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { CoProducerLyricsBlock } from "./co-producer-lyrics-block";
 import { Panel, Slider } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
 import { lyricModeOptions, lyricStyleOptions } from "../lib/video-config";
 import { SUNO_LYRIC_LANGUAGE_GROUPS } from "../lib/suno-lyric-languages";
 import { useProjectWorkspace } from "../context/project-workspace-context";
@@ -14,6 +15,16 @@ export const CenterLyricStylePanel = memo(function CenterLyricStylePanel() {
     <Panel
       title="Narrative Direction"
       hint="Scene beats, shot-list scaffolds, and narrative theme for Sora multi-beat prompts."
+      actions={
+        <PanelActions
+          topic="lyric-style"
+          onClear={() => {
+            ws.setGeneratedLyrics("");
+            ws.setGeneratedHooks("");
+            ws.setLyricTheme("");
+          }}
+        />
+      }
     >
       <div className="grid gap-3 md:grid-cols-2">
         <label>

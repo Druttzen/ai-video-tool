@@ -1,0 +1,451 @@
+{
+  "syncedAt": "2026-06-19T22:08:31.558Z",
+  "sourceRoot": "E:\\Open-Sora",
+  "config": {
+    "ui": {
+      "theme": "dark",
+      "max_history": 50
+    },
+    "pipeline": {
+      "default_steps": 24,
+      "default_cfg": 7.5,
+      "default_resolution": "640x360"
+    },
+    "gpu": {
+      "auto_profile_on_start": false
+    }
+  },
+  "cameraMoves": [
+    "dolly in",
+    "dolly out",
+    "dolly zoom",
+    "crane up",
+    "crane down",
+    "gimbal orbit",
+    "gimbal follow",
+    "steadycam walk",
+    "FPV chase",
+    "handheld shake"
+  ],
+  "lightingTerms": [
+    "rim light",
+    "edge light",
+    "back light",
+    "volumetric fog",
+    "god rays",
+    "bounce light",
+    "soft key light",
+    "hard key light",
+    "practical lights",
+    "neon reflections"
+  ],
+  "colorProfiles": [
+    "Kodak 2383",
+    "Kodak Vision3 250D",
+    "Kodak Vision3 500T",
+    "Fuji Eterna",
+    "Fuji Pro 400H",
+    "teal-orange grade",
+    "cinematic LUT",
+    "film emulation"
+  ],
+  "cameraPresets": [
+    "RED Komodo 6K",
+    "RED V-Raptor",
+    "Sony FX3 S-Cinetone",
+    "Sony A7S III",
+    "Blackmagic Pocket 6K",
+    "Blackmagic URSA 12K",
+    "ARRI Alexa Mini",
+    "ARRI Alexa Mini LF"
+  ],
+  "lensKits": [
+    "24/35/50mm prime set",
+    "14/24/35mm wide prime set",
+    "70-200mm zoom lens",
+    "24-70mm zoom lens",
+    "1.8 anamorphic set",
+    "2x anamorphic set"
+  ],
+  "filmFormats": [
+    "Super 16",
+    "Super 35",
+    "35mm film",
+    "65mm film",
+    "70mm film",
+    "IMAX 70mm",
+    "IMAX digital"
+  ],
+  "sceneTemplates": {
+    "Bil i regn": {
+      "topic": "en bil som kör genom en regnig stad",
+      "env": "blöt asfalt, reflektioner, gatlyktor",
+      "camera": "tracking shot i låg vinkel",
+      "mood": "dramatisk och intensiv",
+      "length": "8",
+      "fps": "24",
+      "ratio": "21:9"
+    },
+    "Cyberpunk-stad": {
+      "topic": "en person som går genom en neonupplyst cyberpunk-stad",
+      "env": "trånga gränder, neonljus, regn, ånga",
+      "camera": "handheld kamera nära motivet",
+      "mood": "mystisk och intensiv",
+      "length": "10",
+      "fps": "30",
+      "ratio": "16:9"
+    },
+    "Skogsdimma": {
+      "topic": "en bil som kör långsamt genom en dimmig skog",
+      "env": "tät dimma, höga träd, mjukt ljus",
+      "camera": "slow dolly framåt",
+      "mood": "lugnt men lite kusligt",
+      "length": "12",
+      "fps": "24",
+      "ratio": "21:9"
+    },
+    "Industriområde natt": {
+      "topic": "en lastbil som kör genom ett industriområde på natten",
+      "env": "starka lampor, rök, metallstrukturer",
+      "camera": "tracking shot från sidan",
+      "mood": "rå och kraftfull",
+      "length": "8",
+      "fps": "30",
+      "ratio": "16:9"
+    },
+    "Arena-show": {
+      "topic": "en artist på scen i en arena med ljusshow",
+      "env": "publik, rök, lasers, spotlights",
+      "camera": "dynamisk kamera som rör sig runt scenen",
+      "mood": "energisk och episk",
+      "length": "10",
+      "fps": "60",
+      "ratio": "16:9"
+    }
+  },
+  "styleProfiles": [
+    {
+      "name": "cinematic",
+      "label": "🎬 Cinematic",
+      "style": "cinematic, ultra detailed, 4K, natural lighting, volumetric fog, dynamic camera movement, shallow depth of field, filmic color grading"
+    },
+    {
+      "name": "documentary",
+      "label": "📹 Dokumentär",
+      "style": "documentary style, handheld camera, natural lighting, realistic colors, subtle camera motion, real-world look"
+    },
+    {
+      "name": "stylized",
+      "label": "🎨 Stylized",
+      "style": "stylized, vivid colors, high contrast, expressive lighting, artistic exaggeration, bold composition"
+    }
+  ],
+  "shotTypes": {
+    "Extreme wide shot": "extreme wide shot, environment-focused, small subject, establishing scale.",
+    "Wide shot": "wide shot, full body, environment visible, balanced framing.",
+    "Medium shot": "medium shot, waist-up, focus on subject, natural perspective.",
+    "Close-up": "close-up, strong focus on face or detail, shallow depth of field.",
+    "Extreme close-up": "extreme close-up, tiny detail, intense focus.",
+    "POV": "POV shot, immersive perspective, handheld motion.",
+    "Over-the-shoulder": "over-the-shoulder shot, subject framed from behind another person."
+  },
+  "lightingSetups": {
+    "3-point lighting": "soft key light 45°, gentle fill, subtle rim light, natural contrast.",
+    "High-contrast noir": "hard key light, deep shadows, minimal fill, strong rim light.",
+    "Soft cinematic": "large soft key, soft fill, subtle back light, low contrast.",
+    "Neon reflections": "neon practicals, reflections on wet surfaces, rim light, volumetric fog.",
+    "Stage/Arena": "strong spotlights, backlights, haze, moving beams, high contrast."
+  },
+  "colorPipelines": {
+    "Kodak 2383": "Kodak 2383 film emulation, soft halation, fine grain, warm highlights, cool shadows.",
+    "Fuji Eterna": "Fuji Eterna profile, low contrast, natural skin tones, soft colors.",
+    "Teal-Orange": "teal-orange grade, strong color separation, cinematic contrast.",
+    "Log + LUT": "log gamma capture, film LUT, gentle contrast curve."
+  },
+  "cameraRig": {
+    "cameras": [
+      "RED Komodo 6K",
+      "Sony FX3",
+      "Blackmagic Pocket 6K",
+      "ARRI Alexa Mini"
+    ],
+    "lenses": [
+      "35mm prime",
+      "50mm prime",
+      "24-70mm zoom",
+      "70-200mm zoom",
+      "1.8 anamorphic"
+    ],
+    "moves": [
+      "dolly in",
+      "gimbal orbit",
+      "crane up",
+      "FPV chase"
+    ]
+  },
+  "randomInspiration": {
+    "topics": [
+      "en lastbil som kör genom ett regnigt industriområde på natten",
+      "en motorcykel som kör genom en neonstad",
+      "en bil på en motorväg i solnedgången",
+      "en drönare som flyger över en dimmig skog",
+      "en arena-show med starka ljuseffekter och rök",
+      "en mekaniker som arbetar i ett garage med dramatiskt ljus"
+    ],
+    "envs": [
+      "regnig stadsmiljö på natten",
+      "dimhöljd skog i gryningen",
+      "industriområde med mycket rök och ljus",
+      "motorväg med ljusspår",
+      "inomhus arena med spotlights"
+    ],
+    "cameras": [
+      "drone shot ovanifrån",
+      "tracking shot i låg vinkel",
+      "handheld kamera nära motivet",
+      "slow dolly framåt"
+    ],
+    "moods": [
+      "dramatisk stämning",
+      "mystisk och lugn känsla",
+      "intensiv och energisk känsla",
+      "melankolisk men hoppfull stämning"
+    ],
+    "lengths": [
+      "6",
+      "8",
+      "10",
+      "12"
+    ],
+    "fps": [
+      "24",
+      "30",
+      "60"
+    ],
+    "ratios": [
+      "16:9",
+      "9:16",
+      "21:9"
+    ]
+  },
+  "examplePrompts": [
+    {
+      "text": "Imagine a cyberpunk close-up shot capturing the upper body of a character with an melancholic demeanor. The subject is gesturing with one hand while shaking the head"
+    },
+    {
+      "text": "A sleek red sports car speeds through a winding mountain road"
+    },
+    {
+      "text": "A group of fluffy baby chicks huddle together under a heat lamp in a rustic barn. Their soft peeping fills the air as they nudge each other for warmth. The wooden floor beneath them is strewn with straw"
+    },
+    {
+      "text": "A black-and-white film of a pianist playing in an empty theater. His fingers move deftly across the keys"
+    },
+    {
+      "text": "A wave of glowing steam crashes into a stone wall"
+    },
+    {
+      "text": "A tomato surfing on a piece of lettuce down a waterfall of ranch dressing"
+    },
+    {
+      "text": "A cheerful panda on a bustling city street"
+    },
+    {
+      "text": "A shimmering"
+    },
+    {
+      "text": "A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket"
+    },
+    {
+      "text": "Several giant wooly mammoths approach treading through a snowy meadow"
+    },
+    {
+      "text": "A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet"
+    },
+    {
+      "text": "Drone view of waves crashing against the rugged cliffs along Big Sur's garay point beach. The crashing blue waters create white-tipped waves"
+    },
+    {
+      "text": "Animated scene features a close-up of a short fluffy monster kneeling beside a melting red candle. The art style is 3D and realistic"
+    },
+    {
+      "text": "A gorgeously rendered papercraft world of a coral reef"
+    },
+    {
+      "text": "This close-up shot of a Victoria crowned pigeon showcases its striking blue plumage and red chest. Its crest is made of delicate"
+    },
+    {
+      "text": "Photorealistic closeup video of two pirate ships battling each other as they sail inside a cup of coffee."
+    },
+    {
+      "text": "A young man at his 20s is sitting on a piece of cloud in the sky"
+    },
+    {
+      "text": "Historical footage of California during the gold rush."
+    },
+    {
+      "text": "A close up view of a glass sphere that has a zen garden within it. There is a small dwarf in the sphere who is raking the zen garden and creating patterns in the sand."
+    },
+    {
+      "text": "Extreme close up of a 24 year old woman's eye blinking"
+    },
+    {
+      "text": "A cartoon kangaroo disco dances."
+    },
+    {
+      "text": "A beautiful homemade video showing the people of Lagos"
+    },
+    {
+      "text": "A petri dish with a bamboo forest growing within it that has tiny red pandas running around."
+    },
+    {
+      "text": "The camera rotates around a large stack of vintage televisions all showing different programs — 1950s sci-fi movies"
+    },
+    {
+      "text": "3D animation of a small"
+    },
+    {
+      "text": "The camera follows behind a white vintage SUV with a black roof rack as it speeds up a steep dirt road surrounded by pine trees on a steep mountain slope"
+    },
+    {
+      "text": "Reflections in the window of a train traveling through the Tokyo suburbs."
+    },
+    {
+      "text": "A drone camera circles around a beautiful historic church built on a rocky outcropping along the Amalfi Coast"
+    },
+    {
+      "text": "A large orange octopus is seen resting on the bottom of the ocean floor"
+    },
+    {
+      "text": "A flock of paper airplanes flutters through a dense jungle"
+    },
+    {
+      "text": "A cat waking up its sleeping owner demanding breakfast. The owner tries to ignore the cat"
+    },
+    {
+      "text": "Borneo wildlife on the Kinabatangan River"
+    },
+    {
+      "text": "A Chinese Lunar New Year celebration video with Chinese Dragon."
+    },
+    {
+      "text": "Tour of an art gallery with many beautiful works of art in different styles."
+    },
+    {
+      "text": "Beautiful"
+    },
+    {
+      "text": "A stop motion animation of a flower growing out of the windowsill of a suburban house."
+    },
+    {
+      "text": "The story of a robot's life in a cyberpunk setting."
+    },
+    {
+      "text": "An extreme close-up of an gray-haired man with a beard in his 60s"
+    },
+    {
+      "text": "A beautiful silhouette animation shows a wolf howling at the moon"
+    },
+    {
+      "text": "New York City submerged like Atlantis. Fish"
+    },
+    {
+      "text": "A litter of golden retriever puppies playing in the snow. Their heads pop out of the snow"
+    },
+    {
+      "text": "Step-printing scene of a person running"
+    },
+    {
+      "text": "Five gray wolf pups frolicking and chasing each other around a remote gravel road"
+    },
+    {
+      "text": "Basketball through hoop then explodes."
+    },
+    {
+      "text": "Archeologists discover a generic plastic chair in the desert"
+    },
+    {
+      "text": "A grandmother with neatly combed grey hair stands behind a colorful birthday cake with numerous candles at a wood dining room table"
+    },
+    {
+      "text": "The camera directly faces colorful buildings in Burano Italy. An adorable dalmation looks through a window on a building on the ground floor. Many people are walking and cycling along the canal streets in front of the buildings."
+    },
+    {
+      "text": "An adorable happy otter confidently stands on a surfboard wearing a yellow lifejacket"
+    },
+    {
+      "text": "This close-up shot of a chameleon showcases its striking color changing capabilities. The background is blurred"
+    },
+    {
+      "text": "A corgi vlogging itself in tropical Maui."
+    },
+    {
+      "text": "A white and orange tabby cat is seen happily darting through a dense garden"
+    },
+    {
+      "text": "Aerial view of Santorini during the blue hour"
+    },
+    {
+      "text": "Tiltshift of a construction site filled with workers"
+    },
+    {
+      "text": "A giant"
+    },
+    {
+      "text": "A Samoyed and a Golden Retriever dog are playfully romping through a futuristic neon city at night. The neon lights emitted from the nearby buildings glistens off of their fur."
+    },
+    {
+      "text": "The Glenfinnan Viaduct is a historic railway bridge in Scotland"
+    }
+  ],
+  "configPresets": [
+    {
+      "id": "t2i2v_256px",
+      "label": "T2I→Video 256px (recommended)",
+      "path": "configs/diffusion/inference/t2i2v_256px.py",
+      "resolutionTier": "256px"
+    },
+    {
+      "id": "256px",
+      "label": "Direct T2V/I2V 256px",
+      "path": "configs/diffusion/inference/256px.py",
+      "resolutionTier": "256px"
+    },
+    {
+      "id": "t2i2v_768px",
+      "label": "T2I→Video 768px (multi-GPU)",
+      "path": "configs/diffusion/inference/t2i2v_768px.py",
+      "resolutionTier": "768px"
+    },
+    {
+      "id": "768px",
+      "label": "Direct T2V/I2V 768px",
+      "path": "configs/diffusion/inference/768px.py",
+      "resolutionTier": "768px"
+    },
+    {
+      "id": "high_compression",
+      "label": "High compression DC-AE",
+      "path": "configs/diffusion/inference/high_compression.py",
+      "resolutionTier": "256px"
+    }
+  ],
+  "aspectRatios": [
+    "16:9",
+    "9:16",
+    "1:1",
+    "4:3",
+    "2.39:1",
+    "21:9",
+    "5:8",
+    "3:2",
+    "1.85:1",
+    "2:1"
+  ],
+  "motionScore": {
+    "min": 1,
+    "max": 15,
+    "default": 4,
+    "dynamic": "dynamic"
+  }
+}

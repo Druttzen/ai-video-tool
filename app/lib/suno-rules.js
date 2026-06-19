@@ -6,13 +6,13 @@ export const SUNO_STYLE_DESCRIPTOR_RANGE = { min: 4, max: 8 };
 
 /** Shared defaults for Sora-like auto-fix and blank-slate guidance. */
 export const SUNO_AUTO_FIX_DEFAULTS = {
-  genres: ["Techno"],
-  sounds: ["Heavy sub bass", "Analog synths"],
-  rhythms: ["4/4"],
-  structure: "intro → verse → pre-chorus → chorus → bridge → final chorus → outro",
-  idea: "high-impact track with clear identity, strong groove, and memorable emotional arc",
-  instrumentalRule: "no vocals, no vocal chops, no mumbled speech",
-  maxGenres: 2,
+  genres: ["Music video", "Cinematic"],
+  sounds: ["Neon night", "Mixed tungsten + LED"],
+  rhythms: ["Tracking shot", "Medium cut rhythm"],
+  structure: "establishing wide → performance → chorus lift → emotional hold",
+  idea: "music video synced to Suno track — performance, B-roll, cut on beat",
+  instrumentalRule: "no dialogue, music-driven visuals, lip-sync when vocals present",
+  maxGenres: 3,
 };
 
 /**

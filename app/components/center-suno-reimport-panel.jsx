@@ -2,6 +2,7 @@
 
 import { memo, useMemo } from "react";
 import { Panel } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 import { buildSunoPasteDiff, hasSunoPasteContent } from "../lib/suno-reimport";
 
@@ -27,8 +28,16 @@ export const CenterSunoReimportPanel = memo(function CenterSunoReimportPanel() {
   return (
     <Panel
       title="Suno Re-import"
-      hint="Paste finished Suno Style/Lyrics, compare to your project-built paste, then apply or use for copy."
+      hint="Paste finished Suno Style/Lyrics, compare to your project-built paste, then apply to music video or use for copy."
       data-testid="suno-reimport-panel"
+      actions={
+        <PanelActions
+          topic="suno-reimport"
+          onLoad={() => ws.captureSunoPasteFromProject()}
+          loadLabel="Capture"
+          onClear={() => ws.clearSunoPaste()}
+        />
+      }
     >
       <p className="mb-3 text-[11px] leading-relaxed text-white/50">
         After a Suno generation pass, paste the Style and Lyrics fields back here. Compare shows what
@@ -99,6 +108,15 @@ export const CenterSunoReimportPanel = memo(function CenterSunoReimportPanel() {
             Use pasted for copy
           </button>
         )}
+        <button
+          type="button"
+          data-testid="suno-reimport-apply-music-video"
+          onClick={ws.applySunoPasteToMusicVideo}
+          disabled={!hasPaste}
+          className="rounded-2xl bg-violet-300 px-4 py-2 text-sm font-bold text-black hover:bg-violet-200 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Apply to music video project
+        </button>
         <button
           type="button"
           data-testid="suno-reimport-apply-lyrics"

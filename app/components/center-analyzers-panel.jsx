@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { AudioTrackEditor } from "./audio-track-editor";
 import { DropBox, Panel } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
 import { IMAGE_ANALYZER_DISCLAIMER } from "../lib/analyzer-disclaimer";
 import {
   SUPPORTED_AUDIO_ACCEPT,
@@ -25,7 +26,17 @@ export const CenterAnalyzersPanel = memo(function CenterAnalyzersPanel() {
     <>
       <Panel
         title="Drag & Drop Analyzers"
-        hint="Optional Polish-step tools — track report with waveform, LUFS/dBTP meter, studio WAV export (Streaming −14 LUFS), merge into Suno fields, Goal, and Notes. Image DNA uses compact AUDIO:/IMAGE: lines for the 1000-character Style cap."
+        hint="Optional Polish-step tools — track report with waveform, LUFS/dBTP meter, studio WAV export. Merge into Suno fields (Sora-like) or map track to music video (Director)."
+        data-testid="analyzers-panel"
+        actions={
+          <PanelActions
+            topic="analyzers"
+            onClear={() => {
+              ws.clearAudioAnalysis();
+              ws.clearImageAnalysis();
+            }}
+          />
+        }
       >
         <div
           className={`mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-2xl border px-3 py-2 font-mono text-[11px] leading-snug ${
@@ -71,6 +82,10 @@ export const CenterAnalyzersPanel = memo(function CenterAnalyzersPanel() {
                 onApply={() => {
                   ws.captureSnapshot("before audio merge");
                   ws.applyAudioToSunoStyle();
+                }}
+                onApplyMusicVideo={() => {
+                  ws.captureSnapshot("before track → music video");
+                  ws.applyAudioToMusicVideo();
                 }}
                 onClear={ws.clearAudioAnalysis}
                 onAttachAudio={ws.attachAudioFile}

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "profiles": {
+    "quick-smoke": {
+      "label": "Quick smoke test",
+      "description": "Fastest run to verify pipeline — ~35% of your tier.",
+      "loadFactor": 0.35,
+      "qualityPreset": "DRAFT"
+    },
+    "balanced": {
+      "label": "Balanced benchmark",
+      "description": "Middle ground for timing baselines — ~65% of tier limits.",
+      "loadFactor": 0.65
+    },
+    "recommended": {
+      "label": "Recommended for your project",
+      "description": "Matched to project complexity and hardware headroom.",
+      "loadFactor": null
+    },
+    "max-safe": {
+      "label": "Max safe quality",
+      "description": "Highest settings that stay within VRAM/RAM limits (~95%).",
+      "loadFactor": 0.95,
+      "qualityPreset": null
+    }
+  }
+}

@@ -5,6 +5,7 @@ import {
   buildAudioAnalyzerPatch,
   buildImageAnalyzerPatch,
 } from "../lib/analyzer-guided-merge";
+import { buildMusicVideoPatchFromAudio } from "../lib/music-video-bridge";
 import {
   isSupportedAudioFile,
   isSupportedImageFile,
@@ -336,6 +337,15 @@ export function useAnalyzers({
     setGuidedStep(resolvePolishStepIndex());
   }, [setGuidedStep]);
 
+  const applyAudioToMusicVideo = useCallback(() => {
+    if (!audioAnalysis) {
+      setStatusWithTime("No audio analysis yet");
+      return;
+    }
+    applyAnalyzerPatch(buildMusicVideoPatchFromAudio(audioAnalysis, formatTime));
+    setStatusWithTime("Suno track mapped to music video fields — open Director to render");
+  }, [audioAnalysis, applyAnalyzerPatch, setStatusWithTime]);
+
   const applyAudioToSunoStyle = useCallback(() => {
     if (!audioAnalysis) {
       setStatusWithTime("No audio analysis yet");
@@ -523,6 +533,7 @@ export function useAnalyzers({
     attachAudioFile,
     analyzeAudioFile,
     analyzeImageFile,
+    applyAudioToMusicVideo,
     applyAudioToSunoStyle,
     applyImageToSunoStyle,
     audioAnalysis,

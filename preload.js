@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("app-update-status", handler);
     return () => ipcRenderer.removeListener("app-update-status", handler);
   },
-  launchOpenSoraJob: (payload) => ipcRenderer.invoke("open-sora:launch-job", payload),
-  openOpenSoraUi: (payload) => ipcRenderer.invoke("open-sora:open-ui", payload),
+  launchDirectorJob: (payload) => ipcRenderer.invoke("director:launch-job", payload),
+  launchOpenSoraJob: (payload) => ipcRenderer.invoke("director:launch-job", payload),
+  getSystemStats: () => ipcRenderer.invoke("system:get-stats"),
+  getDirectorBuildStatus: (payload) => ipcRenderer.invoke("director:get-build-status", payload),
+  cancelDirectorBuild: (payload) => ipcRenderer.invoke("director:cancel-build", payload),
 });

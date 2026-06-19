@@ -59,7 +59,9 @@ import {
   mergeCustomPresetsMaps,
   parseProjectBundleImport,
 } from "../lib/project-bundle";
+import { saveGpuWorkflowSettings } from "../lib/gpu-workflow-functions";
 import { extractLyricsBodyFromPaste } from "../lib/suno-reimport";
+import { buildMusicVideoPatchFromBoth, buildMusicVideoPatchFromSunoPaste } from "../lib/music-video-bridge";
 import { collectGenreAnchors } from "../lib/suno-language-index";
 import { buildStyleDnaPatch } from "../lib/track-style-dna";
 import { resolvePolishStepIndex } from "../lib/suno-guided-workflow";
@@ -257,6 +259,11 @@ export function useProjectActions({
     setStatusWithTime("Applied genre anchors");
   }, [selectedGenres, setRules, setSelectedRhythms, setSelectedSounds, setStatusWithTime]);
 
+  const clearVariations = useCallback(() => {
+    setVariations([]);
+    setStatusWithTime("Variations cleared");
+  }, [setVariations, setStatusWithTime]);
+
   const saveProject = useCallback(() => {
     const slim = attachCharacterVoiceFieldsToProjectExport(slimStateForPersistence(currentState));
     const payload = JSON.stringify(slim, null, 2);
@@ -292,7 +299,7 @@ export function useProjectActions({
         try {
           captureSnapshot("before import");
           const raw = JSON.parse(String(reader.result));
-          const { project, customPresets: importedPresets } = parseProjectBundleImport(raw);
+          const { project, customPresets: importedPresets, gpuWorkflow } = parseProjectBundleImport(raw);
           const cvPresets = extractCharacterVoicePresetsFromProject(project);
           if (cvPresets && Object.keys(cvPresets).length > 0) {
             const presetResult = persistCharacterVoicePresets(cvPresets, { merge: true });
@@ -313,6 +320,9 @@ export function useProjectActions({
               }
               return next;
             });
+          }
+          if (gpuWorkflow) {
+            saveGpuWorkflowSettings(gpuWorkflow);
           }
           loadState(migrateImportedProject(project, APP_VERSION));
           setStatusWithTime("Imported project bundle");
@@ -889,16 +899,57 @@ Variation ${i + 1}: keep the core identity, change texture and movement without 
     setStatusWithTime,
   ]);
 
+  const applySunoPasteToMusicVideo = useCallback(() => {
+    if (!sunoPasteStyle?.trim() && !sunoPasteLyrics?.trim()) {
+      setStatusWithTime("Paste Suno Style and/or Lyrics first");
+      return;
+    }
+    captureSnapshot("before Suno → music video merge");
+    patch(buildMusicVideoPatchFromSunoPaste(sunoPasteStyle, sunoPasteLyrics));
+    setStatusWithTime("Suno paste applied to music video project — open Director tab");
+  }, [captureSnapshot, patch, setStatusWithTime, sunoPasteLyrics, sunoPasteStyle]);
+
+  const applyMusicVideoFromBoth = useCallback(() => {
+    const hasTrack = Boolean(audioAnalysis);
+    const hasPaste = Boolean(sunoPasteStyle?.trim() || sunoPasteLyrics?.trim());
+    if (!hasTrack && !hasPaste) {
+      setStatusWithTime("Add an analyzed track and/or Suno paste first");
+      return;
+    }
+    const formatTime = (sec) => {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}:${String(s).padStart(2, "0")}`;
+    };
+    captureSnapshot("before track + Suno → music video merge");
+    patch(
+      buildMusicVideoPatchFromBoth(
+        audioAnalysis,
+        sunoPasteStyle,
+        sunoPasteLyrics,
+        formatTime,
+      ),
+    );
+    setStatusWithTime("Track + Suno paste merged into music video — open Director tab");
+  }, [
+    audioAnalysis,
+    captureSnapshot,
+    patch,
+    setStatusWithTime,
+    sunoPasteLyrics,
+    sunoPasteStyle,
+  ]);
+
   const applyStyleDnaToProject = useCallback(
     (dna) => {
       if (!dna) return;
       captureSnapshot("before style DNA merge");
       patch(buildStyleDnaPatch(dna));
-      if (promptEngine !== "Sora-like") {
-        setPromptEngine("Sora-like");
+      if (promptEngine !== "Director") {
+        setPromptEngine("Director");
       }
       setGuidedStep(resolvePolishStepIndex());
-      setStatusWithTime(`Applied Style DNA: ${dna.artist} — ${dna.title}`);
+      setStatusWithTime(`Applied Style DNA to music video: ${dna.artist} — ${dna.title}`);
     },
     [captureSnapshot, patch, promptEngine, setGuidedStep, setPromptEngine, setStatusWithTime],
   );
@@ -953,11 +1004,14 @@ Variation ${i + 1}: keep the core identity, change texture and movement without 
     addLyricsFromInstrumentalTrack,
     applyGenreAnchors,
     applyPastedLyricsToGenerated,
+    applyMusicVideoFromBoth,
+    applySunoPasteToMusicVideo,
     applyStyleDnaToProject,
     applyPreset,
     applyQuickFix,
     buildCoProducerAI,
     captureSunoPasteFromProject,
+    clearVariations,
     clearHistory,
     clearSunoPaste,
     coProducer,

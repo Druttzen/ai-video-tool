@@ -2,6 +2,8 @@
 
 import { memo } from "react";
 import { Panel, Slider } from "./ui-blocks";
+import { PanelActions } from "./panel-actions";
+import { DEFAULT_STATE } from "../lib/video-config";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 
 const MOOD_SLIDERS = [
@@ -17,7 +19,13 @@ export const CenterMoodPanel = memo(function CenterMoodPanel() {
   const ws = useProjectWorkspace();
 
   return (
-    <Panel title="Step 2 — Mood Sliders" hint="Shape the feeling without typing.">
+    <Panel
+      title="Step 2 — Mood Sliders"
+      hint="Shape the feeling without typing."
+      actions={
+        <PanelActions topic="mood" onClear={() => ws.setMood({ ...DEFAULT_STATE.mood })} />
+      }
+    >
       <div className="grid gap-3 md:grid-cols-3">
         {MOOD_SLIDERS.map(([label, left, right, key]) => (
           <Slider
