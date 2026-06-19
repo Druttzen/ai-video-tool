@@ -1,0 +1,150 @@
+import {
+  mergeVisualOptions,
+  openSoraCameraMoves,
+  openSoraColorProfiles,
+  openSoraLightingTerms,
+} from "./open-sora-terms";
+
+/** Visual style chips — base set + Open-Sora color profiles. */
+export const visualStyleOptions = mergeVisualOptions(
+  [
+    "Cinematic",
+    "Documentary",
+    "Photorealistic",
+    "Anime",
+    "Stop motion",
+    "Vintage film",
+    "Noir",
+    "Sci-fi",
+    "Fantasy",
+    "Horror",
+    "Commercial",
+    "Music video",
+    "Drone aerial",
+    "Handheld raw",
+    "Studio clean",
+  ],
+  openSoraColorProfiles,
+);
+
+/** Camera motion — base + Open-Sora camera_terms.py */
+export const cameraMotionOptions = mergeVisualOptions(
+  [
+    "Static tripod",
+    "Slow dolly in",
+    "Slow dolly out",
+    "Tracking shot",
+    "Crane up",
+    "Crane down",
+    "Handheld follow",
+    "Orbit arc",
+    "POV walk",
+    "Whip pan",
+    "Zoom push",
+    "Drone flyover",
+    "Steadicam glide",
+    "Macro close-up",
+  ],
+  openSoraCameraMoves,
+);
+
+/** Lighting — base + Open-Sora lighting_terms.py */
+export const lightingOptions = mergeVisualOptions(
+  [
+    "Golden hour",
+    "Blue hour",
+    "Hard noon sun",
+    "Overcast soft",
+    "Neon night",
+    "Practical lamps",
+    "Silhouette backlight",
+    "Low-key noir",
+    "High-key studio",
+    "Volumetric haze",
+    "Rain reflections",
+    "Candle warm",
+    "Cold moonlight",
+    "Mixed tungsten + LED",
+  ],
+  openSoraLightingTerms,
+);
+
+export const pacingOptions = [
+  "Single continuous shot",
+  "Slow meditative",
+  "Medium cut rhythm",
+  "Fast montage",
+  "Match-cut sequence",
+  "One-take illusion",
+  "Jump-cut energy",
+  "Cross-dissolve dream",
+];
+
+export const stylePresets = {
+  "Cinematic Opening": {
+    visualStyles: ["Cinematic", "Photorealistic"],
+    cameraMotions: ["Slow dolly in", "Crane up"],
+    lighting: ["Golden hour", "Volumetric haze"],
+    pacing: ["Slow meditative"],
+    aspect: "16:9",
+    duration: "10s",
+    structure: "establishing wide → subject reveal → emotional close",
+    mood: { warmth: 55, tension: 35, energy: 40, realism: 85, scale: 70, intimacy: 45 },
+    rules: "film grain subtle, natural skin tones, no text overlays, no watermark",
+  },
+  "Documentary Moment": {
+    visualStyles: ["Documentary", "Handheld raw"],
+    cameraMotions: ["Handheld follow", "Static tripod"],
+    lighting: ["Overcast soft", "Practical lamps"],
+    pacing: ["Medium cut rhythm"],
+    aspect: "16:9",
+    duration: "12s",
+    structure: "context wide → interview angle → detail insert",
+    mood: { warmth: 50, tension: 25, energy: 35, realism: 90, scale: 40, intimacy: 65 },
+    rules: "authentic locations, natural dialogue pacing, no staged commercial look",
+  },
+  "Neon Night Chase": {
+    visualStyles: ["Cinematic", "Noir"],
+    cameraMotions: ["Tracking shot", "Whip pan"],
+    lighting: ["Neon night", "Rain reflections"],
+    pacing: ["Fast montage"],
+    aspect: "2.39:1",
+    duration: "15s",
+    structure: "alley intro → sprint tracking → skid close → breath hold",
+    mood: { warmth: 20, tension: 85, energy: 90, realism: 75, scale: 55, intimacy: 30 },
+    rules: "wet pavement reflections, consistent wardrobe, no shaky unreadable frames",
+  },
+  "Anime Action Beat": {
+    visualStyles: ["Anime"],
+    cameraMotions: ["Orbit arc", "Zoom push"],
+    lighting: ["High-key studio", "Cold moonlight"],
+    pacing: ["Fast montage"],
+    aspect: "16:9",
+    duration: "8s",
+    structure: "wind-up pose → impact frame → debris float → hero hold",
+    mood: { warmth: 45, tension: 70, energy: 95, realism: 30, scale: 60, intimacy: 40 },
+    rules: "clean line art, saturated accents, readable silhouettes, no live-action mix",
+  },
+  "Product Hero": {
+    visualStyles: ["Commercial", "Studio clean"],
+    cameraMotions: ["Orbit arc", "Macro close-up"],
+    lighting: ["High-key studio", "Silhouette backlight"],
+    pacing: ["Slow meditative"],
+    aspect: "1:1",
+    duration: "6s",
+    structure: "dark void → rim light reveal → orbit hero → logo-safe hold",
+    mood: { warmth: 50, tension: 15, energy: 35, realism: 88, scale: 35, intimacy: 50 },
+    rules: "premium reflections, no fingerprints, label legible, no busy background",
+  },
+  "Dream Sequence": {
+    visualStyles: ["Fantasy", "Vintage film"],
+    cameraMotions: ["Steadicam glide", "Slow dolly in"],
+    lighting: ["Volumetric haze", "Mixed tungsten + LED"],
+    pacing: ["Cross-dissolve dream"],
+    aspect: "16:9",
+    duration: "20s",
+    structure: "soft open → floating drift → surreal scale shift → gentle return",
+    mood: { warmth: 60, tension: 20, energy: 25, realism: 40, scale: 80, intimacy: 70 },
+    rules: "soft focus edges ok, slow motion acceptable, avoid harsh cuts",
+  },
+};

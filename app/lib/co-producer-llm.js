@@ -1,0 +1,168 @@
+/**
+ * Optional OpenAI-compatible LLM backend for Co-Producer lyrics.
+ * API keys stay in localStorage only — never sent to this app's server.
+ */
+
+import { getLyricStyleDirection, prependVoiceCharacterToLyrics, resolveVoiceLyricContext } from "./lyric-generator";
+import { safeLocalStorage } from "./safe-local-storage";
+import {
+  formatSunoLyricSectionTag,
+  getLanguageHeaderLine,
+  getSunoLanguagePromptRules,
+} from "./suno-lyric-languages";
+
+export const LLM_SETTINGS_KEY = "ai_video_creator_co_producer_llm_v1";
+
+/** Default OpenAI-compatible lyrics request timeout (ms). */
+export const LLM_REQUEST_TIMEOUT_MS = 60_000;
+
+export const DEFAULT_LLM_SETTINGS = {
+  enabled: false,
+  apiUrl: "https://api.openai.com/v1/chat/completions",
+  apiKey: "",
+  model: "gpt-4o-mini",
+};
+
+export function loadCoProducerLlmSettings() {
+  if (typeof window === "undefined") return { ...DEFAULT_LLM_SETTINGS };
+  const parsed = safeLocalStorage.getJSON(LLM_SETTINGS_KEY, null);
+  if (!parsed) return { ...DEFAULT_LLM_SETTINGS };
+  return { ...DEFAULT_LLM_SETTINGS, ...parsed };
+}
+
+export function saveCoProducerLlmSettings(settings) {
+  if (typeof window === "undefined") return;
+  const next = { ...DEFAULT_LLM_SETTINGS, ...settings, apiKey: String(settings.apiKey || "") };
+  safeLocalStorage.setJSON(LLM_SETTINGS_KEY, next);
+}
+
+export function isCoProducerLlmReady(settings) {
+  return (
+    !!settings?.enabled &&
+    !!String(settings.apiKey || "").trim() &&
+    !!String(settings.apiUrl || "").trim()
+  );
+}
+
+/**
+ * @param {object} input
+ * @returns {{ system: string, user: string, styleLabel: string, styleDirection: string, mode: string, language: string }}
+ */
+export function buildCoProducerLlmMessages(input) {
+  const styleLabel = input.lyricStyle || "Dark poetic";
+  const styleDirection = getLyricStyleDirection(styleLabel);
+  const theme = String(input.lyricTheme || input.idea || "the night").trim();
+  const mode = input.lyricMode || "Structured Song";
+  const language = input.lyricLanguage || "English";
+  const languageRules = getSunoLanguagePromptRules(language);
+  const langHeader = getLanguageHeaderLine(language);
+  const verseTag = formatSunoLyricSectionTag("Verse 1", language);
+  const chorusTag = formatSunoLyricSectionTag("Chorus", language);
+  const density =
+    Number(input.lyricDensity) < 35
+      ? "sparse, minimal words"
+      : Number(input.lyricDensity) > 70
+        ? "dense, detailed flow"
+        : "balanced, hook-focused";
+  const voiceCtx = resolveVoiceLyricContext(input);
+  const voiceSystemLines = [
+    voiceCtx.vocalRole ? `Vocal role for delivery: ${voiceCtx.vocalRole}` : "",
+    voiceCtx.deliveryHint ? `Trait-based delivery (match in lyrics): ${voiceCtx.deliveryHint}` : "",
+    voiceCtx.vocalTag ? `Include this lyric metatag near the top when appropriate: ${voiceCtx.vocalTag}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const system = `You write lyrics for Suno AI music generation.
+Style: ${styleLabel} — ${styleDirection}
+Language: ${language}
+${languageRules}
+Lyric mode: ${mode}
+${voiceSystemLines ? `${voiceSystemLines}\n` : ""}Rules:
+- Use section tags like ${verseTag} and ${chorusTag} for song modes.
+- ${langHeader ? `Include a top line: ${langHeader}` : "Use standard [Intro]/[Outro] tags when language is flexible."}
+- For Raw Prompt mode, output bracketed [direction] lines only — no full sung lyrics.
+- Keep lines short and singable; strong repeatable chorus.
+- Do not explain your choices; output lyrics only.`;
+
+  const user = `Theme: ${theme}
+Mood: ${input.moodWords || "neutral"}
+Structure: ${input.lyricStructure || "verse → chorus"}
+Density: ${density}
+Genres: ${(input.selectedGenres || []).join(", ") || "electronic"}
+${voiceCtx.deliveryHint ? `Vocal delivery traits: ${voiceCtx.deliveryHint}` : ""}
+
+Write ${mode === "Raw Prompt" ? "bracketed lyric direction" : `full lyrics in ${language} with language-declared section tags`}.`;
+
+  return { system, user, styleLabel, styleDirection, mode, language };
+}
+
+/**
+ * @param {object} input — same shape as generateCoProducerLyrics input
+ * @param {object} settings
+ * @param {{ timeoutMs?: number, signal?: AbortSignal }} [options]
+ * @returns {Promise<{ lyrics: string, styleLabel: string, styleDirection: string, source: "llm" }>}
+ */
+export async function generateLyricsWithLlm(input, settings, options = {}) {
+  const { system, user, styleLabel, styleDirection, mode, language } = buildCoProducerLlmMessages(input);
+  const timeoutMs = options.timeoutMs ?? LLM_REQUEST_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  if (options.signal) {
+    if (options.signal.aborted) {
+      clearTimeout(timeoutId);
+      controller.abort();
+    } else {
+      options.signal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+  }
+
+  try {
+    const res = await fetch(String(settings.apiUrl).trim(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${String(settings.apiKey).trim()}`,
+      },
+      body: JSON.stringify({
+        model: settings.model || DEFAULT_LLM_SETTINGS.model,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        temperature: 0.85,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(`LLM request failed (${res.status})${errText ? `: ${errText.slice(0, 120)}` : ""}`);
+    }
+
+    const data = await res.json();
+    const lyrics = String(data?.choices?.[0]?.message?.content || "").trim();
+    if (!lyrics) throw new Error("LLM returned empty lyrics");
+
+    const header = getLanguageHeaderLine(language);
+    const voiceCtx = resolveVoiceLyricContext(input);
+    const body =
+      mode === "Raw Prompt"
+        ? lyrics
+        : `${header ? `${header}\n\n` : ""}[Style: ${styleLabel} — ${styleDirection}]\n\n${lyrics}`;
+    return {
+      lyrics: prependVoiceCharacterToLyrics(body, voiceCtx),
+      styleLabel,
+      styleDirection,
+      source: "llm",
+    };
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new Error(`LLM request timed out after ${Math.round(timeoutMs / 1000)}s`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}

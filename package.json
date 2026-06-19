@@ -1,0 +1,86 @@
+{
+  "name": "ai-video-tool",
+  "version": "0.2.0",
+  "description": "AI Video Creator — Sora-style scene prompts, visual controls, reference analyzers, and studio export",
+  "author": "DJ M@D",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "next dev",
+    "debug": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/debug-dev.ps1",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-dev.ps1",
+    "cleanup:dist": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/cleanup-locked-electron-dist.ps1",
+    "cleanup:dist:admin": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-cleanup-elevated.ps1",
+    "cleanup:sudo": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/enable-sudo-and-cleanup.ps1",
+    "cleanup:dist:sudo": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"sudo powershell -NoProfile -ExecutionPolicy Bypass -File scripts/cleanup-locked-electron-dist.ps1\"",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "sync:suno-catalog": "node scripts/sync-suno-catalog.cjs",
+    "sync:open-sora-terms": "node scripts/sync-open-sora-terms.cjs",
+    "check": "npm run test && npm run lint && npm run build",
+    "build": "next build",
+    "electron": "electron .",
+    "build:readme-pdf": "node scripts/generate-readme-pdf.cjs",
+    "prepare:electron-dist": "node scripts/prep-electron-dist.cjs",
+    "dist": "npm run build && npm run build:readme-pdf && npm run prepare:electron-dist && node scripts/run-electron-builder.cjs"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3",
+    "lamejs": "^1.2.1",
+    "next": "16.2.7",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.1",
+    "@tailwindcss/postcss": "^4.2.4",
+    "electron": "41.3.0",
+    "electron-builder": "26.8.1",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "16.2.4",
+    "fake-indexeddb": "^6.2.5",
+    "pdfkit": "^0.18.0",
+    "tailwindcss": "^4.2.4",
+    "vitest": "^4.1.8"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
+  },
+  "build": {
+    "appId": "com.djmad.aivideocreator",
+    "productName": "AI Video Creator",
+    "files": [
+      "main.js",
+      "preload.js",
+      "out/**/*",
+      "icon.ico"
+    ],
+    "extraResources": [
+      "build/AI_Music_Creator_README.pdf"
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "electron-dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Druttzen",
+        "repo": "ai-video-tool",
+        "releaseType": "release"
+      }
+    ]
+  }
+}
