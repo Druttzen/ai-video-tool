@@ -73,7 +73,8 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - `app/lib/video-config.js` — default project state + factory presets
 - `app/lib/video-visual-styles.js` — visual style / camera / lighting chips
-- `app/lib/sora-limits.js` — Sora prompt length guidance
+- `app/lib/open-sora-prompt-builder.js` — job JSON + natural-language prompt for Open-Sora
+- `scripts/run-open-sora-job.py` — pipeline runner invoked by Electron Send
 - `app/hooks/` — workspace, pipeline, persistence (same pattern as music tool)
 - `app/components/` — panels (labels adapted for video)
 
