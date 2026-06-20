@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -63,6 +63,7 @@
       "scripts/run-open-sora-job.py",
       "scripts/sync-open-sora-catalog.cjs",
       "scripts/lib/environment-scan.cjs",
+      "scripts/lib/open-sora-paths.cjs",
       "scripts/lib/addon-updater.cjs",
       "data/addon-updates-manifest.json"
     ],
