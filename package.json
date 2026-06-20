@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -72,6 +72,7 @@
       "scripts/lib/addon-paths.cjs",
       "scripts/lib/addon-platform.cjs",
       "scripts/lib/tool-installer.cjs",
+      "scripts/lib/setup-hub-console.cjs",
       "scripts/lib/addon-updater.cjs",
       "scripts/tool-installer.cjs",
       "scripts/wsl-addon-bootstrap.sh",

@@ -1180,16 +1180,23 @@ async function updateAllAddons(params) {
     if (addonId === "git" && !(await gitAvailable())) {
       const gitResult = await updateGit({ manifest });
       results.push({ id: addonId, ...gitResult });
+      if (params.onProgress) {
+        params.onProgress({ phase: "addon-done", addonId, item: { id: addonId, ...gitResult } });
+      }
       continue;
     }
 
     if (addonId === "open-sora" && !(await gitAvailable())) {
-      results.push({
+      const skipped = {
         id: addonId,
         ok: true,
         skipped: true,
         message: "Install Git first — Open-Sora clone requires git on PATH",
-      });
+      };
+      results.push(skipped);
+      if (params.onProgress) {
+        params.onProgress({ phase: "addon-done", addonId, item: skipped });
+      }
       continue;
     }
 

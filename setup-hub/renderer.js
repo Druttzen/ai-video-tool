@@ -61,6 +61,10 @@
       statusText.textContent = payload.message;
     }
 
+    if (payload.phase === "audit-scan" && payload.message) {
+      appendLog("Windows: CMD progress window should be open for live install output.", "ok");
+    }
+
     if (ACTIVE_PHASES.has(payload.phase)) {
       statusCard.classList.remove("success", "error");
       progressBar.classList.remove("done");

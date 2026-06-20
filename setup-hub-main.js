@@ -8,6 +8,7 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 const { defaultUserDataPath } = require("./scripts/lib/open-sora-paths.cjs");
 const { forceInstallPipeline } = require("./scripts/lib/tool-installer.cjs");
+const { createProgressReporter } = require("./scripts/lib/setup-hub-console.cjs");
 
 const pkg = require("./package.json");
 
@@ -50,11 +51,13 @@ async function runAutoSetup() {
   setupRunning = true;
 
   const userDataPath = app.getPath("userData");
+  const progressConsole = createProgressReporter(userDataPath, { version: pkg.version, openConsole: true });
 
   try {
     const pipeline = await forceInstallPipeline({
       userDataPath,
       onProgress: (payload) => {
+        progressConsole.report(payload);
         sendProgress(payload);
         if (payload.phase === "addon-done" && payload.item) {
           sendProgress({
@@ -93,11 +96,21 @@ async function runAutoSetup() {
       safe: pipeline.safe,
       results: pipeline.results,
       proceed,
+      consoleLog: progressConsole.logPath,
+    });
+
+    progressConsole.finish({
+      ok: safeOk && pipeline.ok,
+      message: safeOk
+        ? "All critical addons verified — safe scan passed."
+        : pipeline.safe?.summary || "Setup finished — check errors above.",
     });
 
     return pipeline;
   } catch (e) {
     const message = e?.message || String(e);
+    progressConsole.report({ phase: "error", message, ok: false });
+    progressConsole.finish({ ok: false, message });
     sendProgress({ phase: "error", ok: false, error: message });
     return { ok: false, error: message };
   } finally {

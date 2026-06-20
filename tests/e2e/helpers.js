@@ -1,31 +1,56 @@
 import { expect } from "@playwright/test";
 
+/** Must match app/hooks/use-splash-seen.js */
+export const SPLASH_SEEN_KEY = "ai_music_splash_seen";
 export const FACTORY_PRESET = "Cinematic Opening";
 export const STORAGE_KEY = "ai_video_creator_visual_tool_v1";
 export const DIRECTOR_SETTINGS_KEY = "ai_video_creator_director_settings_v1";
 
+export async function markSplashSeenInitScript(page) {
+  await page.addInitScript((key) => {
+    try {
+      sessionStorage.setItem(key, "1");
+    } catch {
+      /* ignore */
+    }
+  }, SPLASH_SEEN_KEY);
+}
+
 export async function clearProjectStorage(page) {
-  await page.addInitScript(() => {
+  await page.addInitScript((splashKey) => {
     if (sessionStorage.getItem("__e2e_storage_cleared__")) return;
     localStorage.clear();
+    try {
+      sessionStorage.setItem(splashKey, "1");
+    } catch {
+      /* ignore */
+    }
     sessionStorage.setItem("__e2e_storage_cleared__", "1");
-  });
+  }, SPLASH_SEEN_KEY);
 }
 
 export async function dismissSplash(page) {
+  await markSplashSeenInitScript(page);
   await page.goto("/");
-  await page.waitForLoadState("networkidle");
-  await skipSplashIfVisible(page);
+  await page.waitForLoadState("domcontentloaded");
+  await waitForSplashClosed(page);
 }
 
 export async function skipSplashIfVisible(page) {
-  const skip = page.getByRole("button", { name: "Skip intro" });
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click();
-  } else {
+  await waitForSplashClosed(page);
+}
+
+async function waitForSplashClosed(page) {
+  const skip = page.getByTestId("splash-skip-intro");
+  const visible = await skip.isVisible({ timeout: 2500 }).catch(() => false);
+  if (!visible) return;
+
+  await skip.click({ force: true, timeout: 3000 }).catch(async () => {
     await page.keyboard.press("Escape").catch(() => {});
-    await page.locator("body").click({ position: { x: 8, y: 8 }, force: true }).catch(() => {});
-  }
+    await page.locator("body").click({ position: { x: 12, y: 12 }, force: true }).catch(() => {});
+  });
+
+  await skip.waitFor({ state: "hidden", timeout: 6000 }).catch(() => {});
 }
 
 /** Accept the next native confirm dialog (project reset). */

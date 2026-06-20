@@ -36,6 +36,8 @@ export function SplashOverlay({ onDismiss }) {
           <div className="h-full w-2/3 animate-pulse rounded-full bg-orange-300" />
         </div>
         <button
+          type="button"
+          data-testid="splash-skip-intro"
           onClick={onDismiss}
           className="mt-5 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-bold text-white/70 hover:bg-white/20"
         >
