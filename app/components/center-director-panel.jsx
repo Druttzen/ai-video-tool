@@ -475,7 +475,10 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
             </label>
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-white/70">
+          <label
+            className="flex items-center gap-2 text-xs text-white/70"
+            data-testid={hasImageRef && settings.useI2vWhenImage !== false ? "director-i2v-ref-ready" : undefined}
+          >
             <input type="checkbox" checked={settings.useI2vWhenImage !== false} onChange={(e) => persist({ ...settings, useI2vWhenImage: e.target.checked })} />
             Use reference image when loaded {hasImageRef ? "✓" : ""}
           </label>

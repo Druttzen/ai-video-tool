@@ -161,8 +161,9 @@ export function buildLipSyncRules(audioAnalysis) {
  * Director settings patch: output duration and frame budget aligned to song length.
  * @param {object|null} audioAnalysis
  * @param {object|null} [baseSettings]
+ * @param {{ enableI2v?: boolean }} [opts]
  */
-export function syncDirectorSettingsToSong(audioAnalysis, baseSettings = null) {
+export function syncDirectorSettingsToSong(audioAnalysis, baseSettings = null, opts = {}) {
   const settings = baseSettings || loadDirectorSettingsFromStorage();
   const durationSec = songDurationSec(audioAnalysis);
   const fps = Number(settings.fps) || 24;
@@ -172,6 +173,7 @@ export function syncDirectorSettingsToSong(audioAnalysis, baseSettings = null) {
     ...settings,
     durationSeconds: String(durationSec),
     numFrames,
+    ...(opts.enableI2v ? { useI2vWhenImage: true } : {}),
   };
 }
 
@@ -205,7 +207,9 @@ export function buildAudioVisualMusicVideoPlan(audioAnalysis, imageAnalysis, for
       ]
         .filter(Boolean)
         .join(", ") || "beat-sync music video",
-    directorSettings: syncDirectorSettingsToSong(audioAnalysis),
+    directorSettings: syncDirectorSettingsToSong(audioAnalysis, null, {
+      enableI2v: Boolean(imageAnalysis),
+    }),
   };
 }
 

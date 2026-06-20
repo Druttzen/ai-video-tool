@@ -9,6 +9,7 @@ import {
   songDurationSec,
   syncDirectorSettingsToSong,
 } from "../app/lib/audio-visual-music-video.js";
+import { buildDirectorJobPayload } from "../app/lib/director-prompt-builder.js";
 import { DEFAULT_DIRECTOR_SETTINGS } from "../app/lib/director-settings.js";
 
 const formatTime = (sec) => {
@@ -76,10 +77,12 @@ describe("audio-visual-music-video", () => {
     expect(plan.durationSec).toBe(45.5);
     expect(plan.tempo).toBe("45.5s");
     expect(plan.directorSettings.durationSeconds).toBe("45.5");
+    expect(plan.directorSettings.useI2vWhenImage).toBe(true);
 
-    const synced = syncDirectorSettingsToSong(audio, DEFAULT_DIRECTOR_SETTINGS);
+    const synced = syncDirectorSettingsToSong(audio, DEFAULT_DIRECTOR_SETTINGS, { enableI2v: true });
     expect(synced.durationSeconds).toBe("45.5");
     expect(synced.numFrames).toBe(Math.max(17, Math.min(513, Math.round(45.5 * 24))));
+    expect(synced.useI2vWhenImage).toBe(true);
   });
 
   it("buildMusicVideoPatchFromAudioAndImage merges audio, image, beat and lip sync", () => {
@@ -103,5 +106,29 @@ describe("audio-visual-music-video", () => {
     const idea = patch.idea("");
     expect(idea).toContain("beat-sync");
     expect(idea).toContain("lip-sync");
+  });
+
+  it("buildDirectorJobPayload enables i2v when image payload is provided", () => {
+    const audio = { ...sampleAudio, duration: 48 };
+    const patch = buildMusicVideoPatchFromAudioAndImage(audio, sampleImage, formatTime);
+    const project = {
+      idea: patch.idea(""),
+      generatedLyrics: patch.generatedLyrics,
+      structure: patch.structure,
+      vocal: patch.vocal,
+      lyricTheme: patch.lyricTheme,
+      selectedGenres: patch.selectedGenres([]),
+      selectedSounds: patch.selectedSounds([]),
+      selectedRhythms: patch.selectedRhythms([]),
+      rules: patch.rules(""),
+      mood: { energy: 50, aggression: 40, darkness: 50, complexity: 35 },
+      imageAnalysis: sampleImage,
+    };
+    const settings = syncDirectorSettingsToSong(audio, DEFAULT_DIRECTOR_SETTINGS, { enableI2v: true });
+    const job = buildDirectorJobPayload(project, settings, {
+      imagePayload: { base64: "abc123", name: "e2e-analyzer-palette.png" },
+    });
+    expect(job.i2v).toBe(true);
+    expect(job.ref_image_name).toBe("e2e-analyzer-palette.png");
   });
 });

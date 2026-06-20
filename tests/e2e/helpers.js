@@ -2,6 +2,7 @@ import { expect } from "@playwright/test";
 
 export const FACTORY_PRESET = "Cinematic Opening";
 export const STORAGE_KEY = "ai_video_creator_visual_tool_v1";
+export const DIRECTOR_SETTINGS_KEY = "ai_video_creator_director_settings_v1";
 
 export async function clearProjectStorage(page) {
   await page.addInitScript(() => {
@@ -74,6 +75,26 @@ export function lyricStylePanel(page) {
   return page.locator("section.rounded-3xl").filter({
     has: page.getByRole("heading", { name: "Narrative Direction" }),
   });
+}
+
+export function directorPanel(page) {
+  return page.getByTestId("director-panel");
+}
+
+export function musicVideoPanel(page) {
+  return page.getByTestId("music-video-panel");
+}
+
+/** @returns {Promise<{ durationSeconds?: string, useI2vWhenImage?: boolean }|null>} */
+export async function readDirectorSettings(page) {
+  return page.evaluate((key) => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, DIRECTOR_SETTINGS_KEY);
 }
 
 export function guidedSunoPanel(page) {
