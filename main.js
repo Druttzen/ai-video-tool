@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain } = require("electron");
+const { app, BrowserWindow, shell, ipcMain, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -9,6 +9,40 @@ const pkg = require("./package.json");
 const execFileAsync = promisify(execFile);
 
 let mainWindow = null;
+
+function appendMainLog(message) {
+  try {
+    const logPath = path.join(app.getPath("userData"), "main.log");
+    const line = `[${new Date().toISOString()}] ${message}${os.EOL}`;
+    fs.appendFileSync(logPath, line, "utf8");
+  } catch {
+    /* ignore log write errors */
+  }
+}
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+  process.exit(0);
+}
+
+app.on("second-instance", () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
+process.on("uncaughtException", (err) => {
+  const message = err?.stack || err?.message || String(err);
+  appendMainLog(`uncaughtException: ${message}`);
+  console.error(err);
+});
+
+process.on("unhandledRejection", (reason) => {
+  const message = reason?.stack || reason?.message || String(reason);
+  appendMainLog(`unhandledRejection: ${message}`);
+  console.error(reason);
+});
 
 function createWindow() {
   const iconPath = path.join(__dirname, "icon.ico");
@@ -33,7 +67,26 @@ function createWindow() {
 
   mainWindow = new BrowserWindow(windowOptions);
 
-  mainWindow.loadFile(path.join(__dirname, "out", "index.html"));
+  const indexPath = path.join(__dirname, "out", "index.html");
+  if (!fs.existsSync(indexPath)) {
+    const detail = `Missing ${indexPath}. Reinstall from the latest release.`;
+    appendMainLog(detail);
+    dialog.showErrorBox("AI Video Creator — install incomplete", detail);
+    app.quit();
+    return;
+  }
+
+  mainWindow.webContents.on("did-fail-load", (_event, code, description, url) => {
+    const detail = `${description} (${code})\n${url}`;
+    appendMainLog(`did-fail-load: ${detail}`);
+    dialog.showErrorBox("AI Video Creator failed to load", detail);
+  });
+
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    appendMainLog(`render-process-gone: ${details.reason} (${details.exitCode})`);
+  });
+
+  mainWindow.loadFile(indexPath);
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
