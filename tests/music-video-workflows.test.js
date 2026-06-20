@@ -75,6 +75,20 @@ describe("music-video-workflows", () => {
     expect(applyAudioVisualMusicVideo).toHaveBeenCalledWith(MV_DURATION_MODES.HIGHLIGHT);
   });
 
+  it("runMusicVideoWorkflow path 4 applies manuscript when proposal exists", async () => {
+    const applyManuscriptToProject = vi.fn();
+    const result = await runMusicVideoWorkflow(4, {
+      manuscriptProposal: { patch: { idea: "Neon city chase" } },
+      captureSnapshot: vi.fn(),
+      applyManuscriptToProject,
+      setPromptEngine: vi.fn(),
+      setStatusWithTime: vi.fn(),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain("applied");
+    expect(applyManuscriptToProject).toHaveBeenCalled();
+  });
+
   it("runMusicVideoWorkflow path 1 fails without track", async () => {
     const result = await runMusicVideoWorkflow(1, {
       applyAudioToMusicVideo: vi.fn(),

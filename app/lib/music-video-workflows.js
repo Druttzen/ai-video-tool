@@ -54,9 +54,9 @@ export const MUSIC_VIDEO_WORKFLOWS = [
     badge: "D",
     summary: "Write your own brief — AI turns it into styles, prompts, and shot list.",
     steps: [
-      "Describe your vision in AI Manuscript Chat",
-      "Send manuscript → video, review preview",
-      "Apply to project → Director render",
+      "Open Video Prep Agent (primary path)",
+      "Drop audio/image + describe your vision",
+      "Send → prep video, then Apply all → Director",
     ],
     scrollTarget: "manuscript-chat-panel",
     directorAfter: true,
@@ -204,6 +204,13 @@ export async function runMusicVideoWorkflow(workflowId, actions) {
   }
 
   if (workflowId === 4) {
+    if (actions.manuscriptProposal?.patch) {
+      actions.captureSnapshot?.("before workflow 4");
+      actions.applyManuscriptToProject?.();
+      await maybeRunGpuWorkflow(actions, { hasImageRef: Boolean(actions.hasImageRef) });
+      scrollToDirectorPanelAfterApply();
+      return { ok: true, message: "Path 4 applied — manuscript merged into project" };
+    }
     scrollToPanel("manuscript-chat-panel");
     await maybeRunGpuWorkflow(actions, { hasImageRef: Boolean(actions.hasImageRef) });
     return { ok: true, message: "Path 4 — write your manuscript below (Ctrl+Enter to send)" };

@@ -10,6 +10,11 @@ import sys
 import time
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from opensora_inference_support import opensora_inference_argv, opensora_subprocess_env
+
 VIDEO_EXTS = {".mp4", ".mov", ".webm", ".mkv", ".gif"}
 
 RESOLUTION_CONFIG = {
@@ -92,8 +97,7 @@ def main() -> int:
     python = job.get("pythonPath") or sys.executable
     resolution_tier = job.get("resolutionTier") or job.get("resolution") or "512px"
 
-    cmd = [
-        python,
+    inference_args = [
         "scripts/diffusion/inference.py",
         config_path,
         "--save-dir",
@@ -119,7 +123,12 @@ def main() -> int:
     ]
 
     if job.get("ref_image"):
-        cmd.extend(["--cond_type", "i2v_head", "--ref", job["ref_image"]])
+        inference_args.extend(["--cond_type", "i2v_head", "--ref", job["ref_image"]])
+
+    if job.get("offload", True):
+        inference_args.extend(["--offload", "True"])
+
+    cmd = opensora_inference_argv(python, inference_args)
 
     print("=== AI Video Creator · Director Engine · local render ===")
     print(f"Resolution: {resolution_tier} · Config: {config_path}", flush=True)
@@ -141,12 +150,16 @@ def main() -> int:
             flush=True,
         )
     stack_env = gfx.get("env") or job.get("graphicsEnv") or {}
+    subprocess_env = opensora_subprocess_env(python)
     for key, value in stack_env.items():
         if value is not None and str(value) != "":
-            os.environ[str(key)] = str(value)
-    print("[BUILD_PROGRESS] 5 Pipeline starting", flush=True)
+            subprocess_env[str(key)] = str(value)
+    if subprocess_env.get("PYTHONPATH") != os.environ.get("PYTHONPATH"):
+        print("[BUILD_PROGRESS] 5 Pipeline starting (optional GPU deps stubbed)", flush=True)
+    else:
+        print("[BUILD_PROGRESS] 5 Pipeline starting", flush=True)
 
-    result = subprocess.run(cmd, cwd=pipeline_root)
+    result = subprocess.run(cmd, cwd=pipeline_root, env=subprocess_env)
     if result.returncode == 0:
         staged = stage_output_video(job_path, pipeline_root, job)
         if staged:

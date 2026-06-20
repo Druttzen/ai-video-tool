@@ -81,7 +81,15 @@
       "requiresElectron": true,
       "requiredForLocalMp4": true,
       "scrollTarget": "setup-hub-panel",
-      "fixHint": "Setup Hub → Update all addons runs pip install -r managed requirements.txt."
+      "fixHint": "Setup Hub → Update all addons runs pip install -r managed requirements.txt. On Windows without CUDA/colossalai, enable WSL2 and update the WSL addon instead."
+    },
+    {
+      "id": "music-video-sync",
+      "label": "Music video sync",
+      "description": "Librosa beat/onset analysis + clip plan for Paths 1, 3, and 5",
+      "requiresElectron": true,
+      "scrollTarget": "music-video-workflows-panel",
+      "fixHint": "Install Addons after pip-deps — enables librosa beat sync on desktop."
     },
     {
       "id": "open-sora",
@@ -120,17 +128,19 @@
     {
       "id": "ffmpeg",
       "label": "FFmpeg",
-      "description": "Optional bundled or PATH ffmpeg for future transcode hooks",
+      "description": "Concat beat-sync clips and mux reference audio for assembled MV",
       "requiresElectron": true,
+      "scrollTarget": "setup-hub-panel",
       "fixHint": "Setup Hub → Update all addons installs managed FFmpeg static build."
     },
     {
       "id": "models",
       "label": "Model weights",
-      "description": "Checkpoint cache under userData/addons/models",
+      "description": "Open-Sora 2.0 checkpoints under addons/open-sora/ckpts (linked from models/)",
       "requiresElectron": true,
+      "requiredForLocalMp4": true,
       "scrollTarget": "setup-hub-panel",
-      "fixHint": "Place Open-Sora checkpoints in managed models folder or configure manifest downloads."
+      "fixHint": "Setup Hub → Update all addons links models/ckpts. Download hpcai-tech/Open-Sora-v2 into open-sora/ckpts via Hugging Face CLI, then rescan."
     },
     {
       "id": "wsl",
@@ -138,7 +148,7 @@
       "description": "Optional Linux venv + torch inside WSL (shared addons folder)",
       "requiresElectron": true,
       "scrollTarget": "setup-hub-panel",
-      "fixHint": "Enable WSL2 then Update all addons — bootstraps wsl-venv with pip deps."
+      "fixHint": "Enable WSL2, then Setup Hub → Update all addons (torch, colossalai, tensornvme, flash-attn). If native builds fail, run once in WSL:\nsudo apt update && sudo apt install -y cmake build-essential libaio-dev\nThen Update all addons again. flash-attn may still use an inference stub without CUDA nvcc."
     },
     {
       "id": "export-cloud",

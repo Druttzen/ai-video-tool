@@ -8,6 +8,20 @@ import { PROJECT_RESET_EVENT } from "../lib/project-reset";
 
 const VideoBuildContext = createContext(null);
 
+export const VIDEO_BUILD_START_EVENT = "video-build-start";
+
+const noopBuildApi = {
+  progressState: null,
+  isBuilding: false,
+  canCancelBuild: false,
+  startBuildProgress: () => {},
+  cancelBuild: async () => ({ ok: false }),
+  abortOnError: async () => ({ ok: false }),
+  resetBuildProgress: () => {},
+  dismissBuildModal: () => {},
+  modalOpen: false,
+};
+
 export function VideoBuildProvider({ children }) {
   const build = useDirectorBuildProgress();
   const resetBuildProgress = build.resetBuildProgress;
@@ -25,6 +39,15 @@ export function VideoBuildProvider({ children }) {
     window.addEventListener(PROJECT_RESET_EVENT, onProjectReset);
     return () => window.removeEventListener(PROJECT_RESET_EVENT, onProjectReset);
   }, [resetBuildProgress]);
+
+  useEffect(() => {
+    const onBuildStart = (event) => {
+      const { result, opts } = event?.detail || {};
+      if (result) trackLaunchBuildProgress(build.startBuildProgress, result, opts);
+    };
+    window.addEventListener(VIDEO_BUILD_START_EVENT, onBuildStart);
+    return () => window.removeEventListener(VIDEO_BUILD_START_EVENT, onBuildStart);
+  }, [build.startBuildProgress]);
 
   const value = useMemo(
     () => ({
@@ -68,10 +91,7 @@ export function VideoBuildProvider({ children }) {
 
 export function useVideoBuild() {
   const ctx = useContext(VideoBuildContext);
-  if (!ctx) {
-    throw new Error("useVideoBuild must be used within VideoBuildProvider");
-  }
-  return ctx;
+  return ctx || noopBuildApi;
 }
 
 /** Start progress tracking from a Director / Open-Sora launch result. */

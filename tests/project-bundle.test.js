@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   PROJECT_BUNDLE_FORMAT,
   PROJECT_BUNDLE_FORMAT_LEGACY,
@@ -7,6 +7,14 @@ import {
   parseProjectBundleImport,
   summarizeProjectBundle,
 } from "../app/lib/project-bundle.js";
+
+vi.mock("../app/lib/director-settings.js", () => ({
+  loadDirectorSettingsFromStorage: () => ({ durationSeconds: "30", numFrames: 129 }),
+}));
+
+vi.mock("../app/lib/open-sora-settings.js", () => ({
+  loadOpenSoraSettingsFromStorage: () => ({ installPath: "%APPDATA%\\AI Video Creator\\addons\\open-sora" }),
+}));
 
 describe("project-bundle", () => {
   it("buildProjectBundleExport wraps project with custom presets and voice fields", () => {
@@ -26,6 +34,8 @@ describe("project-bundle", () => {
     expect(bundle.project.idea).toBe("test idea");
     expect(bundle.customPresets["My Techno"].genres).toEqual(["Techno"]);
     expect(bundle.characterVoicePresets.Hero.firstName).toBe("Ada");
+    expect(bundle.directorSettings.durationSeconds).toBe("30");
+    expect(bundle.openSoraSettings.installPath).toContain("open-sora");
   });
 
   it("parseProjectBundleImport accepts bundled and legacy flat JSON", () => {
@@ -41,6 +51,17 @@ describe("project-bundle", () => {
     expect(bundled.project.idea).toBe("bundled");
     expect(bundled.customPresets.A.genres).toEqual(["Ambient"]);
     expect(bundled.project.characterVoicePresets.Lead.firstName).toBe("Sam");
+    expect(bundled.directorSettings).toBeNull();
+    expect(bundled.openSoraSettings).toBeNull();
+
+    const withSettings = parseProjectBundleImport({
+      bundleFormat: PROJECT_BUNDLE_FORMAT,
+      project: { idea: "x" },
+      directorSettings: { numFrames: 97 },
+      openSoraSettings: { installPath: "/tmp/open-sora" },
+    });
+    expect(withSettings.directorSettings.numFrames).toBe(97);
+    expect(withSettings.openSoraSettings.installPath).toBe("/tmp/open-sora");
 
     const legacy = parseProjectBundleImport({
       idea: "legacy",

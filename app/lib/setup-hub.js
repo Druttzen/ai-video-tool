@@ -12,6 +12,7 @@ import {
 import { isCoProducerLlmReady } from "./co-producer-llm";
 import { isElectronApp, scanSetupEnvironmentFromHost } from "./electron-bridge";
 import { safeLocalStorage } from "./safe-local-storage";
+import { resolveRenderPythonFromScan } from "./video-production-pipeline";
 
 export const SETUP_HUB_EVENT = "setup-hub-updated";
 export const SETUP_HUB_SCAN_KEY = "ai_video_creator_setup_hub_scan_v1";
@@ -35,11 +36,13 @@ export function summarizeSetupScan(scan) {
   const optionalReady = modules.filter((m) =>
     ["ready", "optional", "offline"].includes(moduleStatus(scan, m.id)),
   ).length;
+  const depsReady =
+    moduleStatus(scan, "pip-deps") === "ready" || moduleStatus(scan, "wsl") === "ready";
   const localRenderReady =
     moduleStatus(scan, "python") === "ready" &&
     moduleStatus(scan, "pipeline") === "ready" &&
-    (!scan.raw?.forceManaged ||
-      (moduleStatus(scan, "venv") === "ready" && moduleStatus(scan, "pip-deps") === "ready"));
+    moduleStatus(scan, "models") === "ready" &&
+    (!scan.raw?.forceManaged || (moduleStatus(scan, "venv") === "ready" && depsReady));
   return {
     ready,
     optionalReady,
@@ -150,26 +153,57 @@ export function buildSetupScanFromHost(hostScan, { coProducerLlmSettings } = {})
           status: scan.forceManaged ? "missing" : "optional",
           message: "Run addon update to sync data/addon-requirements.txt",
         },
-    "pip-deps": scan.pipDeps?.ok
-      ? { status: "ready", message: `${scan.pipDeps.probeModule || "torch"} OK in managed venv` }
+    "pip-deps": scan.pipDeps?.winRenderReady
+      ? { status: "ready", message: `${scan.pipDeps.probeModule || "torch"} + CUDA + colossalai OK in managed venv` }
+      : scan.pipDeps?.ok
+        ? {
+            status: "optional",
+            message: scan.pipDeps.cudaOk
+              ? "torch OK — colossalai unavailable on Windows; use WSL addon for local MP4"
+              : "torch OK but no CUDA — enable WSL addon or install CUDA torch",
+          }
+        : {
+            status: scan.forceManaged ? "missing" : "optional",
+            message: "Pip deps missing — Update all addons (installs torch + Open-Sora stack)",
+          },
+    "music-video-sync": scan.musicVideoSync?.ok
+      ? { status: "ready", message: "Librosa beat sync ready for music video paths" }
       : {
-          status: scan.forceManaged ? "missing" : "optional",
-          message: "Pip deps missing — Update all addons (installs torch + Open-Sora stack)",
+          status: scan.electron?.packaged || isElectronApp() ? "missing" : "optional",
+          message:
+            scan.musicVideoSync?.error ||
+            "Install Addons after pip-deps for librosa beat sync (desktop only)",
         },
-    models: scan.models?.ok
-      ? { status: "ready", message: `Model cache — ${scan.models.path}` }
-      : {
-          status: "optional",
-          message: "Add checkpoint files to managed models folder or configure manifest downloads",
-        },
+    models: scan.models?.hasWeights
+      ? {
+          status: "ready",
+          message: `Open-Sora weights ready (${scan.models.count || 0} file(s) in ckpts)`,
+        }
+      : scan.models?.ok
+        ? {
+            status: "missing",
+            message:
+              "Download hpcai-tech/Open-Sora-v2 into addons/open-sora/ckpts (see models/README.txt), then rescan",
+          }
+        : {
+            status: "missing",
+            message: "Run Install Addons to create open-sora/ckpts and link models folder",
+          },
     wsl: scan.wsl?.ok
-      ? { status: "ready", message: `WSL Linux venv — ${scan.wsl.path}` }
-      : {
-          status: "optional",
-          message: scan.wsl?.available
-            ? "WSL detected — Update all addons for Linux torch stack"
-            : "Optional — WSL2 not detected",
-        },
+      ? { status: "ready", message: `WSL render stack ready — ${scan.wsl.path}` }
+      : scan.wsl?.available && scan.wsl?.torchOk
+        ? {
+            status: "optional",
+            message: scan.wsl.tensornvmeOk
+              ? "WSL venv missing colossalai — Update all addons"
+              : "WSL venv has torch — run Setup Hub WSL fix hint (sudo apt once), then Update all addons for tensornvme/flash-attn",
+          }
+        : {
+            status: "optional",
+            message: scan.wsl?.available
+              ? "WSL detected — Update all addons for Linux torch/colossalai/tensornvme/flash-attn stack"
+              : "Optional — WSL2 not detected",
+          },
     "export-cloud": { status: "ready", message: "Export JSON + copy prompt to any video AI" },
   };
 
@@ -272,15 +306,11 @@ export function applyMaxedStandaloneProfile(hostScan) {
     openSora.installPath = pipelinePath;
   }
 
-  const pythonPath =
-    scan.venv?.ok && scan.venv.path
-      ? scan.venv.path
-      : scan.python?.ok && scan.python.path
-        ? scan.python.path
-        : "";
-  if (pythonPath) {
-    director.localPythonPath = pythonPath;
-    openSora.pythonPath = pythonPath;
+  const python = resolveRenderPythonFromScan(scan, director);
+  if (python.localPythonPath) {
+    director.localPythonPath = python.localPythonPath;
+    director.preferWslRender = python.preferWslRender;
+    openSora.pythonPath = python.localPythonPath;
   }
 
   director.autoOptimizeFromHardware = true;

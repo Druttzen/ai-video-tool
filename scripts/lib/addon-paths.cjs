@@ -107,6 +107,57 @@ function isModelArtifactName(name) {
   return true;
 }
 
+const MODEL_WEIGHT_EXTENSIONS = new Set([
+  ".safetensors",
+  ".ckpt",
+  ".pt",
+  ".pth",
+  ".bin",
+  ".onnx",
+]);
+
+function getOpenSoraCkptsDir(userDataPath) {
+  return path.join(getManagedOpenSoraDir(userDataPath), "ckpts");
+}
+
+function isModelWeightFile(name) {
+  const lower = String(name || "").toLowerCase();
+  if (!lower || lower.startsWith(".")) return false;
+  return MODEL_WEIGHT_EXTENSIONS.has(path.extname(lower));
+}
+
+/**
+ * Recursively count checkpoint weight files under a directory.
+ * @param {string} rootDir
+ * @param {{ maxDepth?: number }} [opts]
+ */
+function countModelWeightFiles(rootDir, opts = {}) {
+  const maxDepth = opts.maxDepth ?? 5;
+  if (!fileExists(rootDir)) return 0;
+
+  let count = 0;
+  function walk(dir, depth) {
+    if (depth > maxDepth) return;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (!entry.name || entry.name.startsWith(".")) continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full, depth + 1);
+      } else if (entry.isFile() && isModelWeightFile(entry.name)) {
+        count += 1;
+      }
+    }
+  }
+  walk(rootDir, 0);
+  return count;
+}
+
 function countModelArtifacts(modelsDir) {
   if (!fileExists(modelsDir)) return 0;
   let count = 0;
@@ -115,6 +166,105 @@ function countModelArtifacts(modelsDir) {
     count += 1;
   }
   return count;
+}
+
+/**
+ * Unified model weights probe — Open-Sora reads ./ckpts inside the managed pipeline.
+ * @param {string} userDataPath
+ */
+function resolveModelWeightsStatus(userDataPath) {
+  const modelsPath = getManagedModelsDir(userDataPath);
+  const ckptsPath = getOpenSoraCkptsDir(userDataPath);
+  const ckptsWeightCount = countModelWeightFiles(ckptsPath);
+  const modelsWeightCount = countModelWeightFiles(modelsPath);
+  const weightCount = Math.max(ckptsWeightCount, modelsWeightCount);
+  const hasWeights = weightCount > 0;
+  const placeholderReady =
+    fileExists(modelsPath) &&
+    (hasWeights || fileExists(path.join(modelsPath, "README.txt")) || fileExists(ckptsPath));
+
+  return {
+    modelsPath,
+    ckptsPath,
+    weightCount,
+    ckptsWeightCount,
+    modelsWeightCount,
+    hasWeights,
+    ok: placeholderReady,
+    primaryPath: ckptsWeightCount > 0 ? ckptsPath : modelsPath,
+    source:
+      ckptsWeightCount > 0 ? "open-sora-ckpts" : modelsWeightCount > 0 ? "models" : null,
+  };
+}
+
+/**
+ * Link models/ckpts → open-sora/ckpts so Setup Hub and the pipeline share one folder.
+ * @param {string} userDataPath
+ */
+function ensureModelsCkptsLink(userDataPath) {
+  const modelsDir = getManagedModelsDir(userDataPath);
+  const ckptsDir = getOpenSoraCkptsDir(userDataPath);
+  const linkPath = path.join(modelsDir, "ckpts");
+
+  fs.mkdirSync(modelsDir, { recursive: true });
+  fs.mkdirSync(ckptsDir, { recursive: true });
+
+  if (fileExists(linkPath)) {
+    try {
+      const stat = fs.lstatSync(linkPath);
+      if (stat.isSymbolicLink()) {
+        const target = fs.readlinkSync(linkPath);
+        const resolved = path.resolve(modelsDir, target);
+        if (resolved === path.resolve(ckptsDir)) {
+          return { ok: true, linked: true, path: linkPath, skipped: true };
+        }
+      }
+      if (stat.isDirectory() && !stat.isSymbolicLink()) {
+        return {
+          ok: true,
+          linked: false,
+          path: linkPath,
+          skipped: true,
+          reason: "models/ckpts already exists as a folder",
+        };
+      }
+    } catch {
+      /* try to create link below */
+    }
+  }
+
+  try {
+    const target = path.resolve(ckptsDir);
+    if (process.platform === "win32") {
+      fs.symlinkSync(target, linkPath, "junction");
+    } else {
+      fs.symlinkSync(target, linkPath, "dir");
+    }
+    return { ok: true, linked: true, path: linkPath };
+  } catch (err) {
+    return { ok: false, linked: false, error: err?.message || "symlink failed" };
+  }
+}
+
+function buildModelsReadmeText() {
+  return [
+    "AI Video Creator — Open-Sora model weights",
+    "",
+    "Local render loads checkpoints from:",
+    "  addons/open-sora/ckpts/",
+    "",
+    "This folder links to that path as:",
+    "  addons/models/ckpts",
+    "",
+    "Download Open-Sora 2.0 (managed venv python — use snapshot_download API):",
+    "  set CKPTS=%APPDATA%\\AI Video Creator\\addons\\open-sora\\ckpts",
+    "  \"%APPDATA%\\AI Video Creator\\addons\\venv\\Scripts\\python.exe\" -c \"from huggingface_hub import snapshot_download; snapshot_download(repo_id='hpcai-tech/Open-Sora-v2', local_dir=r'%CKPTS%')\"",
+    "",
+    "Optional: set HF_TOKEN for faster downloads (gated models). Accept the model license on Hugging Face first.",
+    "",
+    "Then rescan in Setup Hub.",
+    "",
+  ].join("\n");
 }
 
 /**
@@ -132,7 +282,10 @@ function requireManagedVenvPython(userDataPath, force = true) {
 }
 
 module.exports = {
+  buildModelsReadmeText,
   countModelArtifacts,
+  countModelWeightFiles,
+  ensureModelsCkptsLink,
   fileExists,
   getAddonsCacheDir,
   getAddonsRoot,
@@ -140,7 +293,9 @@ module.exports = {
   getBundledOptionalRequirementsPath,
   getBundledRequirementsTemplatePath,
   getManagedWslBootstrapCopyPath,
+  getOpenSoraCkptsDir,
   isModelArtifactName,
+  isModelWeightFile,
   getManagedFfmpegDir,
   getManagedModelsDir,
   getManagedNodeDir,
@@ -156,4 +311,5 @@ module.exports = {
   getWslBootstrapScriptPath,
   getWslVenvPythonPath,
   requireManagedVenvPython,
+  resolveModelWeightsStatus,
 };

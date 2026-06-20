@@ -5,6 +5,7 @@ import { Panel } from "./ui-blocks";
 import { PanelActions } from "./panel-actions";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 import { loadDirectorSettingsFromStorage, saveDirectorSettingsToStorage } from "../lib/director-settings";
+import { resolveRenderPythonFromScan } from "../lib/video-production-pipeline";
 import { loadOpenSoraSettingsFromStorage } from "../lib/open-sora-settings";
 import { getDefaultOpenSoraInstallPath } from "../lib/open-sora-paths";
 import {
@@ -64,7 +65,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
   const summary = useMemo(() => summarizeSetupScan(scan), [scan]);
   const missingChecklist = useMemo(() => getMissingSetupChecklist(scan), [scan]);
 
-  const applyAddonUpdatePaths = useCallback((results) => {
+  const applyAddonUpdatePaths = useCallback((results, scanSnapshot) => {
     if (!Array.isArray(results)) return;
     const director = { ...loadDirectorSettingsFromStorage() };
     let changedDirector = false;
@@ -78,6 +79,27 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
       if ((row.id === "python" || row.id === "venv" || row.id === "pip-deps") && row.path) {
         director.localPythonPath = row.path;
         changedDirector = true;
+      }
+    }
+
+    const scanRaw = scanSnapshot?.raw || scanSnapshot;
+    if (scanRaw) {
+      const python = resolveRenderPythonFromScan(scanRaw, director);
+      if (python.localPythonPath && python.localPythonPath !== director.localPythonPath) {
+        director.localPythonPath = python.localPythonPath;
+        changedDirector = true;
+      }
+      if (python.preferWslRender) {
+        director.preferWslRender = true;
+        changedDirector = true;
+      }
+    } else {
+      for (const row of results) {
+        if (row.id === "wsl" && row.ok && row.path) {
+          director.localPythonPath = row.path;
+          director.preferWslRender = true;
+          changedDirector = true;
+        }
       }
     }
 
@@ -108,7 +130,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
           openSoraInstallPath: loadOpenSoraSettingsFromStorage().installPath,
           directorSettings: loadDirectorSettingsFromStorage(),
         });
-        if (batch?.results) applyAddonUpdatePaths(batch.results);
+        if (batch?.results) applyAddonUpdatePaths(batch.results, scanSnapshot);
         const rescan = await runSetupEnvironmentScan({
           directorSettings: loadDirectorSettingsFromStorage(),
           openSoraSettings: loadOpenSoraSettingsFromStorage(),
@@ -116,6 +138,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
         });
         if (rescan?.scan) {
           setScan(rescan.scan);
+          if (batch?.results) applyAddonUpdatePaths(batch.results, rescan.scan);
           await checkAddons(rescan.scan);
         }
         ws.setStatusWithTime(
@@ -241,8 +264,10 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
         return;
       }
       if (batch?.postScan?.items) setAddonReport({ ok: batch.postScan.ok, checkedAt: batch.postScan.scannedAt, items: batch.postScan.items });
-      if (batch?.results) applyAddonUpdatePaths(batch.results);
+      if (batch?.results) applyAddonUpdatePaths(batch.results, scan);
       await runScan({ skipAutoUpdate: true });
+      const latest = loadPersistedSetupScan();
+      if (batch?.results && latest) applyAddonUpdatePaths(batch.results, latest);
       ws.setStatusWithTime(batch?.ok ? "Tool install finished" : "Some tools failed to install", batch?.ok ? "info" : "warning");
     } finally {
       setAddonBusy(false);
@@ -265,8 +290,10 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
           items: batch.postScan.items,
         });
       }
-      if (batch?.results) applyAddonUpdatePaths(batch.results);
+      if (batch?.results) applyAddonUpdatePaths(batch.results, scan);
       await runScan({ skipAutoUpdate: true });
+      const latest = loadPersistedSetupScan();
+      if (batch?.results && latest) applyAddonUpdatePaths(batch.results, latest);
       ws.setStatusWithTime(
         batch?.ok ? "Addon updates finished — rescan complete" : "Some addon updates failed",
         batch?.ok ? "info" : "warning",
@@ -291,8 +318,10 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
         openSoraPath: linkPath,
         directorSettings: loadDirectorSettingsFromStorage(),
       });
-      applyAddonUpdatePaths([{ id: addonId, ...result }]);
+      applyAddonUpdatePaths([{ id: addonId, ...result }], scan);
       await runScan({ skipAutoUpdate: true });
+      const latest = loadPersistedSetupScan();
+      if (latest) applyAddonUpdatePaths([{ id: addonId, ...result }], latest);
       ws.setStatusWithTime(result?.message || result?.error || "Addon update", result?.ok ? "info" : "warning");
     } finally {
       setAddonBusy(false);

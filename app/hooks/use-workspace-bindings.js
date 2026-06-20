@@ -4,7 +4,15 @@ import {
   pickProjectActionInput,
   pickWorkspaceContextExtras,
 } from "../lib/workspace-bindings-input";
-import { useManuscriptChat } from "./use-manuscript-chat";
+import {
+  loadGpuWorkflowSettings,
+  runGpuWorkflowPipeline,
+} from "../lib/gpu-workflow-functions";
+import {
+  loadDirectorSettingsFromStorage,
+  saveDirectorSettingsToStorage,
+} from "../lib/director-settings";
+import { useVideoPrepAgent } from "./use-video-prep-agent";
 import { useHelpDialog } from "./use-help-dialog";
 import { useProjectActions } from "./use-project-actions";
 import { useWorkspaceValue } from "./use-workspace-value";
@@ -27,7 +35,24 @@ export function useWorkspaceBindings({
     pickProjectActionInput(projectState, analyzers, pipeline, snapshot, externals),
   );
 
-  const manuscript = useManuscriptChat({
+  const runGpuWorkflow = async () => {
+    const gpuSettings = loadGpuWorkflowSettings();
+    const settings = loadDirectorSettingsFromStorage();
+    const result = await runGpuWorkflowPipeline({
+      settings,
+      gpuSettings,
+      hook: "video-prep-agent",
+      hasImageRef: Boolean(analyzers.imageAnalysis),
+      promptLength: String(projectState.prompt || "").length,
+    });
+    if (result.settings) saveDirectorSettingsToStorage(result.settings);
+    if (result.applied?.length) {
+      setStatusWithTime(`GPU: ${result.applied.join(", ")}`, result.ok ? "info" : "warning");
+    }
+    return result;
+  };
+
+  const videoPrepAgent = useVideoPrepAgent({
     coProducerLlmSettings: projectState.coProducerLlmSettings,
     patch: projectState.patch,
     captureSnapshot: snapshot.captureSnapshot,
@@ -35,15 +60,33 @@ export function useWorkspaceBindings({
     projectContext: {
       idea: projectState.idea,
       selectedGenres: projectState.selectedGenres,
+      selectedSounds: projectState.selectedSounds,
+      selectedRhythms: projectState.selectedRhythms,
       lyricTheme: projectState.lyricTheme,
+      lyricMode: projectState.lyricMode,
+      promptEngine: projectState.promptEngine,
+      mood: projectState.mood,
     },
+    audioAnalysis: analyzers.audioAnalysis,
+    imageAnalysis: analyzers.imageAnalysis,
+    sunoPasteStyle: projectState.sunoPasteStyle,
+    sunoPasteLyrics: projectState.sunoPasteLyrics,
+    analyzeAudioFile: analyzers.analyzeAudioFile,
+    analyzeImageFile: analyzers.analyzeImageFile,
+    readImageSourceForOpenSora: analyzers.readImageSourceForOpenSora,
+    applyAudioToMusicVideo: analyzers.applyAudioToMusicVideo,
+    applySunoPasteToMusicVideo: actions.applySunoPasteToMusicVideo,
+    applyMusicVideoFromBoth: actions.applyMusicVideoFromBoth,
+    applyAudioVisualMusicVideo: analyzers.applyAudioVisualMusicVideo,
+    runGpuWorkflow,
+    generateLyrics: actions.generateExampleLyrics,
   });
 
   const help = useHelpDialog();
 
   return useWorkspaceValue({
     ...actions,
-    ...manuscript,
+    ...videoPrepAgent,
     ...help,
     ...pickWorkspaceContextExtras(projectState, analyzers, pipeline, snapshot, externals),
     copyToClipboard,

@@ -135,7 +135,7 @@
     },
     "models": {
       "label": "Model weights",
-      "description": "Cached under userData/addons/models",
+      "description": "Cached under userData/addons/open-sora/ckpts (linked from addons/models/ckpts)",
       "minimumArtifacts": 1,
       "downloads": []
     },

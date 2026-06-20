@@ -26,7 +26,7 @@ Help — opens this guide for the current panel.`,
     body: `Path 1 — drop track in Analyzers, Run maps to video (librosa beat sync on desktop).
 Path 2 — paste Suno Style/Lyrics, Run applies visual fields.
 Path 3 — BOTH merges track + paste for full sync (Director duration from track).
-Path 4 — write a manuscript in AI chat, Apply to project, then Director.
+Path 4 — use Video Prep Agent: drop files + describe vision, Apply all → Director.
 Path 5 — audio + reference image → librosa beat-sync MV with highlight or full-track duration.`,
   },
   idea: {
@@ -46,8 +46,8 @@ Path 5 — audio + reference image → librosa beat-sync MV with highlight or fu
     body: "Paste Suno Style/Lyrics inline. A = track only, B = paste only, C = BOTH. Status chips show readiness.",
   },
   manuscript: {
-    title: "AI manuscript chat",
-    body: "Write any brief — story, MV concept, Suno vision. Send → AI returns genres, lighting, camera, shot list. Enable Co-Producer LLM for full chat; local parser works offline. Apply to project then open Director.",
+    title: "Video Prep Agent",
+    body: "Primary Cursor-like chat: drop audio/images, describe your MV or scene. Agent returns project fields, Director settings patch, and suggested actions (map track, merge paste, audio+image MV). Enable Co-Producer LLM for full AI; local parser works offline. Apply to project or Apply all — legacy analyzer/workflow panels optional.",
   },
   "style-dna": {
     title: "Style-DNA search",

@@ -5,6 +5,8 @@
 
 import { attachCharacterVoiceFieldsToProjectExport } from "./voice-character-studio-session";
 import { loadGpuWorkflowSettings } from "./gpu-workflow-functions";
+import { loadDirectorSettingsFromStorage } from "./director-settings";
+import { loadOpenSoraSettingsFromStorage } from "./open-sora-settings";
 import {
   extractCharacterVoicePresetsFromProject,
   normalizeCharacterPresetsMap,
@@ -71,6 +73,16 @@ export function buildProjectBundleExport(project, customPresets = {}, appVersion
     bundle.gpuWorkflow = gpuWorkflow;
   }
 
+  const directorSettings = loadDirectorSettingsFromStorage();
+  if (directorSettings && Object.keys(directorSettings).length) {
+    bundle.directorSettings = directorSettings;
+  }
+
+  const openSoraSettings = loadOpenSoraSettingsFromStorage();
+  if (openSoraSettings && Object.keys(openSoraSettings).length) {
+    bundle.openSoraSettings = openSoraSettings;
+  }
+
   return bundle;
 }
 
@@ -98,6 +110,10 @@ export function parseProjectBundleImport(raw) {
       project,
       customPresets: normalizeCustomPresetsMap(raw.customPresets),
       gpuWorkflow: raw.gpuWorkflow && typeof raw.gpuWorkflow === "object" ? raw.gpuWorkflow : null,
+      directorSettings:
+        raw.directorSettings && typeof raw.directorSettings === "object" ? raw.directorSettings : null,
+      openSoraSettings:
+        raw.openSoraSettings && typeof raw.openSoraSettings === "object" ? raw.openSoraSettings : null,
       bundleMeta: {
         exportedAt: raw.exportedAt || null,
         bundleVersion: raw.bundleVersion ?? PROJECT_BUNDLE_VERSION,
@@ -110,6 +126,8 @@ export function parseProjectBundleImport(raw) {
     project: { ...raw },
     customPresets: normalizeCustomPresetsMap(raw.customPresets),
     gpuWorkflow: raw.gpuWorkflow && typeof raw.gpuWorkflow === "object" ? raw.gpuWorkflow : null,
+    directorSettings: null,
+    openSoraSettings: null,
     bundleMeta: null,
   };
 }

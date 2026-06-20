@@ -4,13 +4,18 @@ import fs from "fs";
 import path from "path";
 import {
   countModelArtifacts,
+  countModelWeightFiles,
+  ensureModelsCkptsLink,
   getAddonsRoot,
   getManagedNodeDir,
   getManagedOpenSoraDir,
   getManagedRequirementsPath,
+  getOpenSoraCkptsDir,
   getVenvPythonPath,
   getWslVenvPythonPath,
   isModelArtifactName,
+  isModelWeightFile,
+  resolveModelWeightsStatus,
 } from "../scripts/lib/addon-paths.cjs";
 
 describe("addon-paths", () => {
@@ -44,6 +49,43 @@ describe("addon-paths", () => {
     fs.writeFileSync(path.join(dir, "README.txt"), "placeholder", "utf8");
     fs.writeFileSync(path.join(dir, "weights.bin"), "x", "utf8");
     expect(countModelArtifacts(dir)).toBe(1);
+  });
+
+  it("countModelWeightFiles finds nested safetensors in open-sora ckpts layout", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "ai-video-ckpts-"));
+    const nested = path.join(root, "google", "t5-v1_1-xxl");
+    fs.mkdirSync(nested, { recursive: true });
+    fs.writeFileSync(path.join(root, "Open_Sora_v2.safetensors"), "x", "utf8");
+    fs.writeFileSync(path.join(root, "hunyuan_vae.safetensors"), "x", "utf8");
+    fs.writeFileSync(path.join(nested, "model.safetensors"), "x", "utf8");
+    expect(countModelWeightFiles(root)).toBe(3);
+    expect(isModelWeightFile("weights.ckpt")).toBe(true);
+    expect(isModelWeightFile("README.txt")).toBe(false);
+  });
+
+  it("resolveModelWeightsStatus prefers open-sora ckpts over empty models folder", () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "ai-video-weights-"));
+    const ckpts = getOpenSoraCkptsDir(userData);
+    fs.mkdirSync(ckpts, { recursive: true });
+    fs.writeFileSync(path.join(ckpts, "Open_Sora_v2.safetensors"), "x", "utf8");
+    const status = resolveModelWeightsStatus(userData);
+    expect(status.hasWeights).toBe(true);
+    expect(status.weightCount).toBe(1);
+    expect(status.source).toBe("open-sora-ckpts");
+    expect(status.ckptsPath).toBe(ckpts);
+  });
+
+  it("ensureModelsCkptsLink creates junction from models/ckpts to open-sora/ckpts", () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "ai-video-link-"));
+    const result = ensureModelsCkptsLink(userData);
+    expect(result.ok).toBe(true);
+    expect(result.linked).toBe(true);
+    const ckpts = getOpenSoraCkptsDir(userData);
+    const viaModels = path.join(userData, "addons", "models", "ckpts");
+    fs.writeFileSync(path.join(ckpts, "probe.safetensors"), "x", "utf8");
+    expect(fs.existsSync(path.join(viaModels, "probe.safetensors"))).toBe(true);
+    const status = resolveModelWeightsStatus(userData);
+    expect(status.hasWeights).toBe(true);
   });
 
   it("bundled addon requirements template includes gradio (torch installed separately)", () => {

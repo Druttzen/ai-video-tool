@@ -612,6 +612,7 @@ function setupAddonUpdaterIpc() {
 
 function setupMusicVideoSyncIpc() {
   const { analyzeMusicVideoBeats } = require("./scripts/lib/music-video-sync.cjs");
+  const { assembleMusicVideo } = require("./scripts/lib/music-video-assemble.cjs");
 
   ipcMain.handle("music-video:analyze-beats", async (_event, payload) => {
     try {
@@ -644,6 +645,76 @@ function setupMusicVideoSyncIpc() {
       }
     } catch (e) {
       return { ok: false, error: e?.message || "music video beat analysis failed" };
+    }
+  });
+
+  ipcMain.handle("music-video:assemble", async (_event, payload) => {
+    try {
+      const clipPaths = Array.isArray(payload?.clipPaths) ? payload.clipPaths : [];
+      let audioPath = String(payload?.audioPath || "").trim();
+      const outputPath = String(payload?.outputPath || "").trim();
+      if (!clipPaths.length) {
+        return { ok: false, error: "clipPaths array required" };
+      }
+      if (!outputPath) {
+        return { ok: false, error: "outputPath required" };
+      }
+
+      const audioBuffer = payload?.audioBuffer;
+      if (!audioPath && audioBuffer?.byteLength) {
+        const fileName = String(payload?.fileName || "track.wav").replace(/[^\w.\-()+ ]/g, "_");
+        audioPath = path.join(os.tmpdir(), `mv-audio-${Date.now()}-${fileName || "track.wav"}`);
+        fs.writeFileSync(audioPath, Buffer.from(audioBuffer));
+      }
+
+      if (!audioPath) {
+        return { ok: false, error: "audioPath or audioBuffer required" };
+      }
+
+      const userDataPath = app.getPath("userData");
+      try {
+        return await assembleMusicVideo({ clipPaths, audioPath, outputPath, userDataPath });
+      } finally {
+        if (payload?.audioBuffer && audioPath.includes("mv-audio-")) {
+          try {
+            fs.unlinkSync(audioPath);
+          } catch {
+            /* ignore temp cleanup */
+          }
+        }
+      }
+    } catch (e) {
+      return { ok: false, error: e?.message || "music video assembly failed" };
+    }
+  });
+}
+
+function setupAgentSessionIpc() {
+  const sessionDir = () => path.join(app.getPath("userData"), "agent-memory");
+  const sessionPath = () => path.join(sessionDir(), "video-prep-agent-session.json");
+
+  ipcMain.handle("agent:load-session", async () => {
+    try {
+      const fp = sessionPath();
+      if (!fs.existsSync(fp)) {
+        return { ok: true, session: null, path: fp };
+      }
+      const raw = fs.readFileSync(fp, "utf8");
+      const session = JSON.parse(raw);
+      return { ok: true, session, path: fp };
+    } catch (e) {
+      return { ok: false, error: e?.message || "agent session load failed" };
+    }
+  });
+
+  ipcMain.handle("agent:save-session", async (_event, session) => {
+    try {
+      fs.mkdirSync(sessionDir(), { recursive: true });
+      const fp = sessionPath();
+      fs.writeFileSync(fp, JSON.stringify(session ?? {}, null, 2), "utf8");
+      return { ok: true, path: fp };
+    } catch (e) {
+      return { ok: false, error: e?.message || "agent session save failed" };
     }
   });
 }
@@ -723,6 +794,41 @@ function setupDirectorIpc() {
         (job.estimatedBuildSeconds || 180) * 1000 * (seeds?.length || 1),
       );
 
+      const { windowsPathToWsl, shellQuoteBash, wslTensornvmeEnvPrelude } = require("./scripts/lib/addon-platform.cjs");
+      const useWslRender =
+        process.platform === "win32" &&
+        (Boolean(job.preferWslRender || payload?.settings?.preferWslRender) ||
+          String(pythonPath).includes("wsl-venv") ||
+          String(pythonPath).startsWith("/mnt/"));
+
+      const spawnDirectorChild = (runJobPath) => {
+        const graphicsEnv = job.graphicsStack?.env || job.graphicsEnv || {};
+        const env = { ...process.env, ...graphicsEnv, PYTHONUNBUFFERED: "1" };
+
+        if (useWslRender) {
+          const wslPy = String(pythonPath).startsWith("/mnt/")
+            ? pythonPath
+            : windowsPathToWsl(pythonPath);
+          const wslRunner = windowsPathToWsl(runnerScript);
+          const wslJob = windowsPathToWsl(runJobPath);
+          const wslCwd = windowsPathToWsl(pipelinePath);
+          const cmd = `${wslTensornvmeEnvPrelude()}; cd ${shellQuoteBash(wslCwd)} && ${shellQuoteBash(wslPy)} ${shellQuoteBash(wslRunner)} ${shellQuoteBash(wslJob)}`;
+          return spawn("wsl", ["bash", "-lc", cmd], {
+            detached: true,
+            stdio: ["ignore", "pipe", "pipe"],
+            env,
+          });
+        }
+
+        return spawn(pythonPath, [runnerScript, runJobPath], {
+          cwd: pipelinePath,
+          detached: true,
+          stdio: ["ignore", "pipe", "pipe"],
+          shell: process.platform === "win32",
+          env,
+        });
+      };
+
       const spawnRender = (seedIndex) => {
         const seed = seeds ? seeds[seedIndex] : job.seed || 0;
         const runJobPath =
@@ -736,14 +842,7 @@ function setupDirectorIpc() {
           );
         }
 
-        const graphicsEnv = job.graphicsStack?.env || job.graphicsEnv || {};
-        const child = spawn(pythonPath, [runnerScript, runJobPath], {
-          cwd: pipelinePath,
-          detached: true,
-          stdio: ["ignore", "pipe", "pipe"],
-          shell: process.platform === "win32",
-          env: { ...process.env, ...graphicsEnv, PYTHONUNBUFFERED: "1" },
-        });
+        const child = spawnDirectorChild(runJobPath);
 
         child.stdout.on("data", (d) => {
           logStream.write(d);
@@ -1052,6 +1151,7 @@ app.whenReady().then(() => {
   setupSystemIpc();
   setupMusicVideoSyncIpc();
   setupSetupHubIpc();
+  setupAgentSessionIpc();
   setupAddonUpdaterIpc();
   setupBuildProgressIpc();
   setupDirectorIpc();

@@ -146,6 +146,10 @@ describe("audio-visual-music-video", () => {
     const idea = patch.idea("");
     expect(idea).toContain("beat-sync");
     expect(idea).toContain("lip-sync");
+
+    const notes = patch.notes("");
+    expect(notes).toContain("FFmpeg assemble");
+    expect(notes).toContain("Clip plan");
   });
 
   it("buildDirectorJobPayload enables i2v when image payload is provided", () => {

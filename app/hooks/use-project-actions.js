@@ -69,6 +69,7 @@ import { extractLyricsBodyFromPaste } from "../lib/suno-reimport";
 import { buildMusicVideoPatchFromBoth, buildMusicVideoPatchFromSunoPaste } from "../lib/music-video-bridge";
 import { refineAudioAnalysisWithBeatSync } from "../lib/music-video-sync-client";
 import { saveDirectorSettingsToStorage } from "../lib/director-settings";
+import { saveOpenSoraSettingsToStorage } from "../lib/open-sora-settings";
 import { scrollToDirectorPanelAfterApply } from "../lib/music-video-workflows";
 import { collectGenreAnchors } from "../lib/suno-language-index";
 import { buildStyleDnaPatch } from "../lib/track-style-dna";
@@ -295,7 +296,7 @@ export function useProjectActions({
     a.download = "ai-video-bundle.json";
     a.click();
     URL.revokeObjectURL(url);
-    setStatusWithTime("Exported project bundle (project + style presets + voice profile)");
+    setStatusWithTime("Exported project bundle (project + presets + Director/Open-Sora settings)");
   }, [currentState, customPresets, setStatusWithTime]);
 
   const importProject = useCallback(
@@ -307,7 +308,13 @@ export function useProjectActions({
         try {
           captureSnapshot("before import");
           const raw = JSON.parse(String(reader.result));
-          const { project, customPresets: importedPresets, gpuWorkflow } = parseProjectBundleImport(raw);
+          const {
+            project,
+            customPresets: importedPresets,
+            gpuWorkflow,
+            directorSettings,
+            openSoraSettings,
+          } = parseProjectBundleImport(raw);
           const cvPresets = extractCharacterVoicePresetsFromProject(project);
           if (cvPresets && Object.keys(cvPresets).length > 0) {
             const presetResult = persistCharacterVoicePresets(cvPresets, { merge: true });
@@ -332,8 +339,14 @@ export function useProjectActions({
           if (gpuWorkflow) {
             saveGpuWorkflowSettings(gpuWorkflow);
           }
+          if (directorSettings) {
+            saveDirectorSettingsToStorage(directorSettings);
+          }
+          if (openSoraSettings) {
+            saveOpenSoraSettingsToStorage(openSoraSettings);
+          }
           loadState(migrateImportedProject(project, APP_VERSION));
-          setStatusWithTime("Imported project bundle");
+          setStatusWithTime("Imported project bundle (includes Director/Open-Sora settings when present)");
         } catch {
           setStatusWithTime("Import failed", "error");
         }

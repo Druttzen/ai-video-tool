@@ -12,7 +12,8 @@ const { execFile, spawn } = require("child_process");
 const { promisify } = require("util");
 const { execLocal } = require("./process-exec.cjs");
 const {
-  countModelArtifacts,
+  buildModelsReadmeText,
+  ensureModelsCkptsLink,
   fileExists,
   getAddonsCacheDir,
   getAddonsRoot,
@@ -23,6 +24,7 @@ const {
   getManagedModelsDir,
   getManagedNodeDir,
   getManagedOpenSoraDir,
+  resolveModelWeightsStatus,
   getManagedPythonDir,
   getManagedRequirementsMetaPath,
   getManagedRequirementsPath,
@@ -38,6 +40,7 @@ const {
   manifestPlatformKey,
   normalizeUnixScript,
   probeWslPythonModule,
+  probeWslRenderStack,
   runWslBootstrap,
   wslAvailable,
   wslVenvExists,
@@ -803,26 +806,33 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
   });
 
   const modelsDir = getManagedModelsDir(userDataPath);
-  const modelCount = countModelArtifacts(modelsDir);
+  ensureModelsCkptsLink(userDataPath);
+  const weights = resolveModelWeightsStatus(userDataPath);
+  const modelCount = weights.weightCount;
   const minModels = manifest.addons.models?.minimumArtifacts ?? 1;
   const modelDownloads = manifest.addons.models?.downloads || [];
   const modelsPlaceholderOnly = modelDownloads.length === 0;
   const modelsReady = modelsPlaceholderOnly
-    ? fileExists(modelsDir) && fileExists(path.join(modelsDir, "README.txt"))
+    ? weights.ok
     : modelCount >= minModels;
+  const ckptsHint = weights.ckptsPath ? ` — weights: ${weights.ckptsPath}` : "";
   items.push({
     id: "models",
     label: manifest.addons.models.label,
     installed: modelsReady,
-    currentVersion: modelCount ? `${modelCount} artifact(s)` : modelsReady ? "folder ready" : null,
-    latestVersion: modelDownloads.length ? `${modelDownloads.length} configured` : "placeholder folder",
+    currentVersion: weights.hasWeights
+      ? `${modelCount} weight file(s)`
+      : modelsReady
+        ? "ckpts folder ready"
+        : null,
+    latestVersion: modelDownloads.length ? `${modelDownloads.length} configured` : "open-sora/ckpts",
     updateAvailable: !modelsReady,
-    message: modelsReady
-      ? modelCount
-        ? `Models cache ready (${modelCount} items)`
-        : "Models folder ready — add checkpoint weights when needed"
-      : "Models folder empty — run Install Addons to initialize",
-    path: modelsDir,
+    message: weights.hasWeights
+      ? `Open-Sora weights ready (${modelCount} file(s)${ckptsHint})`
+      : modelsReady
+        ? `Download hpcai-tech/Open-Sora-v2 into open-sora/ckpts${ckptsHint}`
+        : "Models not initialized — run Install Addons",
+    path: weights.ckptsPath || modelsDir,
     managed: true,
   });
 
@@ -831,21 +841,30 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
     const wslOk = await wslAvailable();
     const wslPy = getWslVenvPythonPath(userDataPath);
     const wslProbe = wslOk ? await wslVenvExists(userDataPath) : false;
-    const wslTorch = wslProbe ? await probeWslPythonModule(userDataPath, wslCfg.probeModule || "torch") : false;
+    const wslStack = wslProbe ? await probeWslRenderStack(userDataPath) : null;
+    const wslRenderReady = Boolean(wslStack?.ok);
     items.push({
       id: "wsl",
       label: wslCfg.label || "WSL2 Linux stack",
-      installed: wslOk && wslProbe && wslTorch,
-      currentVersion: wslTorch ? wslCfg.probeModule : wslProbe ? "venv" : null,
-      latestVersion: "torch+venv",
-      updateAvailable: wslOk && (!wslProbe || !wslTorch),
+      installed: wslOk && wslProbe && wslRenderReady,
+      currentVersion: wslRenderReady
+        ? "torch+colossalai+tensornvme+flash-attn"
+        : wslStack?.torch
+          ? "partial"
+          : wslProbe
+            ? "venv"
+            : null,
+      latestVersion: "torch+colossalai+tensornvme+flash-attn",
+      updateAvailable: wslOk && (!wslProbe || !wslRenderReady),
       message: !wslOk
         ? "WSL2 not detected — optional for Linux-native torch/CUDA"
-        : wslTorch
-          ? `WSL venv OK — ${wslPy}`
-          : wslProbe
-            ? "WSL venv exists but torch missing — run Update"
-            : "WSL available — bootstrap Linux venv in shared addons folder",
+        : wslRenderReady
+          ? `WSL render stack OK — ${wslPy}`
+          : wslStack?.torch
+            ? "WSL venv has torch — run Update for colossalai/tensornvme/flash-attn (needs cmake + build-essential + libaio-dev)"
+            : wslProbe
+              ? "WSL venv exists but torch missing — run Update"
+              : "WSL available — bootstrap Linux venv in shared addons folder",
       path: wslProbe ? wslPy : getManagedWslVenvDir(userDataPath),
       managed: true,
     });
@@ -1096,14 +1115,14 @@ async function updateWsl({ userDataPath, manifest }) {
     return { ok: false, error: "WSL2 not available — enable WSL or skip this addon" };
   }
 
-  const probeModule = manifest.addons.wsl?.probeModule || "torch";
   const wslPy = getWslVenvPythonPath(userDataPath);
-  if ((await wslVenvExists(userDataPath)) && (await probeWslPythonModule(userDataPath, probeModule))) {
+  const existingStack = (await wslVenvExists(userDataPath)) ? await probeWslRenderStack(userDataPath) : null;
+  if (existingStack?.ok) {
     return {
       ok: true,
       skipped: true,
       path: wslPy,
-      message: "WSL Linux venv already ready",
+      message: "WSL Linux render stack already ready",
     };
   }
 
@@ -1111,6 +1130,7 @@ async function updateWsl({ userDataPath, manifest }) {
 
   const scriptContent = readWslBootstrapScriptContent();
   materializeWslBootstrapScript(userDataPath, scriptContent);
+  const optionalRequirementsPath = getBundledOptionalRequirementsPath();
 
   let bootstrapError = null;
   try {
@@ -1118,22 +1138,25 @@ async function updateWsl({ userDataPath, manifest }) {
       userDataPath,
       scriptContent,
       openSoraPath: getManagedOpenSoraDir(userDataPath),
+      optionalRequirementsPath,
     });
   } catch (err) {
     bootstrapError = err?.message || "WSL bootstrap failed";
   }
 
   const wslReady = await wslVenvExists(userDataPath);
-  const wslTorch = wslReady ? await probeWslPythonModule(userDataPath, probeModule) : false;
+  const stack = wslReady ? await probeWslRenderStack(userDataPath) : null;
   return {
-    ok: wslReady && wslTorch,
+    ok: Boolean(stack?.ok),
     path: wslPy,
-    error: wslReady && wslTorch ? undefined : bootstrapError || undefined,
-    message: wslTorch
-      ? "WSL Linux venv + pip deps bootstrapped"
-      : wslReady
-        ? "WSL venv created but torch import failed"
-        : bootstrapError || "WSL bootstrap finished but venv missing",
+    error: stack?.ok ? undefined : bootstrapError || undefined,
+    message: stack?.ok
+      ? "WSL Linux venv + render stack bootstrapped (torch, colossalai, tensornvme, flash-attn)"
+      : stack?.torch
+        ? "WSL venv has torch but colossalai/tensornvme missing — run Setup Hub WSL fix hint (sudo apt once), then Update all addons"
+        : wslReady
+          ? "WSL venv created but torch import failed"
+          : bootstrapError || "WSL bootstrap finished but venv missing",
   };
 }
 
@@ -1172,6 +1195,7 @@ async function updateFfmpeg({ userDataPath, manifest }) {
 async function updateModels({ userDataPath, manifest }) {
   const modelsDir = getManagedModelsDir(userDataPath);
   fs.mkdirSync(modelsDir, { recursive: true });
+  ensureModelsCkptsLink(userDataPath);
 
   const downloads = manifest.addons.models?.downloads || [];
   const results = [];
@@ -1192,36 +1216,25 @@ async function updateModels({ userDataPath, manifest }) {
 
   if (!downloads.length) {
     const readme = path.join(modelsDir, "README.txt");
-    if (!fileExists(readme)) {
-      fs.writeFileSync(
-        readme,
-        [
-          "AI Video Creator — managed models folder",
-          "",
-          "Place Open-Sora checkpoint files here or configure downloads in data/addon-updates-manifest.json.",
-          "",
-          "Typical layout:",
-          "  Open-Sora-Plan-v1.3/",
-          "  hunyuan_vae/",
-          "",
-        ].join("\n"),
-        "utf8",
-      );
+    const readmeText = buildModelsReadmeText();
+    if (!fileExists(readme) || fs.readFileSync(readme, "utf8") !== readmeText) {
+      fs.writeFileSync(readme, readmeText, "utf8");
     }
   }
 
-  const count = countModelArtifacts(modelsDir);
+  const weights = resolveModelWeightsStatus(userDataPath);
+  const count = weights.weightCount;
   const min = manifest.addons.models?.minimumArtifacts ?? 1;
   const placeholderOnly = downloads.length === 0;
 
   return {
-    ok: placeholderOnly ? true : count >= min,
-    path: modelsDir,
+    ok: placeholderOnly ? weights.ok : count >= min,
+    path: weights.ckptsPath || modelsDir,
     count,
-    message:
-      count >= min
-        ? `Models folder ready (${count} items)`
-        : "Models folder initialized — add checkpoint files or configure manifest downloads",
+    hasWeights: weights.hasWeights,
+    message: weights.hasWeights
+      ? `Open-Sora weights ready (${count} file(s))`
+      : "ckpts folder linked — download hpcai-tech/Open-Sora-v2 into open-sora/ckpts, then rescan",
     downloads: results,
   };
 }

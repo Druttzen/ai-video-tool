@@ -5,7 +5,6 @@ import { ActionToast } from "./components/action-toast";
 import { GlobalToolbar } from "./components/global-toolbar";
 import { HelpDialog } from "./components/help-dialog";
 import { ProjectWorkspaceContext } from "./context/project-workspace-context";
-import { VideoBuildProvider } from "./context/video-build-context";
 import { PageSidebarLeft } from "./components/page-sidebar-left";
 import { PageWorkspaceCenter } from "./components/page-workspace-center";
 import { PageSidebarRight } from "./components/page-sidebar-right";
@@ -49,7 +48,6 @@ export default function Page() {
         />
 
         <ProjectWorkspaceContext.Provider value={workspace}>
-          <VideoBuildProvider>
           <input
             id="global-import-bundle"
             type="file"
@@ -68,7 +66,6 @@ export default function Page() {
             <PageWorkspaceCenter />
             <PageSidebarRight />
           </div>
-          </VideoBuildProvider>
         </ProjectWorkspaceContext.Provider>
 
       </div>

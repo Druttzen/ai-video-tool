@@ -40,6 +40,8 @@ export const CenterMusicVideoWorkflowsPanel = memo(function CenterMusicVideoWork
         applyAudioVisualMusicVideo: ws.applyAudioVisualMusicVideo,
         applySunoPasteToMusicVideo: ws.applySunoPasteToMusicVideo,
         applyMusicVideoFromBoth: ws.applyMusicVideoFromBoth,
+        manuscriptProposal: ws.manuscriptProposal,
+        applyManuscriptToProject: ws.applyManuscriptToProject,
         setPromptEngine: ws.setPromptEngine,
         setStatusWithTime: ws.setStatusWithTime,
         pathEDurationMode,

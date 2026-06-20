@@ -48,6 +48,7 @@ describe("open-sora-prompt-builder", () => {
     expect(job.numSteps).toBeGreaterThan(0);
     expect(job.numFrames).toBeGreaterThan(0);
     expect(job.cli_hint).toContain("inference.py");
+    expect(job.cli_hint).toContain("torchrun");
   });
 
   it("enables i2v when image payload is provided", () => {

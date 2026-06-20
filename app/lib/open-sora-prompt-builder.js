@@ -15,6 +15,7 @@ import {
   resolveConfigPresetPath,
   resolveResolutionTier,
 } from "./open-sora-settings";
+import { getDefaultOpenSoraInstallPath } from "./open-sora-paths";
 
 function normalize(s) {
   return String(s || "")
@@ -135,7 +136,7 @@ export function buildOpenSoraJobPayload(p, settings, opts = {}) {
     app: "ai-video-tool",
     prompt: fullPrompt,
     sceneList,
-    installPath: settings?.installPath || "E:\\Open-Sora",
+    installPath: settings?.installPath || getDefaultOpenSoraInstallPath(),
     pythonPath: settings?.pythonPath || "python",
     configPreset,
     configPath,
@@ -199,13 +200,13 @@ export function buildOpenSoraCliHint({
   seed = 42,
   motionScore = 4,
   fps = 24,
-  installPath = "E:\\Open-Sora",
+  installPath = getDefaultOpenSoraInstallPath(),
   useI2v = false,
   refinePrompt = false,
 }) {
   const escaped = prompt.replace(/"/g, '\\"');
   const lines = [`cd ${installPath}`];
-  const base = `python scripts/diffusion/inference.py ${configPath} --prompt "${escaped}" --seed ${seed || 42} --aspect_ratio ${aspectRatio} --resolution ${resolutionTier} --sampling_option.num_steps ${numSteps} --sampling_option.num_frames ${numFrames} --sampling_option.guidance ${cfg} --motion-score ${motionScore} --fps_save ${fps}`;
+  const base = `torchrun --nproc_per_node 1 --standalone scripts/diffusion/inference.py ${configPath} --prompt "${escaped}" --seed ${seed || 42} --aspect_ratio ${aspectRatio} --resolution ${resolutionTier} --sampling_option.num_steps ${numSteps} --sampling_option.num_frames ${numFrames} --sampling_option.guidance ${cfg} --motion-score ${motionScore} --fps_save ${fps}`;
   lines.push(useI2v ? `${base} --cond_type i2v_head --ref <ref.png>` : base);
   if (refinePrompt) lines.push("# add: --refine-prompt");
   lines.push("# or: python scripts/run-open-sora-job.py job.json");

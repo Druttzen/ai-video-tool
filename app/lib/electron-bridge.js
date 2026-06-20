@@ -118,3 +118,27 @@ export async function analyzeMusicVideoBeatsFromHost(payload) {
   }
   return window.electronAPI.analyzeMusicVideoBeats(payload);
 }
+
+/** @returns {Promise<{ ok: boolean, path?: string, clipCount?: number, message?: string, error?: string }>} */
+export async function assembleMusicVideoFromHost(payload) {
+  if (!isElectronApp() || !window.electronAPI?.assembleMusicVideo) {
+    return { ok: false, error: "Music video assembly requires the desktop app and FFmpeg addon" };
+  }
+  return window.electronAPI.assembleMusicVideo(payload);
+}
+
+/** @returns {Promise<{ ok: boolean, session?: object|null, path?: string, error?: string }>} */
+export async function loadAgentSessionFromHost() {
+  if (!isElectronApp() || !window.electronAPI?.loadAgentSession) {
+    return { ok: false, error: "Agent session load requires the desktop app" };
+  }
+  return window.electronAPI.loadAgentSession();
+}
+
+/** @returns {Promise<{ ok: boolean, path?: string, error?: string }>} */
+export async function saveAgentSessionToHost(session) {
+  if (!isElectronApp() || !window.electronAPI?.saveAgentSession) {
+    return { ok: false, error: "Agent session save requires the desktop app" };
+  }
+  return window.electronAPI.saveAgentSession(session);
+}

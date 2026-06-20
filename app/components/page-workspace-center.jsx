@@ -31,13 +31,13 @@ export const PageWorkspaceCenter = memo(function PageWorkspaceCenter() {
     <section className="space-y-4">
       <CenterSetupHubPanel />
       <CenterGuidedPathPanel />
+      <CenterManuscriptChatPanel />
       <CenterMusicVideoWorkflowsPanel />
       <CenterGpuWorkflowPanel />
       <CenterIdeaPanel />
       <CenterLyricStylePanel />
       <CenterAnalyzersPanel />
       <CenterMusicVideoPanel />
-      <CenterManuscriptChatPanel />
       <CenterVoiceCharacterStudio />
       <CenterVoiceStylePanel />
       <CenterStyleDnaSearchPanel />

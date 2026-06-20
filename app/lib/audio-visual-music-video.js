@@ -27,6 +27,7 @@ import {
   MAX_MEDIA_DURATION_SEC,
   mediaNumFramesForDuration,
 } from "./media-duration-limits";
+import { buildRenderHonestyNoteFromDirectorSettings } from "./render-segment-hints";
 import {
   buildClipPlanFromBeatTimes,
   resolveBeatTimesForRange,
@@ -462,7 +463,11 @@ export function buildMusicVideoPatchFromAudioAndImage(
           ? `Clip plan: ${plan.beatSync.clipPlan.length} segments (${plan.beatSync.clipPlan[0].duration}s–${plan.beatSync.clipPlan[plan.beatSync.clipPlan.length - 1].duration}s each).`
           : "";
       const syncNote = `Video length synced to ${targetLabel}: ${plan.durationSec}s (${plan.beatSync.beatCount} beats @ ${plan.bpm} BPM, ${plan.beatSync.source || "grid"}). ${clipNote}`.trim();
-      return [audioNotes, imageNote, syncNote].filter(Boolean).join("\n\n") || prev;
+      const honestyNote = buildRenderHonestyNoteFromDirectorSettings(
+        plan.directorSettings,
+        plan.durationSec,
+      );
+      return [audioNotes, imageNote, syncNote, honestyNote].filter(Boolean).join("\n\n") || prev;
     },
     mood: (prev) => {
       let next = prev;

@@ -2,16 +2,17 @@
  * Platform detection for managed addon installs (Windows, Linux, macOS, WSL).
  */
 const path = require("path");
-const { execFile, spawn } = require("child_process");
-const { promisify } = require("util");
+const { spawn } = require("child_process");
 const { execLocal } = require("./process-exec.cjs");
 const { getAddonsRoot, getManagedWslVenvDir } = require("./addon-paths.cjs");
-
-const execFileAsync = promisify(execFile);
 const WSL_BOOTSTRAP_TIMEOUT_MS = 1800000;
 
 function normalizeUnixScript(content) {
   return String(content || "").replace(/\r/g, "");
+}
+
+function wslTensornvmeEnvPrelude() {
+  return 'export LD_LIBRARY_PATH="${HOME}/.tensornvme/lib:${LD_LIBRARY_PATH:-}"';
 }
 
 function shellQuoteBash(value) {
@@ -60,16 +61,30 @@ async function probeWslPythonModule(userDataPath, moduleName = "torch") {
   const wslVenv = windowsPathToWsl(getManagedWslVenvDir(userDataPath));
   const activate = `${wslVenv}/bin/activate`;
   const cmd = [
+    wslTensornvmeEnvPrelude(),
     `test -f ${shellQuoteBash(activate)}`,
     `&& . ${shellQuoteBash(activate)}`,
     `&& python -c ${shellQuoteBash(`import ${moduleName}`)}`,
-  ].join(" ");
+  ].join("; ");
   try {
     await execLocal("wsl", ["bash", "-lc", cmd], { timeout: 90000 });
     return true;
   } catch {
     return false;
   }
+}
+
+/** @returns {Promise<{ ok: boolean, torch: boolean, colossalai: boolean, tensornvme: boolean }>} */
+async function probeWslRenderStack(userDataPath) {
+  const torch = await probeWslPythonModule(userDataPath, "torch");
+  const colossalai = torch ? await probeWslPythonModule(userDataPath, "colossalai") : false;
+  const tensornvme = torch ? await probeWslPythonModule(userDataPath, "tensornvme") : false;
+  return {
+    torch,
+    colossalai,
+    tensornvme,
+    ok: Boolean(torch && colossalai),
+  };
 }
 
 /**
@@ -84,6 +99,7 @@ async function runWslBootstrap({
   userDataPath,
   scriptContent,
   openSoraPath,
+  optionalRequirementsPath,
   timeout = WSL_BOOTSTRAP_TIMEOUT_MS,
 }) {
   if (process.platform !== "win32") {
@@ -95,11 +111,15 @@ async function runWslBootstrap({
   const wslVenv = `${addonsRoot}/wsl-venv`;
   const reqFile = `${addonsRoot}/requirements.txt`;
   const openSora = windowsPathToWsl(openSoraPath || path.join(getAddonsRoot(userDataPath), "open-sora"));
+  const optionalReq = optionalRequirementsPath
+    ? windowsPathToWsl(optionalRequirementsPath)
+    : `${addonsRoot}/addon-requirements-optional.txt`;
   const prelude = [
     `export ADDONS_ROOT=${shellQuoteBash(addonsRoot)}`,
     `export VENV_DIR=${shellQuoteBash(wslVenv)}`,
     `export REQ_FILE=${shellQuoteBash(reqFile)}`,
     `export OPEN_SORA_DIR=${shellQuoteBash(openSora)}`,
+    `export OPTIONAL_REQ_FILE=${shellQuoteBash(optionalReq)}`,
   ].join("; ");
 
   return new Promise((resolve, reject) => {
@@ -184,11 +204,13 @@ module.exports = {
   normalizeUnixScript,
   npmExecutableName,
   probeWslPythonModule,
+  probeWslRenderStack,
   resolveEffectivePlatform,
   runWslBootstrap,
   shellForPlatform,
   shellQuoteBash,
   windowsPathToWsl,
+  wslTensornvmeEnvPrelude,
   wslAvailable,
   wslVenvExists,
 };

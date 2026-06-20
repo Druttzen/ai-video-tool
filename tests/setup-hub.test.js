@@ -46,7 +46,14 @@ describe("setup hub", () => {
         python: { ok: true, version: "3.11" },
         pipeline: { ok: true, path: "E:\\Open-Sora" },
         openSora: { ok: true, path: "E:\\Open-Sora" },
-        ffmpeg: { ok: false },
+        models: {
+          ok: true,
+          hasWeights: true,
+          count: 3,
+          ckptsPath: "C:\\AppData\\addons\\open-sora\\ckpts",
+          source: "open-sora-ckpts",
+        },
+        ffmpeg: { ok: true, path: "ffmpeg" },
         gpu: { primaryGpu: { name: "GPU" } },
       },
     });
@@ -72,6 +79,30 @@ describe("setup hub", () => {
     const summary = summarizeSetupScan(scan);
     expect(summary.localRenderReady).toBe(false);
     expect(summary.label).not.toContain("local MP4 ready");
+  });
+
+  it("summarizeSetupScan reports maxed profile when WSL replaces pip-deps on Windows", () => {
+    const scan = buildSetupScanFromHost({
+      ok: true,
+      scan: {
+        platform: "win32",
+        electron: { packaged: true },
+        python: { ok: true, version: "3.11" },
+        pipeline: { ok: true, path: "E:\\Open-Sora" },
+        openSora: { ok: true, path: "E:\\Open-Sora" },
+        models: { ok: true, hasWeights: true, count: 1 },
+        venv: { ok: true, path: "C:\\venv" },
+        pipDeps: { ok: true, cudaOk: false, colossalaiOk: false, winRenderReady: false },
+        wsl: { ok: true, path: "/mnt/c/venv/wsl-venv/bin/python3", torchOk: true, colossalaiOk: true, tensornvmeOk: true },
+        ffmpeg: { ok: true },
+        gpu: { primaryGpu: { name: "GPU" } },
+        forceManaged: true,
+      },
+    });
+
+    const summary = summarizeSetupScan(scan);
+    expect(summary.localRenderReady).toBe(true);
+    expect(scan.modules.wsl.status).toBe("ready");
   });
 
   it("getMissingSetupChecklist lists python and pipeline when missing", () => {

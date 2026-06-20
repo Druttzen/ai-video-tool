@@ -5,15 +5,15 @@ const fs = require("fs");
 const path = require("path");
 const { defaultOpenSoraPath } = require("./open-sora-paths.cjs");
 const {
+  ensureModelsCkptsLink,
   fileExists,
-  getManagedModelsDir,
-  countModelArtifacts,
+  resolveModelWeightsStatus,
   getManagedRequirementsPath,
   getManagedVenvDir,
   getVenvPythonPath,
   getWslVenvPythonPath,
 } = require("./addon-paths.cjs");
-const { gitAvailable, probeWslPythonModule, wslAvailable, wslVenvExists } = require("./addon-platform.cjs");
+const { gitAvailable, probeWslRenderStack, wslAvailable, wslVenvExists } = require("./addon-platform.cjs");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 const { execLocal } = require("./process-exec.cjs");
@@ -59,6 +59,19 @@ async function probePythonModule(pythonPath, moduleName) {
   try {
     await execLocal(pythonPath, ["-c", `import ${moduleName}`], { timeout: 15000 });
     return true;
+  } catch {
+    return false;
+  }
+}
+
+async function probeTorchCuda(pythonPath) {
+  try {
+    const { stdout } = await execLocal(
+      pythonPath,
+      ["-c", "import torch; print(torch.cuda.is_available())"],
+      { timeout: 30000 },
+    );
+    return String(stdout || "").trim().toLowerCase() === "true";
   } catch {
     return false;
   }
@@ -234,22 +247,56 @@ async function scanSetupEnvironment({
   };
 
   const renderPython = python.ok ? python.path : venvPy;
+  const torchOk = renderPython ? await probePythonModule(renderPython, "torch") : false;
+  const cudaOk = renderPython && torchOk ? await probeTorchCuda(renderPython) : false;
+  const colossalaiOk = renderPython ? await probePythonModule(renderPython, "colossalai") : false;
   const pipDeps = {
-    ok: renderPython ? await probePythonModule(renderPython, "torch") : false,
+    ok: torchOk,
+    cudaOk,
+    colossalaiOk,
+    winRenderReady: Boolean(torchOk && cudaOk && colossalaiOk),
     probeModule: "torch",
     managed: true,
   };
 
-  const modelsPath = userDataPath ? getManagedModelsDir(userDataPath) : null;
-  const modelCount = modelsPath && fileExists(modelsPath) ? countModelArtifacts(modelsPath) : 0;
-  const modelsReady =
-    Boolean(modelsPath && fileExists(modelsPath)) &&
-    (modelCount > 0 || fileExists(path.join(modelsPath, "README.txt")));
-  const models = {
-    ok: modelsReady,
-    path: modelsPath,
-    managed: true,
-  };
+  if (userDataPath) {
+    ensureModelsCkptsLink(userDataPath);
+  }
+  const weights = userDataPath ? resolveModelWeightsStatus(userDataPath) : null;
+  const models = weights
+    ? {
+        ok: weights.ok,
+        hasWeights: weights.hasWeights,
+        count: weights.weightCount,
+        path: weights.primaryPath,
+        modelsPath: weights.modelsPath,
+        ckptsPath: weights.ckptsPath,
+        source: weights.source,
+        managed: true,
+      }
+    : {
+        ok: false,
+        hasWeights: false,
+        count: 0,
+        path: null,
+        managed: true,
+      };
+
+  let musicVideoSync = { ok: false, managed: true };
+  if (userDataPath) {
+    try {
+      const { probeMusicVideoSyncReady } = require("./music-video-sync.cjs");
+      const probe = await probeMusicVideoSyncReady(userDataPath);
+      musicVideoSync = {
+        ok: Boolean(probe.ok),
+        path: probe.path || null,
+        managed: true,
+        error: probe.ok ? null : probe.error || "librosa not ready",
+      };
+    } catch (e) {
+      musicVideoSync = { ok: false, managed: true, error: e?.message || "music video sync probe failed" };
+    }
+  }
 
   const gpu = (await gatherGpu()) || null;
 
@@ -273,8 +320,16 @@ async function scanSetupEnvironment({
     if (wslOk) {
       const wslProbe = await wslVenvExists(userDataPath || "");
       if (wslProbe) {
-        const torchOk = await probeWslPythonModule(userDataPath || "", "torch");
-        wsl = { ok: torchOk, available: true, path: wslPy, managed: true };
+        const stack = await probeWslRenderStack(userDataPath || "");
+        wsl = {
+          ok: stack.ok,
+          torchOk: stack.torch,
+          colossalaiOk: stack.colossalai,
+          tensornvmeOk: stack.tensornvme,
+          available: true,
+          path: wslPy,
+          managed: true,
+        };
       } else {
         wsl = { ok: false, available: true, path: wslPy, managed: true };
       }
@@ -299,6 +354,7 @@ async function scanSetupEnvironment({
     requirements,
     pipDeps,
     models,
+    musicVideoSync,
     wsl,
     gpu,
   };
