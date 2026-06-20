@@ -136,4 +136,19 @@ test.describe("Audio + picture music video e2e", () => {
     await expect(directorPanel(page)).toBeInViewport({ timeout: 15000 });
     await expectBeatSyncMusicVideoState(page);
   });
+
+  test("Workflow 5 highlight mode syncs shorter duration", async ({ page }) => {
+    await dismissSplash(page);
+    await dropAudioAndImage(page);
+
+    const workflows = page.getByTestId("music-video-workflows-panel");
+    await workflows.scrollIntoViewIfNeeded();
+    await workflows.getByTestId("workflow-5-duration-mode").selectOption("highlight");
+    await workflows.getByTestId("workflow-run-5").click();
+
+    await expect(page.getByTestId("action-toast")).toContainText(/Path 5 applied/i);
+    const directorSettings = await readDirectorSettings(page);
+    expect(Number(directorSettings?.durationSeconds)).toBeLessThanOrEqual(480);
+    expect(Number(directorSettings?.durationSeconds)).toBeLessThan(185);
+  });
 });

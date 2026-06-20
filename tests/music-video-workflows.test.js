@@ -56,7 +56,23 @@ describe("music-video-workflows", () => {
       setStatusWithTime: vi.fn(),
     });
     expect(result.ok).toBe(true);
-    expect(applyAudioVisualMusicVideo).toHaveBeenCalled();
+    expect(applyAudioVisualMusicVideo).toHaveBeenCalledWith(undefined);
+  });
+
+  it("runMusicVideoWorkflow path 5 passes highlight duration mode", async () => {
+    const applyAudioVisualMusicVideo = vi.fn();
+    const { MV_DURATION_MODES } = await import("../app/lib/audio-visual-music-video.js");
+    const result = await runMusicVideoWorkflow(5, {
+      audioAnalysis: { estimatedBpm: 120, highlightStart: 10, highlightEnd: 42 },
+      imageAnalysis: { visualMood: "noir" },
+      captureSnapshot: vi.fn(),
+      applyAudioVisualMusicVideo,
+      setPromptEngine: vi.fn(),
+      setStatusWithTime: vi.fn(),
+      pathEDurationMode: MV_DURATION_MODES.HIGHLIGHT,
+    });
+    expect(result.ok).toBe(true);
+    expect(applyAudioVisualMusicVideo).toHaveBeenCalledWith(MV_DURATION_MODES.HIGHLIGHT);
   });
 
   it("runMusicVideoWorkflow path 1 fails without track", async () => {

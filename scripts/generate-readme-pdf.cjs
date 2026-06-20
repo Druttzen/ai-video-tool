@@ -214,14 +214,14 @@ function addCover(doc, version) {
   doc.fillColor("#ffffff").fontSize(26);
   doc.text("AI Video Creator", 50, 62, { width: w - 100, align: "center" });
   doc.fontSize(13).fillColor("#94a3b8");
-  doc.text("Prompt Control Room", 50, 96, { width: w - 100, align: "center" });
+  doc.text("Video Prompt Studio", 50, 96, { width: w - 100, align: "center" });
   doc.y = 150;
   doc.fillColor("#64748b").font("Helvetica").fontSize(10);
   doc.text(`User guide  •  Version ${version}`, { align: "center" });
   doc.moveDown(1.2);
   doc.fillColor("#1e293b").fontSize(10);
   doc.text(
-    "Dense Suno-oriented prompts, local track and image analyzers, EBU R128 loudness metering, and studio WAV export. Runs in the browser or as a Windows desktop app.",
+    "Director Engine scene prompts, local track and image analyzers, music video paths A–E, beat-sync Path E, and one-click export to any video AI. Runs in the browser or as a Windows desktop app with auto-update.",
     { align: "center", width: w - 120 },
   );
   doc.addPage();
@@ -260,7 +260,7 @@ async function main() {
     info: {
       Title: `AI Video Creator v${version} — User Guide`,
       Author: "DJ M@D",
-      Subject: "AI Video Creator Prompt Control Room",
+      Subject: "AI Video Creator — Video Prompt Studio",
     },
   });
 

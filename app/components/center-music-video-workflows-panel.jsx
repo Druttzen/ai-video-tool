@@ -4,6 +4,7 @@ import { memo, useCallback, useState } from "react";
 import { Panel } from "./ui-blocks";
 import { PanelActions } from "./panel-actions";
 import { useProjectWorkspace } from "../context/project-workspace-context";
+import { MV_DURATION_MODES } from "../lib/audio-visual-music-video";
 import {
   getMusicVideoWorkflowReadiness,
   MUSIC_VIDEO_WORKFLOWS,
@@ -15,6 +16,7 @@ import { getIndexWorkflows } from "../lib/video-creator-index";
 export const CenterMusicVideoWorkflowsPanel = memo(function CenterMusicVideoWorkflowsPanel() {
   const ws = useProjectWorkspace();
   const [activeId, setActiveId] = useState(null);
+  const [pathEDurationMode, setPathEDurationMode] = useState(MV_DURATION_MODES.FULL);
 
   const ctx = {
     audioAnalysis: ws.audioAnalysis,
@@ -40,10 +42,11 @@ export const CenterMusicVideoWorkflowsPanel = memo(function CenterMusicVideoWork
         applyMusicVideoFromBoth: ws.applyMusicVideoFromBoth,
         setPromptEngine: ws.setPromptEngine,
         setStatusWithTime: ws.setStatusWithTime,
+        pathEDurationMode,
       });
       ws.setStatusWithTime(result.message, result.ok ? "info" : "warning");
     },
-    [ws],
+    [ws, pathEDurationMode],
   );
 
   const onShowSteps = useCallback((workflowId) => {
@@ -106,6 +109,23 @@ export const CenterMusicVideoWorkflowsPanel = memo(function CenterMusicVideoWork
               </ol>
 
               <p className="mb-3 text-[10px] text-white/40">{hint}</p>
+
+              {wf.id === 5 ? (
+                <label className="mb-3 block">
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-white/45">
+                    Path E duration
+                  </span>
+                  <select
+                    data-testid="workflow-5-duration-mode"
+                    value={pathEDurationMode}
+                    onChange={(e) => setPathEDurationMode(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-black/30 p-2 text-[11px] text-white outline-none focus:border-violet-300/40"
+                  >
+                    <option value={MV_DURATION_MODES.FULL}>Full track (max 480s)</option>
+                    <option value={MV_DURATION_MODES.HIGHLIGHT}>Highlight section only</option>
+                  </select>
+                </label>
+              ) : null}
 
               <div className="flex flex-wrap gap-2">
                 <button
