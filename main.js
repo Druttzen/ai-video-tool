@@ -717,6 +717,28 @@ function setupOpenSoraIpc() {
   });
 }
 
+function setupAppIpc() {
+  ipcMain.handle("app:confirm-action", async (_event, payload) => {
+    try {
+      const message = String(payload?.message || "Are you sure?");
+      const title = String(payload?.title || "Confirm");
+      const parent = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+      const result = await dialog.showMessageBox(parent, {
+        type: "question",
+        buttons: ["Cancel", "Reset"],
+        defaultId: 1,
+        cancelId: 0,
+        noLink: true,
+        title,
+        message,
+      });
+      return { ok: result.response === 1 };
+    } catch (e) {
+      return { ok: false, error: e?.message || "confirm failed" };
+    }
+  });
+}
+
 function setupAutoUpdater() {
   if (!app.isPackaged) return;
 
@@ -792,6 +814,7 @@ function openReadmeOnce() {
 }
 
 app.whenReady().then(() => {
+  setupAppIpc();
   setupSystemIpc();
   setupBuildProgressIpc();
   setupDirectorIpc();

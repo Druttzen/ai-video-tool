@@ -59,7 +59,11 @@ import {
   mergeCustomPresetsMaps,
   parseProjectBundleImport,
 } from "../lib/project-bundle";
-import { saveGpuWorkflowSettings } from "../lib/gpu-workflow-functions";
+import {
+  dispatchProjectResetEvent,
+  persistBlankProjectNow,
+  resetPersistedPanelSettings,
+} from "../lib/project-reset";
 import { extractLyricsBodyFromPaste } from "../lib/suno-reimport";
 import { buildMusicVideoPatchFromBoth, buildMusicVideoPatchFromSunoPaste } from "../lib/music-video-bridge";
 import { scrollToDirectorPanelAfterApply } from "../lib/music-video-workflows";
@@ -886,9 +890,14 @@ Variation ${i + 1}: keep the core identity, change texture and movement without 
     resetBlank();
     resetAnalyzers();
     clearCharacterVoiceStudioSessionOnReset();
+    resetPersistedPanelSettings();
+    setHistory([]);
+    setCustomPresets({});
     lastAutosavePayloadRef.current = "";
     safeLocalStorage.remove(STORAGE_KEY);
     safeLocalStorage.remove(HISTORY_KEY);
+    persistBlankProjectNow(lastAutosavePayloadRef);
+    dispatchProjectResetEvent();
     resetSplash();
     setStatusWithTime("Reset — blank slate on guided step 1; pick each prompt yourself");
   }, [
@@ -897,6 +906,8 @@ Variation ${i + 1}: keep the core identity, change texture and movement without 
     resetAnalyzers,
     resetBlank,
     resetSplash,
+    setCustomPresets,
+    setHistory,
     setStatusWithTime,
   ]);
 

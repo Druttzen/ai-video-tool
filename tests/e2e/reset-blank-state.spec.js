@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { dismissSplash, ideaInput, musicControlsPanel, lyricStylePanel } from "./helpers.js";
+import { acceptNextConfirm, dismissSplash, ideaInput, musicControlsPanel, lyricStylePanel } from "./helpers.js";
 
 test("Reset to Default clears preselected prompts to blank slate", async ({ page }) => {
   await dismissSplash(page);
@@ -22,6 +22,7 @@ test("Reset to Default clears preselected prompts to blank slate", async ({ page
   await controlsPanel.getByRole("button", { name: "Voiceover", exact: true }).click();
   await expect(lyricPanel.getByTestId("lyric-field-preview")).toContainText("My theme before reset");
 
+  acceptNextConfirm(page);
   await page.getByRole("button", { name: "Reset to Default" }).click();
 
   await expect(idea).toHaveValue("");
@@ -36,4 +37,8 @@ test("Reset to Default clears preselected prompts to blank slate", async ({ page
     /border-cyan-300/,
   );
   await expect(lyricPanel.getByRole("button", { name: "Copy Generated Lyrics" })).toHaveCount(0);
+
+  await page.reload();
+  await dismissSplash(page);
+  await expect(ideaInput(page)).toHaveValue("");
 });

@@ -71,6 +71,14 @@ export async function revealDirectorOutput(filePath) {
   return window.electronAPI.revealDirectorOutput(filePath);
 }
 
+/** @returns {Promise<{ ok: boolean }>} */
+export async function confirmDesktopAction(payload) {
+  if (!isElectronApp() || !window.electronAPI?.confirmAction) {
+    return { ok: false };
+  }
+  return window.electronAPI.confirmAction(payload);
+}
+
 export async function launchOpenSoraJob(payload) {
   if (!isElectronApp()) {
     return { ok: false, error: "Requires Electron desktop app" };

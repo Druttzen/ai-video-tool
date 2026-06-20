@@ -1,20 +1,30 @@
 "use client";
 
-import { createContext, useContext, useMemo, useCallback } from "react";
+import { createContext, useContext, useMemo, useCallback, useEffect } from "react";
 import { useDirectorBuildProgress } from "../hooks/use-director-build-progress";
 import { VideoBuildProgressModal } from "../components/video-build-progress-modal";
 import { revealDirectorOutput } from "../lib/electron-bridge";
+import { PROJECT_RESET_EVENT } from "../lib/project-reset";
 
 const VideoBuildContext = createContext(null);
 
 export function VideoBuildProvider({ children }) {
   const build = useDirectorBuildProgress();
+  const resetBuildProgress = build.resetBuildProgress;
 
   const handleRevealOutput = useCallback(async () => {
     const target = build.progressState?.outputVideoPath;
     if (!target) return { ok: false, error: "No output video" };
     return revealDirectorOutput(target);
   }, [build.progressState?.outputVideoPath]);
+
+  useEffect(() => {
+    const onProjectReset = () => {
+      resetBuildProgress();
+    };
+    window.addEventListener(PROJECT_RESET_EVENT, onProjectReset);
+    return () => window.removeEventListener(PROJECT_RESET_EVENT, onProjectReset);
+  }, [resetBuildProgress]);
 
   const value = useMemo(
     () => ({

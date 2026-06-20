@@ -124,6 +124,7 @@ export function projectReducer(state, action) {
         sunoPasteStyle: "",
         sunoPasteLyrics: "",
         sunoPasteActive: false,
+        customPresets: {},
       });
     default:
       return state;

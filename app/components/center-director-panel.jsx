@@ -49,6 +49,7 @@ import {
   loadGpuWorkflowSettings,
   runGpuWorkflowPipeline,
 } from "../lib/gpu-workflow-functions";
+import { PROJECT_RESET_EVENT } from "../lib/project-reset";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 
 const TABS = ["Create", "Render", "Advanced"];
@@ -81,9 +82,19 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
     const onSettingsSync = (event) => {
       if (event?.detail) setSettings(event.detail);
     };
+    const onProjectReset = () => {
+      setSettings({ ...DEFAULT_DIRECTOR_SETTINGS });
+      setWizard(createDirectorWizard());
+      setLastLaunch(null);
+      resetBuildProgress();
+    };
     window.addEventListener("director-settings-updated", onSettingsSync);
-    return () => window.removeEventListener("director-settings-updated", onSettingsSync);
-  }, []);
+    window.addEventListener(PROJECT_RESET_EVENT, onProjectReset);
+    return () => {
+      window.removeEventListener("director-settings-updated", onSettingsSync);
+      window.removeEventListener(PROJECT_RESET_EVENT, onProjectReset);
+    };
+  }, [resetBuildProgress]);
 
   useEffect(() => {
     if (progressState?.status === "complete") {

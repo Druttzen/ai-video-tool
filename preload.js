@@ -17,4 +17,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDirectorBuildStatus: (payload) => ipcRenderer.invoke("director:get-build-status", payload),
   cancelDirectorBuild: (payload) => ipcRenderer.invoke("director:cancel-build", payload),
   revealDirectorOutput: (filePath) => ipcRenderer.invoke("director:reveal-output", filePath),
+  confirmAction: (payload) => ipcRenderer.invoke("app:confirm-action", payload),
 });

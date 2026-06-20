@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { isCoProducerLlmReady } from "../lib/co-producer-llm";
 import {
   buildManuscriptChatLlmMessages,
@@ -9,6 +9,7 @@ import {
   saveManuscriptChatHistory,
   sendManuscriptChatRequest,
 } from "../lib/manuscript-video-chat";
+import { PROJECT_RESET_EVENT } from "../lib/project-reset";
 
 /**
  * Manuscript AI chat — freeform brief → video project patch.
@@ -30,6 +31,17 @@ export function useManuscriptChat({
   const persist = useCallback((next) => {
     setMessages(next);
     saveManuscriptChatHistory(next);
+  }, []);
+
+  useEffect(() => {
+    const onProjectReset = () => {
+      abortRef.current?.abort();
+      setMessages([]);
+      setLastProposal(null);
+      setDraft("");
+    };
+    window.addEventListener(PROJECT_RESET_EVENT, onProjectReset);
+    return () => window.removeEventListener(PROJECT_RESET_EVENT, onProjectReset);
   }, []);
 
   const sendManuscriptMessage = useCallback(async () => {

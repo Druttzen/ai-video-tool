@@ -5,6 +5,7 @@ import { Panel, Pill, Slider } from "./ui-blocks";
 import { PanelActions } from "./panel-actions";
 import { stylePresets } from "../lib/video-config";
 import { useProjectWorkspace } from "../context/project-workspace-context";
+import { confirmProjectReset } from "../lib/project-reset";
 
 export const PageSidebarLeft = memo(function PageSidebarLeft() {
   const {
@@ -98,8 +99,8 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
             topic="save-load"
             onSave={saveProject}
             onLoad={() => document.getElementById("global-import-bundle")?.click()}
-            onClear={() => {
-              if (typeof window !== "undefined" && !window.confirm("Reset entire project to defaults?")) return;
+            onClear={async () => {
+              if (!(await confirmProjectReset())) return;
               resetAll();
             }}
             clearLabel="Reset"
@@ -127,7 +128,10 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
             Revert to last snapshot
           </button>
           <button
-            onClick={resetAll}
+            onClick={async () => {
+              if (!(await confirmProjectReset())) return;
+              resetAll();
+            }}
             className="rounded-2xl bg-red-400 px-4 py-2 font-bold text-black hover:bg-red-300"
             title="Clears all preselected style, prompts, analyzers, and history"
           >

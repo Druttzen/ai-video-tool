@@ -28,6 +28,11 @@ export async function skipSplashIfVisible(page) {
   }
 }
 
+/** Accept the next native confirm dialog (project reset). */
+export function acceptNextConfirm(page) {
+  page.once("dialog", (dialog) => dialog.accept());
+}
+
 export async function selectSunoEngine(page) {
   const coPanel = coProducerPanel(page);
   await coPanel.locator("label").filter({ hasText: "Prompt Engine" }).locator("select").selectOption("Sora-like");

@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { useProjectWorkspace } from "../context/project-workspace-context";
+import { confirmProjectReset } from "../lib/project-reset";
 import { triggerImportBundleClick } from "../lib/panel-help";
 
 const btn =
@@ -44,8 +45,8 @@ export const GlobalToolbar = memo(function GlobalToolbar() {
         type="button"
         data-testid="global-clear"
         className={`${btn} bg-red-400/90 text-black`}
-        onClick={() => {
-          if (typeof window !== "undefined" && !window.confirm("Reset entire project to defaults?")) return;
+        onClick={async () => {
+          if (!(await confirmProjectReset())) return;
           ws.resetAll();
         }}
       >

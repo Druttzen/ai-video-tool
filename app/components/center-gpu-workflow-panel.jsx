@@ -17,6 +17,7 @@ import {
   saveGpuWorkflowSettings,
   toggleGpuWorkflowFunction,
 } from "../lib/gpu-workflow-functions";
+import { PROJECT_RESET_EVENT } from "../lib/project-reset";
 import { scrollToPanel } from "../lib/music-video-workflows";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 
@@ -47,6 +48,15 @@ export const CenterGpuWorkflowPanel = memo(function CenterGpuWorkflowPanel() {
 
   useEffect(() => {
     setGpuSettings(loadGpuWorkflowSettings());
+  }, []);
+
+  useEffect(() => {
+    const onProjectReset = () => {
+      setGpuSettings({ ...DEFAULT_GPU_WORKFLOW_SETTINGS });
+      setLastResult(null);
+    };
+    window.addEventListener(PROJECT_RESET_EVENT, onProjectReset);
+    return () => window.removeEventListener(PROJECT_RESET_EVENT, onProjectReset);
   }, []);
 
   const ctx = useMemo(

@@ -34,11 +34,13 @@ describe("project-state", () => {
       idea: "x",
       selectedGenres: ["Techno"],
       generatedLyrics: "hello",
+      customPresets: { mine: { idea: "keep?" } },
     });
     const next = projectReducer(seeded, { type: "RESET_BLANK" });
     expect(next.idea).toBe(BLANK_STATE.idea);
     expect(next.selectedGenres).toEqual([]);
     expect(next.generatedLyrics).toBe("");
+    expect(next.customPresets).toEqual({});
     expect(next.guidedStep).toBe(0);
   });
 

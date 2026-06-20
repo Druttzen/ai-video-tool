@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
+  acceptNextConfirm,
   clearProjectStorage,
   dismissSplash,
   expectToast,
@@ -163,6 +164,7 @@ test.describe("Project persistence e2e", () => {
     await expect(studio.locator(".font-bold.text-cyan-200")).toContainText(/baritone register/i);
     await expect(studio.getByText("E2E Narrator", { exact: true })).toBeVisible();
 
+    acceptNextConfirm(page);
     await page.getByRole("button", { name: "Reset to Default" }).click();
     await expect(page.locator("header").getByText(/blank slate on guided step 1/i)).toBeVisible();
 
