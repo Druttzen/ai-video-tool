@@ -132,8 +132,17 @@ export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
         </span>
         <span
           className={
-            canAudioVisual
+            canBoth
               ? "rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-emerald-100"
+              : "rounded-full border border-white/10 px-2 py-0.5 text-white/35"
+          }
+        >
+          BOTH ready {canBoth ? "✓" : "—"}
+        </span>
+        <span
+          className={
+            canAudioVisual
+              ? "rounded-full border border-cyan-400/40 bg-cyan-500/15 px-2 py-0.5 text-cyan-100"
               : "rounded-full border border-white/10 px-2 py-0.5 text-white/35"
           }
         >
