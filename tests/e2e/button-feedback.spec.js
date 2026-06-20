@@ -52,7 +52,7 @@ test.describe("Button feedback toasts", () => {
   test("Copy Prompt shows confirmation", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await dismissSplash(page);
-    await page.getByRole("button", { name: "Copy Prompt" }).click();
+    await page.getByRole("button", { name: "Copy Prompt", exact: true }).click();
     await expectToast(page, /Prompt copied/i);
   });
 

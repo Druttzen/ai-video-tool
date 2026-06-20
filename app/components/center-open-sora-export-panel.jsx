@@ -15,6 +15,7 @@ import { launchOpenSoraAppUi, sendToOpenSora } from "../lib/open-sora-launch";
 import { isElectronApp } from "../lib/electron-bridge";
 import { trackLaunchBuildProgress, useVideoBuild } from "../context/video-build-context";
 import { useProjectWorkspace } from "../context/project-workspace-context";
+import { PROJECT_RESET_EVENT } from "../lib/project-reset";
 
 export const CenterOpenSoraExportPanel = memo(function CenterOpenSoraExportPanel() {
   const ws = useProjectWorkspace();
@@ -27,6 +28,15 @@ export const CenterOpenSoraExportPanel = memo(function CenterOpenSoraExportPanel
 
   useEffect(() => {
     setSettings(loadOpenSoraSettingsFromStorage());
+  }, []);
+
+  useEffect(() => {
+    const onProjectReset = () => {
+      setSettings({ ...DEFAULT_OPEN_SORA_SETTINGS });
+      setLastLaunch(null);
+    };
+    window.addEventListener(PROJECT_RESET_EVENT, onProjectReset);
+    return () => window.removeEventListener(PROJECT_RESET_EVENT, onProjectReset);
   }, []);
 
   const persist = (next) => {
@@ -104,7 +114,7 @@ export const CenterOpenSoraExportPanel = memo(function CenterOpenSoraExportPanel
     <Panel
       title="Open-Sora Render"
       hint="Pipeline settings aligned with Open-Sora 2.0 inference.py — Send writes job JSON and runs locally"
-      data-testid="open-sora-export-panel"
+      data-testid="open-sora-panel"
     >
       <label className="block">
         <div className="mb-1 text-xs font-bold uppercase tracking-wider text-white/45">Install path</div>

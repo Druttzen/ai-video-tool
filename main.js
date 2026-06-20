@@ -424,6 +424,154 @@ function setupBuildProgressIpc() {
   });
 }
 
+function isPipelineFolder(dir) {
+  const target = String(dir || "").trim();
+  if (!target || !fs.existsSync(target)) return false;
+  return (
+    fs.existsSync(path.join(target, "inference.py")) ||
+    fs.existsSync(path.join(target, "app_pro.py")) ||
+    fs.existsSync(path.join(target, "configs"))
+  );
+}
+
+function resolveBundledResource(relativePath) {
+  if (!process.resourcesPath) return null;
+  const candidate = path.join(process.resourcesPath, relativePath);
+  return fs.existsSync(candidate) ? candidate : null;
+}
+
+async function probePythonExecutable(pythonPath) {
+  const target = String(pythonPath || "").trim() || "python";
+  try {
+    const { stdout } = await execFileAsync(target, ["--version"], {
+      timeout: 8000,
+      shell: process.platform === "win32",
+    });
+    const raw = String(stdout || "").trim();
+    return {
+      ok: true,
+      path: target,
+      version: raw.replace(/^Python\s+/i, "") || raw,
+      bundled: Boolean(process.resourcesPath && target.includes(process.resourcesPath)),
+    };
+  } catch (e) {
+    return { ok: false, path: target, error: e?.message || "Python not found" };
+  }
+}
+
+async function probeFfmpegExecutable(ffmpegPath) {
+  const target = String(ffmpegPath || "").trim() || "ffmpeg";
+  try {
+    await execFileAsync(target, ["-version"], {
+      timeout: 5000,
+      shell: process.platform === "win32",
+    });
+    return {
+      ok: true,
+      path: target,
+      bundled: Boolean(process.resourcesPath && target.includes(process.resourcesPath)),
+    };
+  } catch (e) {
+    return { ok: false, path: target, error: e?.message || "ffmpeg not found" };
+  }
+}
+
+async function scanSetupEnvironment(payload = {}) {
+  const directorSettings = payload?.directorSettings || {};
+  const openSoraInstallPath = String(payload?.openSoraInstallPath || "").trim();
+
+  const bundledPython =
+    process.platform === "win32"
+      ? resolveBundledResource(path.join("python", "python.exe"))
+      : resolveBundledResource(path.join("python", "bin", "python3")) ||
+        resolveBundledResource(path.join("python", "bin", "python"));
+
+  const bundledFfmpeg =
+    process.platform === "win32"
+      ? resolveBundledResource(path.join("tools", "ffmpeg", "ffmpeg.exe"))
+      : resolveBundledResource(path.join("tools", "ffmpeg", "ffmpeg"));
+
+  const pythonCandidates = [
+    String(directorSettings.localPythonPath || "").trim(),
+    bundledPython,
+    process.platform === "win32" ? "py" : "python3",
+    "python",
+  ].filter(Boolean);
+
+  let python = { ok: false, error: "Python not found — install 3.10+ or bundle under resources/python" };
+  for (const candidate of [...new Set(pythonCandidates)]) {
+    const probe = await probePythonExecutable(candidate);
+    if (probe.ok) {
+      python = probe;
+      break;
+    }
+    python = probe;
+  }
+
+  const pipelinePath = String(directorSettings.localPipelinePath || "").trim();
+  const pipeline =
+    pipelinePath && isPipelineFolder(pipelinePath)
+      ? { ok: true, path: pipelinePath }
+      : {
+          ok: false,
+          path: pipelinePath,
+          error: pipelinePath
+            ? `Pipeline folder missing inference.py — ${pipelinePath}`
+            : "Set Director → Advanced → local pipeline folder",
+        };
+
+  const openSoraCandidates = [
+    openSoraInstallPath,
+    pipelinePath,
+    process.platform === "win32" ? "E:\\Open-Sora" : path.join(os.homedir(), "Open-Sora"),
+  ].filter(Boolean);
+
+  let openSora = {
+    ok: false,
+    error: "Optional — clone Open-Sora or set install path in Open-Sora panel",
+  };
+  for (const candidate of [...new Set(openSoraCandidates)]) {
+    if (isPipelineFolder(candidate)) {
+      openSora = { ok: true, path: candidate };
+      break;
+    }
+  }
+
+  const ffmpegCandidates = [bundledFfmpeg, "ffmpeg"].filter(Boolean);
+  let ffmpeg = { ok: false, error: "Optional — not required for prompt studio" };
+  for (const candidate of [...new Set(ffmpegCandidates)]) {
+    const probe = await probeFfmpegExecutable(candidate);
+    if (probe.ok) {
+      ffmpeg = probe;
+      break;
+    }
+    ffmpeg = probe;
+  }
+
+  const gpu = await gatherNativeSystemStats();
+
+  return {
+    scannedAt: new Date().toISOString(),
+    electron: { packaged: app.isPackaged, dev: !app.isPackaged },
+    python,
+    pipeline,
+    openSora,
+    ffmpeg,
+    gpu,
+  };
+}
+
+function setupSetupHubIpc() {
+  ipcMain.handle("setup:scan-environment", async (_event, payload) => {
+    try {
+      const scan = await scanSetupEnvironment(payload);
+      return { ok: true, scan };
+    } catch (e) {
+      return { ok: false, error: e?.message || "setup scan failed" };
+    }
+  });
+}
+
 function setupSystemIpc() {
   ipcMain.handle("system:get-stats", async () => {
     try {
@@ -625,7 +773,7 @@ function setupOpenSoraIpc() {
         };
       }
 
-      const runnerScript = path.join(__dirname, "scripts", "run-open-sora-job.py");
+      const runnerScript = resolveAppScript("scripts/run-open-sora-job.py");
       if (!fs.existsSync(runnerScript)) {
         return { ok: false, error: `Runner not found: ${runnerScript}` };
       }
@@ -700,7 +848,7 @@ function setupOpenSoraIpc() {
 
   ipcMain.handle("open-sora:sync-catalog", async (_event, installPath) => {
     try {
-      const script = path.join(__dirname, "scripts", "sync-open-sora-catalog.cjs");
+      const script = resolveAppScript("scripts/sync-open-sora-catalog.cjs");
       if (!fs.existsSync(script)) {
         return { ok: false, error: `Sync script not found: ${script}` };
       }
@@ -816,6 +964,7 @@ function openReadmeOnce() {
 app.whenReady().then(() => {
   setupAppIpc();
   setupSystemIpc();
+  setupSetupHubIpc();
   setupBuildProgressIpc();
   setupDirectorIpc();
   setupOpenSoraIpc();

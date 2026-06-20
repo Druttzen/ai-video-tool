@@ -79,6 +79,14 @@ export async function confirmDesktopAction(payload) {
   return window.electronAPI.confirmAction(payload);
 }
 
+/** @returns {Promise<{ ok: boolean, scan?: object, error?: string }>} */
+export async function scanSetupEnvironmentFromHost(payload) {
+  if (!isElectronApp() || !window.electronAPI?.scanSetupEnvironment) {
+    return { ok: false, error: "Setup scan requires the desktop app" };
+  }
+  return window.electronAPI.scanSetupEnvironment(payload);
+}
+
 export async function launchOpenSoraJob(payload) {
   if (!isElectronApp()) {
     return { ok: false, error: "Requires Electron desktop app" };

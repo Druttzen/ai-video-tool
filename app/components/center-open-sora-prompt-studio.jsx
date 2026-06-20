@@ -33,6 +33,7 @@ import {
 import { openSoraCatalog } from "../lib/open-sora-catalog";
 import { isElectronApp } from "../lib/electron-bridge";
 import { useProjectWorkspace } from "../context/project-workspace-context";
+import { PROJECT_RESET_EVENT } from "../lib/project-reset";
 
 export const CenterOpenSoraPromptStudio = memo(function CenterOpenSoraPromptStudio() {
   const ws = useProjectWorkspace();
@@ -44,6 +45,16 @@ export const CenterOpenSoraPromptStudio = memo(function CenterOpenSoraPromptStud
   useEffect(() => {
     const loaded = loadOpenSoraSettingsFromStorage();
     setSettings(applyInstallConfigToSettings(loaded, openSoraCatalog.config));
+  }, []);
+
+  useEffect(() => {
+    const onProjectReset = () => {
+      setSettings({ ...DEFAULT_OPEN_SORA_SETTINGS });
+      setWizard(createWizardSession());
+      setWizardInput("");
+    };
+    window.addEventListener(PROJECT_RESET_EVENT, onProjectReset);
+    return () => window.removeEventListener(PROJECT_RESET_EVENT, onProjectReset);
   }, []);
 
   const persist = (next) => {
@@ -126,7 +137,12 @@ export const CenterOpenSoraPromptStudio = memo(function CenterOpenSoraPromptStud
     >
       <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/40">
         <span>
-          Catalog: {openSoraCatalogSyncedAt ? new Date(openSoraCatalogSyncedAt).toLocaleString() : "not synced"}
+          Catalog:{" "}
+          <span suppressHydrationWarning>
+            {openSoraCatalogSyncedAt
+              ? openSoraCatalogSyncedAt.replace("T", " ").slice(0, 16)
+              : "not synced"}
+          </span>
         </span>
         <span>·</span>
         <span>{openSoraCatalogSource}</span>

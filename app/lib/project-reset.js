@@ -4,6 +4,10 @@ import {
   DEFAULT_GPU_WORKFLOW_SETTINGS,
   saveGpuWorkflowSettings,
 } from "./gpu-workflow-functions";
+import {
+  DEFAULT_OPEN_SORA_SETTINGS,
+  saveOpenSoraSettingsToStorage,
+} from "./open-sora-settings";
 import { saveManuscriptChatHistory } from "./manuscript-video-chat";
 import { attachCharacterVoiceFieldsToProjectExport } from "./voice-character-studio-session";
 import { slimStateForPersistence } from "./project-persistence";
@@ -31,6 +35,7 @@ export function buildBlankProjectSnapshot(appVersion = APP_VERSION) {
 export function resetPersistedPanelSettings() {
   saveDirectorSettingsToStorage({ ...DEFAULT_DIRECTOR_SETTINGS });
   saveGpuWorkflowSettings({ ...DEFAULT_GPU_WORKFLOW_SETTINGS });
+  saveOpenSoraSettingsToStorage({ ...DEFAULT_OPEN_SORA_SETTINGS });
   saveManuscriptChatHistory([]);
   try {
     sessionStorage.removeItem(UNDO_SESSION_KEY);
@@ -60,7 +65,7 @@ export function persistBlankProjectNow(lastAutosavePayloadRef) {
 }
 
 export async function confirmProjectReset(
-  message = "Reset entire project to defaults? Prompts, analyzers, Director settings, and history will be cleared.",
+  message = "Reset entire project to defaults? Prompts, analyzers, Director, Open-Sora, GPU settings, and history will be cleared.",
 ) {
   if (typeof window === "undefined") return false;
   if (isElectronApp() && window.electronAPI?.confirmAction) {

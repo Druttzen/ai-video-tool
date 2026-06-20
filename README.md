@@ -1,6 +1,6 @@
 # AI Video Creator — Video Prompt Studio
 
-**Version 1.0.4**
+**Version 1.0.5**
 
 A **standalone** video prompt studio by DJ M@D (Bones Vibration). Built on the same architecture as [AI Music Creator](https://github.com/Druttzen/ai-music-tool), but fully focused on **AI video** — not tied to Open-Sora, Suno tokens, or any single cloud provider.
 
@@ -113,6 +113,26 @@ If `electron-dist/win-unpacked` is locked, `prepare:electron-dist` falls back to
 - `app/lib/audio-visual-music-video.js` — Path E: audio + image → beat-sync MV patch and Director duration sync
 - `app/components/center-director-panel.jsx` — unified Create / Render / Advanced UI
 - `scripts/run-director-job.py` — optional local GPU backend runner
+
+## All-in-one setup (desktop)
+
+The **Setup Hub** panel (top of workspace) scans your environment and links optional local render tools:
+
+| Module | Purpose |
+|--------|---------|
+| **Python** | Required for local GPU diffusion render |
+| **Pipeline folder** | Open-Sora-compatible install with `inference.py` — set in Director → Advanced or link via Setup Hub |
+| **GPU scan** | VRAM tier, CUDA/Vulkan/DirectML — feeds GPU Workflow preflight |
+| **Open-Sora panel** | Legacy pipeline path + local job runner (optional) |
+| **FFmpeg** | Optional bundled `resources/tools/ffmpeg` or PATH |
+
+**Apply maxed profile** (desktop only) when scan finds Python + pipeline:
+
+- Links Open-Sora install path → Director `localPipelinePath`
+- Sets `renderBackend` to `local-python`
+- Enables all GPU workflow functions + auto-run on paths and before render
+
+Bundled placeholders (optional pack-in for installers): `resources/python`, `resources/tools/ffmpeg`.
 
 ## Legacy note
 

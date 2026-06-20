@@ -1,0 +1,81 @@
+{
+  "version": "1.0.0",
+  "title": "All-in-One Setup Hub",
+  "modules": [
+    {
+      "id": "desktop",
+      "label": "Desktop shell",
+      "description": "Electron app — local render, GPU scan, auto-update",
+      "requiresElectron": true,
+      "scrollTarget": null
+    },
+    {
+      "id": "director",
+      "label": "Director Engine",
+      "description": "Native prompt studio + job export / local MP4 render",
+      "scrollTarget": "director-panel"
+    },
+    {
+      "id": "analyzers",
+      "label": "Analyzers",
+      "description": "Audio + image drop — BPM, mood, i2v reference",
+      "scrollTarget": "analyzers-panel"
+    },
+    {
+      "id": "python",
+      "label": "Python runtime",
+      "description": "Required for local GPU diffusion render",
+      "requiresElectron": true
+    },
+    {
+      "id": "pipeline",
+      "label": "Diffusion pipeline",
+      "description": "Open-Sora-compatible folder with inference.py + configs",
+      "requiresElectron": true,
+      "scrollTarget": "director-panel"
+    },
+    {
+      "id": "open-sora",
+      "label": "Open-Sora install",
+      "description": "Optional legacy pipeline path — can link to Director",
+      "requiresElectron": true,
+      "scrollTarget": "open-sora-panel"
+    },
+    {
+      "id": "gpu",
+      "label": "GPU + graphics",
+      "description": "VRAM tier, CUDA/Vulkan/DirectML, workflow preflight",
+      "scrollTarget": "gpu-workflow-panel"
+    },
+    {
+      "id": "workflows",
+      "label": "Music video paths",
+      "description": "Paths A–E — track, paste, manuscript, beat-sync MV",
+      "scrollTarget": "music-video-workflows-panel"
+    },
+    {
+      "id": "co-producer",
+      "label": "Co-Producer LLM",
+      "description": "Optional OpenAI-compatible API for lyrics/manuscript",
+      "scrollTarget": "co-producer-panel"
+    },
+    {
+      "id": "style-dna",
+      "label": "Style-DNA search",
+      "description": "MusicBrainz / Spotify reference lookup",
+      "scrollTarget": "style-dna-panel"
+    },
+    {
+      "id": "ffmpeg",
+      "label": "FFmpeg",
+      "description": "Optional bundled or PATH ffmpeg for future transcode hooks",
+      "requiresElectron": true
+    },
+    {
+      "id": "export-cloud",
+      "label": "Cloud video export",
+      "description": "Copy prompts / JSON to Sora, Runway, Kling — no API bundled",
+      "scrollTarget": "director-panel"
+    }
+  ]
+}
