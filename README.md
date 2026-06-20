@@ -1,6 +1,6 @@
 # AI Video Creator — Video Prompt Studio
 
-**Version 1.0.10**
+**Version 1.0.21**
 
 A **standalone** video prompt studio by DJ M@D (Bones Vibration). Built on the same architecture as [AI Music Creator](https://github.com/Druttzen/ai-music-tool), but fully focused on **AI video** — not tied to Open-Sora, Suno tokens, or any single cloud provider.
 
@@ -162,6 +162,8 @@ Setup Hub can **check and install updates** for local render dependencies:
 | **Open-Sora** | `git clone` or `git pull` + optional `pip install -r requirements.txt` |
 | **Python** | Windows embeddable zip → `%AppData%/…/addons/python/` |
 | **FFmpeg** | Static Windows build → `%AppData%/…/addons/ffmpeg/` |
+| **Music video sync** | Librosa beat/onset analysis for Paths 1, 3, and 5 (desktop + managed venv) |
+| **WSL** | Optional Linux venv for CUDA torch (Windows host) |
 
 - Toggle **Auto-update … after each environment scan** in Setup Hub
 - Or use **Check addon updates** / **Update all addons**

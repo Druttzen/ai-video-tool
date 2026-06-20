@@ -152,7 +152,7 @@ export const CenterGpuWorkflowPanel = memo(function CenterGpuWorkflowPanel() {
             checked={gpuSettings.autoRunOnWorkflow !== false}
             onChange={(e) => persistGpu({ ...gpuSettings, autoRunOnWorkflow: e.target.checked })}
           />
-          Auto-run on workflow paths 1–4
+          Auto-run on workflow paths 1–5
         </label>
         <label className="flex items-center gap-2">
           <input

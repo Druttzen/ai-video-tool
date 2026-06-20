@@ -67,6 +67,8 @@ import {
 import { isSilentVocal, hasLyricsVocal } from "../lib/vocal-mode";
 import { extractLyricsBodyFromPaste } from "../lib/suno-reimport";
 import { buildMusicVideoPatchFromBoth, buildMusicVideoPatchFromSunoPaste } from "../lib/music-video-bridge";
+import { refineAudioAnalysisWithBeatSync } from "../lib/music-video-sync-client";
+import { saveDirectorSettingsToStorage } from "../lib/director-settings";
 import { scrollToDirectorPanelAfterApply } from "../lib/music-video-workflows";
 import { collectGenreAnchors } from "../lib/suno-language-index";
 import { buildStyleDnaPatch } from "../lib/track-style-dna";
@@ -923,7 +925,7 @@ Variation ${i + 1}: keep the core identity, change texture and movement without 
     scrollToDirectorPanelAfterApply();
   }, [captureSnapshot, patch, setStatusWithTime, sunoPasteLyrics, sunoPasteStyle]);
 
-  const applyMusicVideoFromBoth = useCallback(() => {
+  const applyMusicVideoFromBoth = useCallback(async () => {
     const hasTrack = Boolean(audioAnalysis);
     const hasPaste = Boolean(sunoPasteStyle?.trim() || sunoPasteLyrics?.trim());
     if (!hasTrack && !hasPaste) {
@@ -936,15 +938,22 @@ Variation ${i + 1}: keep the core identity, change texture and movement without 
       return `${m}:${String(s).padStart(2, "0")}`;
     };
     captureSnapshot("before track + Suno → music video merge");
-    patch(
-      buildMusicVideoPatchFromBoth(
-        audioAnalysis,
-        sunoPasteStyle,
-        sunoPasteLyrics,
-        formatTime,
-      ),
+    const refinedTrack = hasTrack
+      ? await refineAudioAnalysisWithBeatSync(audioAnalysis)
+      : audioAnalysis;
+    const rawPatch = buildMusicVideoPatchFromBoth(
+      refinedTrack,
+      sunoPasteStyle,
+      sunoPasteLyrics,
+      formatTime,
     );
-    setStatusWithTime("Track + Suno paste merged into music video — Director ready");
+    const { directorSettingsPatch, ...projectPatch } = rawPatch;
+    patch(projectPatch);
+    if (directorSettingsPatch) {
+      saveDirectorSettingsToStorage(directorSettingsPatch);
+    }
+    const syncSource = refinedTrack?.beatSync?.source ? ` (${refinedTrack.beatSync.source})` : "";
+    setStatusWithTime(`Track + Suno paste merged into music video${syncSource} — Director ready`);
     scrollToDirectorPanelAfterApply();
   }, [
     audioAnalysis,

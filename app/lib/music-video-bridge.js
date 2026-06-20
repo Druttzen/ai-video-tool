@@ -147,5 +147,6 @@ export function buildMusicVideoPatchFromBoth(audioAnalysis, styleText, lyricsTex
     mood: fromAudio.mood,
     promptEngine: "Director",
     lyricMode: "Multi-beat scene",
+    directorSettingsPatch: fromAudio.directorSettingsPatch,
   };
 }

@@ -33,6 +33,7 @@ describe("buildMusicVideoPatchFromBoth", () => {
   it("merges track and Suno paste", () => {
     const patch = buildMusicVideoPatchFromBoth(
       {
+        duration: 210,
         suggestedGenres: ["Trap"],
         suggestedSounds: ["808 bass"],
         suggestedRhythms: ["Halftime"],
@@ -46,6 +47,7 @@ describe("buildMusicVideoPatchFromBoth", () => {
     expect(patch.selectedGenres.length).toBeGreaterThan(0);
     expect(patch.generatedLyrics).toMatch(/Ride the night/);
     expect(patch.idea).toMatch(/Music video/i);
+    expect(patch.directorSettingsPatch?.durationSeconds).toBe("210");
     expect(patch.promptEngine).toBe("Director");
   });
 });

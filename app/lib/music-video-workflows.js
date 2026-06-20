@@ -197,7 +197,7 @@ export async function runMusicVideoWorkflow(workflowId, actions) {
       return { ok: false, message: hint };
     }
     actions.captureSnapshot("before workflow 3");
-    actions.applyMusicVideoFromBoth();
+    await actions.applyMusicVideoFromBoth();
     await maybeRunGpuWorkflow(actions, { hasImageRef: Boolean(actions.hasImageRef) });
     if (wf.directorAfter) scrollToPanel("director-panel");
     return { ok: true, message: "Path 3 applied — track + Suno paste merged" };

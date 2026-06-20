@@ -4,7 +4,7 @@ import { getIndexHelpBody, INDEX_SOURCES } from "./video-creator-index";
 export const PANEL_HELP = {
   "setup-hub": {
     title: "All-in-one setup hub",
-    body: "Scan the desktop environment for Git, Node.js, managed Python/venv, Open-Sora, GPU, ffmpeg, pip/torch deps, models, and optional WSL. Use Scan missing tools or Install all tools to run the built-in protocol (everything under AppData/addons). Apply maxed profile links paths to Director and enables GPU auto-run. Auto-update runs after each scan. Browser mode shows export-only status.",
+    body: "Scan the desktop environment for Git, Node.js, managed Python/venv, Open-Sora, GPU, ffmpeg, pip/torch deps, librosa music-video sync, models, and optional WSL. Use Scan missing tools or Install all tools to run the built-in protocol (everything under AppData/addons). Apply maxed profile links paths to Director and enables GPU auto-run. Auto-update runs after each scan. Browser mode shows export-only status.",
   },
   global: {
     title: "Project actions",
@@ -19,14 +19,15 @@ Help — opens this guide for the current panel.`,
   },
   gpuWorkflow: {
     title: "GPU workflow enhancements",
-    body: "Toggle GPU-powered steps: hardware scan, auto-optimize, local render, max resolution, premium quality, motion FX, I2V, VRAM guard, seed batch. Presets: Essentials, Local GPU studio, Max quality, Full stack. Auto-run on paths 1–4 and before render. Saved to localStorage and exported in project bundles.",
+    body: "Toggle GPU-powered steps: hardware scan, auto-optimize, local render, max resolution, premium quality, motion FX, I2V, VRAM guard, seed batch. Presets: Essentials, Local GPU studio, Max quality, Full stack. Auto-run on music video paths 1–5 and before render. Saved to localStorage and exported in project bundles.",
   },
   workflows: {
-    title: "Music video paths 1–4",
-    body: `Path 1 — drop track in Analyzers, Run maps to video.
+    title: "Music video paths 1–5",
+    body: `Path 1 — drop track in Analyzers, Run maps to video (librosa beat sync on desktop).
 Path 2 — paste Suno Style/Lyrics, Run applies visual fields.
-Path 3 — BOTH merges track + paste for full sync.
-Path 4 — write a manuscript in AI chat, Apply to project, then Director.`,
+Path 3 — BOTH merges track + paste for full sync (Director duration from track).
+Path 4 — write a manuscript in AI chat, Apply to project, then Director.
+Path 5 — audio + reference image → librosa beat-sync MV with highlight or full-track duration.`,
   },
   idea: {
     title: "Idea input",
