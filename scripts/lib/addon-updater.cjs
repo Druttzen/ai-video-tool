@@ -163,12 +163,26 @@ function findFileRecursive(root, fileName, depth = 0) {
 }
 
 /**
+ * Accept host scan ({ python, ffmpeg, … }), IPC wrapper ({ scan }), or Setup Hub UI scan ({ modules, raw }).
+ * @param {object|null|undefined} scan
+ */
+function normalizeHostScan(scan) {
+  if (!scan || typeof scan !== "object") return scan;
+  if (scan.raw && scan.modules) return scan.raw;
+  if (scan.scan && typeof scan.scan === "object") {
+    return normalizeHostScan(scan.scan);
+  }
+  return scan;
+}
+
+/**
  * @param {object} params
  * @param {object} params.scan
  * @param {string} params.userDataPath
  * @param {string} [params.openSoraPath]
  */
 async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
+  scan = normalizeHostScan(scan);
   const manifest = loadAddonManifest();
   const items = [];
 
@@ -354,6 +368,7 @@ async function updateFfmpeg({ userDataPath, manifest }) {
  * @param {string} [params.pythonPath]
  */
 async function updateAddon({ addonId, userDataPath, scan, openSoraPath, pythonPath }) {
+  scan = normalizeHostScan(scan);
   const manifest = loadAddonManifest();
   const id = String(addonId || "").trim();
 
@@ -417,6 +432,7 @@ module.exports = {
   compareSemver,
   getManagedAddonPaths,
   loadAddonManifest,
+  normalizeHostScan,
   updateAddon,
   updateAllAddons,
 };

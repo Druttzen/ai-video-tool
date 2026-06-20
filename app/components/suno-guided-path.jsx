@@ -13,6 +13,7 @@ import {
   SUNO_GUIDED_STEPS,
 } from "../lib/suno-guided-workflow";
 import { stylePresets } from "../lib/video-config";
+import { isSilentVocal, SILENT_VOCAL } from "../lib/vocal-mode";
 import {
   SUNO_LIMITS_NOTE,
   SUNO_LYRICS_CHAR_TYPICAL_MAX,
@@ -191,9 +192,9 @@ export const SunoGuidedPath = memo(function SunoGuidedPath({
               }}
               className={
                 "rounded-xl px-4 py-2 text-xs font-bold transition " +
-                (vocal !== "Instrumental"
-                  ? "bg-cyan-300 text-black ring-1 ring-cyan-200/80"
-                  : "border border-white/15 bg-black/40 text-cyan-100 hover:border-cyan-300/40")
+                (isSilentVocal(vocal)
+                  ? "border border-white/15 bg-black/40 text-cyan-100 hover:border-cyan-300/40"
+                  : "bg-cyan-300 text-black ring-1 ring-cyan-200/80")
               }
             >
               Lyrics
@@ -201,20 +202,20 @@ export const SunoGuidedPath = memo(function SunoGuidedPath({
             <button
               type="button"
               onClick={() => {
-                setVocal("Instrumental");
-                setStatusWithTime("Guided path: instrumental");
+                setVocal(SILENT_VOCAL);
+                setStatusWithTime("Guided path: silent visual");
               }}
               className={
                 "rounded-xl px-4 py-2 text-xs font-bold transition " +
-                (vocal === "Instrumental"
+                (isSilentVocal(vocal)
                   ? "bg-cyan-300 text-black ring-1 ring-cyan-200/80"
                   : "border border-white/15 bg-black/40 text-cyan-100 hover:border-cyan-300/40")
               }
             >
-              Instrumental
+              Silent visual
             </button>
           </div>
-          {vocal === "Instrumental" && typeof setInstrumentalVocalFx === "function" ? (
+          {isSilentVocal(vocal) && typeof setInstrumentalVocalFx === "function" ? (
             <label className="flex cursor-pointer items-start gap-2 text-[11px] text-white/80">
               <input
                 type="checkbox"

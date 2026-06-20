@@ -141,6 +141,24 @@ export async function deleteAudioCacheEntries(keys) {
   await Promise.all(list.map((key) => deleteAudioCache(key)));
 }
 
+export async function clearAllAudioCache() {
+  if (typeof indexedDB === "undefined") return;
+  try {
+    const db = await openDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).clear();
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * @param {string} key
  */

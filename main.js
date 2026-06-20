@@ -5,6 +5,8 @@ const os = require("os");
 const { spawn, execFile } = require("child_process");
 const { promisify } = require("util");
 const { scanSetupEnvironment: scanHostEnvironment } = require("./scripts/lib/environment-scan.cjs");
+const { normalizeHostScan } = require("./scripts/lib/addon-updater.cjs");
+const { defaultOpenSoraPath } = require("./scripts/lib/open-sora-paths.cjs");
 
 const pkg = require("./package.json");
 const execFileAsync = promisify(execFile);
@@ -253,6 +255,30 @@ async function gatherNativeSystemStats() {
 
 const activeBuilds = new Map();
 
+function registerBuildChild(logPath, meta, child) {
+  let entry = activeBuilds.get(logPath);
+  if (!entry) {
+    entry = {
+      startedAt: meta.startedAt,
+      logPath,
+      logStream: meta.logStream,
+      children: [],
+    };
+    activeBuilds.set(logPath, entry);
+  }
+  entry.children.push(child);
+  entry.pid = child.pid;
+  entry.child = child;
+}
+
+function isBuildProcessAlive(logPath, pid) {
+  const entry = logPath ? activeBuilds.get(logPath) : null;
+  if (entry?.children?.length) {
+    return entry.children.some((child) => child && !child.killed && isProcessAlive(child.pid));
+  }
+  return isProcessAlive(entry?.pid || pid);
+}
+
 function isProcessAlive(pid) {
   if (!pid) return false;
   try {
@@ -306,7 +332,7 @@ function getBuildStatusFromLog({ logPath, pid, startedAt, estimatedMs }) {
   const outputVideoPath = parseOutputVideoPath(logTail);
 
   const elapsed = Date.now() - (startedAt || Date.now());
-  const alive = isProcessAlive(pid);
+  const alive = isBuildProcessAlive(logPath, pid);
 
   if (status === "running" && progress <= 0) {
     progress = Math.min(95, (elapsed / Math.max(estimatedMs || 60000, 1)) * 100);
@@ -339,36 +365,48 @@ function getBuildStatusFromLog({ logPath, pid, startedAt, estimatedMs }) {
 }
 
 function killBuildProcess(pid, logPath) {
-  if (!pid) return { ok: false, error: "No build process" };
+  if (!pid && !logPath) return { ok: false, error: "No build process" };
 
   const entry = logPath ? activeBuilds.get(logPath) : null;
-  const targetPid = entry?.pid || pid;
+  const children = entry?.children?.length
+    ? entry.children
+    : entry?.child
+      ? [entry.child]
+      : [];
+  const targetPids = [...new Set(children.map((child) => child?.pid).filter(Boolean))];
+  if (!targetPids.length && pid) targetPids.push(pid);
 
-  try {
-    if (entry?.child && !entry.child.killed) {
-      entry.child.kill("SIGTERM");
+  for (const child of children) {
+    try {
+      if (child && !child.killed) child.kill("SIGTERM");
+    } catch {
+      /* fall through to platform kill */
     }
-  } catch {
-    /* fall through to platform kill */
   }
 
-  try {
-    if (process.platform === "win32") {
-      const { execSync } = require("child_process");
-      execSync(`taskkill /PID ${targetPid} /T /F`, { stdio: "ignore" });
-    } else {
-      try {
-        process.kill(-targetPid, "SIGTERM");
-      } catch {
-        process.kill(targetPid, "SIGTERM");
+  let killFailed = false;
+  for (const targetPid of targetPids) {
+    try {
+      if (process.platform === "win32") {
+        const { execSync } = require("child_process");
+        execSync(`taskkill /PID ${targetPid} /T /F`, { stdio: "ignore" });
+      } else {
+        try {
+          process.kill(-targetPid, "SIGTERM");
+        } catch {
+          process.kill(targetPid, "SIGTERM");
+        }
+      }
+    } catch {
+      if (!isProcessAlive(targetPid)) {
+        /* already stopped */
+      } else {
+        killFailed = true;
       }
     }
-  } catch {
-    if (!isProcessAlive(targetPid)) {
-      /* already stopped */
-    } else {
-      return { ok: false, error: "Could not stop render process" };
-    }
+  }
+  if (killFailed && targetPids.some((targetPid) => isProcessAlive(targetPid))) {
+    return { ok: false, error: "Could not stop render process" };
   }
 
   if (logPath) {
@@ -446,9 +484,9 @@ function setupAddonUpdaterIpc() {
   ipcMain.handle("setup:check-addon-updates", async (_event, payload) => {
     try {
       const userDataPath = app.getPath("userData");
-      const scan = payload?.scan || (await scanSetupEnvironment(payload));
+      const scan = normalizeHostScan(payload?.scan || (await scanSetupEnvironment(payload)));
       const result = await checkAddonUpdates({
-        scan: scan?.scan || scan,
+        scan,
         userDataPath,
         openSoraPath: payload?.openSoraInstallPath || payload?.openSoraPath,
       });
@@ -461,13 +499,9 @@ function setupAddonUpdaterIpc() {
   ipcMain.handle("setup:update-addon", async (_event, payload) => {
     try {
       const userDataPath = app.getPath("userData");
-      const scanPayload = payload?.scan ? null : payload;
-      const scanResult = payload?.scan
-        ? { scan: payload.scan }
-        : scanPayload
-          ? await scanSetupEnvironment(scanPayload)
-          : await scanSetupEnvironment(payload);
-      const scan = scanResult?.scan || scanResult;
+      const scan = payload?.scan
+        ? normalizeHostScan(payload.scan)
+        : normalizeHostScan(await scanSetupEnvironment(payload));
       const result = await updateAddon({
         addonId: payload?.addonId,
         userDataPath,
@@ -484,9 +518,9 @@ function setupAddonUpdaterIpc() {
   ipcMain.handle("setup:update-all-addons", async (_event, payload) => {
     try {
       const userDataPath = app.getPath("userData");
-      const scanResult = await scanSetupEnvironment(payload);
+      const scan = normalizeHostScan(await scanSetupEnvironment(payload));
       const result = await updateAllAddons({
-        scan: scanResult,
+        scan,
         userDataPath,
         openSoraPath: payload?.openSoraInstallPath,
         pythonPath: payload?.pythonPath,
@@ -620,13 +654,7 @@ function setupDirectorIpc() {
         });
         child.unref();
 
-        activeBuilds.set(logPath, {
-          pid: child.pid,
-          startedAt: stamp,
-          logPath,
-          child,
-          logStream,
-        });
+        registerBuildChild(logPath, { startedAt: stamp, logStream }, child);
 
         return child;
       };
@@ -678,7 +706,7 @@ function setupOpenSoraIpc() {
 
       fs.writeFileSync(jobPath, JSON.stringify(job, null, 2));
 
-      const installPath = job.installPath || "E:\\Open-Sora";
+      const installPath = job.installPath || defaultOpenSoraPath();
       if (mode === "ui") {
         const appPro = path.join(installPath, "app_pro.py");
         if (!fs.existsSync(appPro)) {
@@ -740,13 +768,7 @@ function setupOpenSoraIpc() {
       });
       child.unref();
 
-      activeBuilds.set(logPath, {
-        pid: child.pid,
-        startedAt: stamp,
-        logPath,
-        child,
-        logStream,
-      });
+      registerBuildChild(logPath, { startedAt: stamp, logStream }, child);
 
       return {
         ok: true,
@@ -764,7 +786,7 @@ function setupOpenSoraIpc() {
 
   ipcMain.handle("open-sora:open-ui", async (_event, payload) => {
     try {
-      const installPath = payload?.installPath || "E:\\Open-Sora";
+      const installPath = payload?.installPath || defaultOpenSoraPath();
       const pythonPath = payload?.pythonPath || "python";
       const appPro = path.join(installPath, "app_pro.py");
       if (!fs.existsSync(appPro)) {
@@ -790,7 +812,7 @@ function setupOpenSoraIpc() {
         return { ok: false, error: `Sync script not found: ${script}` };
       }
       const { execSync } = require("child_process");
-      execSync(`node "${script}" "${installPath || "E:\\Open-Sora"}"`, {
+      execSync(`node "${script}" "${installPath || defaultOpenSoraPath()}"`, {
         cwd: __dirname,
         encoding: "utf8",
         env: { ...process.env, PYTHONIOENCODING: "utf-8" },

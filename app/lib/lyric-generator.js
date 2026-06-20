@@ -3,6 +3,7 @@
  */
 
 import { bracketizeSunoPromptBlock, bracketizeSunoPromptLine } from "./music-helpers";
+import { hasLyricsVocal, isSilentVocal } from "./vocal-mode";
 import {
   applyLanguageFlavorToContent,
   formatSunoLyricSectionTag,
@@ -48,7 +49,7 @@ export function resolveVoiceLyricContext(input) {
   const vocalTag = String(compact.lyricTag || "").trim();
   const deliveryHint = String(compact.style || "").trim() || String(input?.voiceStyleLine || "").trim().slice(0, 160);
   const vocalRole =
-    input?.vocal && input.vocal !== "Instrumental" ? String(input.vocal).trim() : "";
+    input?.vocal && hasLyricsVocal(input.vocal) ? String(input.vocal).trim() : "";
   return { vocalTag, deliveryHint, vocalRole };
 }
 
@@ -402,7 +403,7 @@ export function generateCoProducerLyrics(input) {
   const seed = computeSeed(mood, variantSeed);
   const lineCount = densityLineCount(lyricDensity);
 
-  if (vocal === "Instrumental") {
+  if (isSilentVocal(vocal)) {
     return {
       lyrics: bracketizeSunoPromptLine(
         "Instrumental mode is active. Switch vocal mode to generate lyrics.",
@@ -495,7 +496,7 @@ export function generateCoProducerHooks(input) {
   const hookAccent = moodHookLine(mood || {}, lyricLanguage);
   const energyAccent = moodEnergyLine(mood || {}, lyricLanguage);
 
-  if (vocal === "Instrumental") {
+  if (isSilentVocal(vocal)) {
     return {
       hooks: bracketizeSunoPromptLine(
         "Instrumental mode is active. Switch vocal mode to generate lyric hooks.",

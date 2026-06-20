@@ -4,6 +4,7 @@ import { memo } from "react";
 import { Panel, Pill } from "./ui-blocks";
 import { FAMOUS_VOICE_PRESETS, formatPublicName } from "../lib/suno-voice-style";
 import { useProjectWorkspace } from "../context/project-workspace-context";
+import { isSilentVocal } from "../lib/vocal-mode";
 
 export const CenterVoiceStylePanel = memo(function CenterVoiceStylePanel() {
   const ws = useProjectWorkspace();
@@ -79,12 +80,12 @@ export const CenterVoiceStylePanel = memo(function CenterVoiceStylePanel() {
           Clear
         </button>
       </div>
-      {ws.vocal === "Instrumental" && (
+      {isSilentVocal(ws.vocal) ? (
         <div className="mt-3 rounded-2xl border border-amber-300/25 bg-amber-300/10 p-3 text-xs text-amber-100">
-          Instrumental mode: voice reference is not added to the Sora-like export. Switch vocal preset to hear a lead
+          Silent visual mode: voice reference is not added to the Sora-like export. Switch vocal preset to hear a lead
           vocal in the prompt.
         </div>
-      )}
+      ) : null}
       {ws.voiceStyleCompact.style ? (
         <div className="mt-3 space-y-2">
           <div className="text-xs font-bold uppercase tracking-wider text-white/45">Style box</div>

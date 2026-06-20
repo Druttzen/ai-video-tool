@@ -4,6 +4,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { defaultOpenSoraPath } = require("./open-sora-paths.cjs");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 
@@ -23,12 +24,6 @@ function resolveBundledResource(resourcesPath, relativePath) {
   if (!resourcesPath) return null;
   const candidate = path.join(resourcesPath, relativePath);
   return fs.existsSync(candidate) ? candidate : null;
-}
-
-function defaultOpenSoraPath() {
-  return process.platform === "win32"
-    ? "E:\\Open-Sora"
-    : path.join(os.homedir(), "Open-Sora");
 }
 
 async function probePythonExecutable(pythonPath) {

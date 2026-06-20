@@ -1,5 +1,6 @@
 import { FACTORY_PRESET_BLURBS, stylePresets } from "./video-config";
 import { SUNO_LYRICS_CHAR_TYPICAL_MAX, SUNO_STYLE_CHAR_CAP } from "./suno-limits";
+import { isSilentVocal, hasLyricsVocal, SILENT_VOCAL } from "./vocal-mode";
 
 export { FACTORY_PRESET_BLURBS };
 
@@ -85,7 +86,7 @@ export function getProgressiveStyleFragment(p, maxStep) {
     ...p,
     selectedSounds: maxStep >= 2 ? p.selectedSounds : [],
     selectedRhythms: maxStep >= 2 ? p.selectedRhythms : [],
-    vocal: maxStep >= 3 ? p.vocal : "Instrumental",
+    vocal: maxStep >= 3 ? p.vocal : SILENT_VOCAL,
     instrumentalVocalFx: maxStep >= 3 ? p.instrumentalVocalFx : false,
     rules: maxStep >= 3 ? p.rules : "",
     idea: maxStep >= 4 ? p.idea : "",
@@ -178,7 +179,7 @@ export function buildSunoPastedStyleLine(p) {
     moodWords = "",
     selectedSounds = [],
     selectedRhythms = [],
-    vocal = "Instrumental",
+    vocal = SILENT_VOCAL,
     instrumentalVocalFx = false,
     idea = "",
     rules = "",
@@ -191,7 +192,7 @@ export function buildSunoPastedStyleLine(p) {
   pushTokens(parts, selectedGenres.length ? selectedGenres : ["electronic"]);
   if (tempo) parts.push(tempo);
   if (moodWords) pushTokens(parts, moodWords.split(/,\s*/));
-  if (vocal === "Instrumental") {
+  if (isSilentVocal(vocal)) {
     parts.push(
       instrumentalVocalFx
         ? "instrumental, vocal FX only, no sung lyrics"
@@ -206,7 +207,7 @@ export function buildSunoPastedStyleLine(p) {
   if (goal) parts.push(goal);
   const r = normalizeToken(rules).replace(/\n/g, ", ");
   if (r) pushTokens(parts, r.split(/,\s*/).slice(0, 10));
-  if (voiceRef && vocal !== "Instrumental") parts.push(voiceRef);
+  if (voiceRef && hasLyricsVocal(vocal)) parts.push(voiceRef);
 
   return joinWithCap(parts, SUNO_STYLE_CHAR_CAP);
 }
@@ -216,8 +217,8 @@ export function buildSunoPastedStyleLine(p) {
  * Vocal tags and section brackets survive trimming longer than prose tails.
  */
 export function buildSunoPastedLyricsField(p) {
-  const vocal = p.vocal || "Instrumental";
-  if (vocal === "Instrumental") {
+  const vocal = p.vocal || SILENT_VOCAL;
+  if (isSilentVocal(vocal)) {
     return "Instrumental only.";
   }
 

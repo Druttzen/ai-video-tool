@@ -1,4 +1,5 @@
 import { uniq } from "./music-helpers";
+import { hasLyricsVocal } from "./vocal-mode";
 
 /**
  * One-click Co-Producer mood/style tweaks from the guided workspace.
@@ -86,7 +87,7 @@ export function buildCoProducerAdvisoryReport({
   if (mood.space > 65 && !selectedSounds.includes("Dub delays")) {
     fixesToApply.push("Dub delays");
   }
-  if (vocal !== "Instrumental" && lyricTheme.length < 12) {
+  if (hasLyricsVocal(vocal) && lyricTheme.length < 12) {
     suggestions.push(
       "Lyric theme is short. Add clearer story, emotion, or repeated phrase direction.",
     );

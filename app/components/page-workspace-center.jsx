@@ -24,6 +24,7 @@ import { CenterDirectorPanel } from "./center-director-panel";
 import { CenterSunoReimportPanel } from "./center-suno-reimport-panel";
 import { CenterVariationsPanel } from "./center-variations-panel";
 import { CenterVoiceCharacterStudio } from "./center-voice-character-studio";
+import { CenterVoiceStylePanel } from "./center-voice-style-panel";
 
 export const PageWorkspaceCenter = memo(function PageWorkspaceCenter() {
   return (
@@ -38,6 +39,7 @@ export const PageWorkspaceCenter = memo(function PageWorkspaceCenter() {
       <CenterMusicVideoPanel />
       <CenterManuscriptChatPanel />
       <CenterVoiceCharacterStudio />
+      <CenterVoiceStylePanel />
       <CenterStyleDnaSearchPanel />
       <CenterMoodPanel />
       <CenterMusicControlsPanel />

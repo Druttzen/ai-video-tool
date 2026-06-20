@@ -1,5 +1,6 @@
 import { validateSunoFieldLengths } from "./suno-limits";
 import { SUNO_CATALOG_SYNC } from "./suno-catalog-synced";
+import { isSilentVocal, hasLyricsVocal } from "./vocal-mode";
 
 /** Suno v5.5 community guidance: focused Style tag count. */
 export const SUNO_STYLE_DESCRIPTOR_RANGE = { min: 4, max: 8 };
@@ -48,7 +49,7 @@ Sound: ${selectedSounds.slice(0, 6).join(", ") || "balanced instruments"}
 Rhythm: ${selectedRhythms.join(", ") || "steady groove"}
 Vocals: ${vocalText}
 Goal: ${idea}
-Lyrics: ${vocal === "Instrumental" ? "instrumental only" : `${lyricStyle}, ${lyricTheme}`}
+Lyrics: ${isSilentVocal(vocal) ? "instrumental only" : `${lyricStyle}, ${lyricTheme}`}
 Rules: ${rules}`;
   }
 
@@ -68,7 +69,7 @@ ${structure}
 GOAL:
 ${idea}
 
-${vocal !== "Instrumental" ? lyricPrompt : "LYRICS:\nInstrumental only."}
+${hasLyricsVocal(vocal) ? lyricPrompt : "LYRICS:\nInstrumental only."}
 
 RULES:
 ${rules}
@@ -99,7 +100,7 @@ ${vocalText}
 GOAL:
 ${idea}
 
-${vocal !== "Instrumental" ? lyricPrompt : "LYRICS:\nInstrumental only."}
+${hasLyricsVocal(vocal) ? lyricPrompt : "LYRICS:\nInstrumental only."}
 
 RULES:
 ${rules}
@@ -130,11 +131,11 @@ export function buildSunoStyleBoxPrompt({
   const productionLine = `${selectedSounds.slice(0, 8).join(", ") || "balanced instruments"} | ${selectedRhythms.join(", ") || "steady groove"}`;
   const vocalLine = `VOC:\n${vocalText}`;
   const voiceRefSection =
-    voiceStyleReference.trim() && vocal !== "Instrumental"
+    voiceStyleReference.trim() && hasLyricsVocal(vocal)
       ? `VREF:\n${voiceStyleReference.trim()}\n\n`
       : "";
   const negatives = [];
-  if (vocal === "Instrumental") negatives.push("no vocals", "no vocal chops", "no mumbled speech");
+  if (isSilentVocal(vocal)) negatives.push("no vocals", "no vocal chops", "no mumbled speech");
   if (rules.toLowerCase().includes("no")) negatives.push("follow explicit negative constraints in Rules");
 
   /** Short section tags — saves characters for RULES (analyzers, negatives) under Suno Style cap. */
@@ -164,7 +165,7 @@ ${mode}`;
 
 /** Text for Suno **Lyrics** field — structure / lyric direction only (no style DNA). */
 export function buildSunoLyricsBoxPrompt({ vocal, lyricPrompt }) {
-  if (vocal === "Instrumental") {
+  if (isSilentVocal(vocal)) {
     return "Instrumental only. No lyrical content.";
   }
   const t = (lyricPrompt || "").trim();
@@ -204,7 +205,7 @@ export function buildSunoLikePrompt({
   };
   const styleBlock = buildSunoStyleBoxPrompt(params);
   const lyricBlock =
-    vocal !== "Instrumental" ? lyricPrompt : "Instrumental only. No lyrical content.";
+    hasLyricsVocal(vocal) ? lyricPrompt : "Instrumental only. No lyrical content.";
   return `${styleBlock}
 
 LYRIC DIRECTION:
@@ -249,7 +250,7 @@ export function validateSunoLikePrompt(params) {
   if (!structure || structure.trim().length < 8) warnings.push("Song form is too short; add section flow.");
   if (!idea || idea.trim().length < 10) warnings.push("Creative goal is too short; add more intent.");
   if (
-    vocal === "Instrumental" &&
+    isSilentVocal(vocal) &&
     !instrumentalVocalFx &&
     !rules.toLowerCase().includes("no vocal")
   ) {

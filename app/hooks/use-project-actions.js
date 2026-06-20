@@ -64,6 +64,7 @@ import {
   persistBlankProjectNow,
   resetPersistedPanelSettings,
 } from "../lib/project-reset";
+import { isSilentVocal, hasLyricsVocal } from "../lib/vocal-mode";
 import { extractLyricsBodyFromPaste } from "../lib/suno-reimport";
 import { buildMusicVideoPatchFromBoth, buildMusicVideoPatchFromSunoPaste } from "../lib/music-video-bridge";
 import { scrollToDirectorPanelAfterApply } from "../lib/music-video-workflows";
@@ -213,7 +214,7 @@ export function useProjectActions({
     if (!structure || structure.trim().length < 8) setStructure(d.structure);
     if (!idea || idea.trim().length < 10) setIdea(d.idea);
     if (
-      vocal === "Instrumental" &&
+      isSilentVocal(vocal) &&
       !instrumentalVocalFx &&
       !rules.toLowerCase().includes("no vocal")
     ) {
@@ -604,7 +605,7 @@ export function useProjectActions({
       });
       setGeneratedHooks(result.hooks);
       setGeneratedHooksStyle(result.styleLabel);
-      if (vocal === "Instrumental") {
+      if (isSilentVocal(vocal)) {
         setStatusWithTime("Hooks skipped in instrumental mode");
         return;
       }
@@ -647,7 +648,7 @@ export function useProjectActions({
         ...coProducerVoiceFields(),
       };
 
-      if (vocal === "Instrumental") {
+      if (isSilentVocal(vocal)) {
         const result = generateCoProducerLyrics(input);
         setGeneratedLyrics(result.lyrics);
         setGeneratedLyricsStyle("");
@@ -757,7 +758,7 @@ ${modePick === "Chaos" ? "experimental, bold, unstable evolution" : intensityTex
 Creative Goal:
 ${idea}
 
-${vocal !== "Instrumental" ? lyricPrompt : "Lyrics: instrumental only."}
+${hasLyricsVocal(vocal) ? lyricPrompt : "Lyrics: instrumental only."}
 
 ${audioAnalysis ? `Audio Source Analysis:
 ${audioAnalysis.summary}` : ""}

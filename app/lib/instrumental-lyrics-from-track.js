@@ -3,16 +3,17 @@
  */
 
 import { formatTime } from "./audio-analyzer";
+import { isSilentVocal, SILENT_VOCAL } from "./vocal-mode";
 
 /**
  * @param {object|null} analysis
  * @param {string} [vocal]
  */
-export function isLikelyInstrumentalTrack(analysis, vocal = "Instrumental") {
+export function isLikelyInstrumentalTrack(analysis, vocal = SILENT_VOCAL) {
   if (!analysis) return false;
   const detected = String(analysis.vocals || "").toLowerCase();
   if (detected.includes("instrumental")) return true;
-  if (vocal === "Instrumental" && !detected.includes("vocals likely")) return true;
+  if (isSilentVocal(vocal) && !detected.includes("vocals likely")) return true;
   return false;
 }
 

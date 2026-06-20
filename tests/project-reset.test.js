@@ -7,11 +7,14 @@ import {
   loadOpenSoraSettingsFromStorage,
   OPEN_SORA_SETTINGS_KEY,
 } from "../app/lib/open-sora-settings.js";
+import { LLM_SETTINGS_KEY, loadCoProducerLlmSettings } from "../app/lib/co-producer-llm.js";
+import { STYLE_DNA_SETTINGS_KEY, loadStyleDnaSettings } from "../app/lib/style-dna-settings.js";
+import { PRESET_KEY, HISTORY_KEY } from "../app/lib/video-config.js";
 
 describe("project reset helpers", () => {
   it("buildBlankProjectSnapshot clears prompts and analyzers", () => {
-    const snap = buildBlankProjectSnapshot("1.0.7");
-    expect(snap.appVersion).toBe("1.0.7");
+    const snap = buildBlankProjectSnapshot("1.0.8");
+    expect(snap.appVersion).toBe("1.0.8");
     expect(snap.idea).toBe(BLANK_STATE.idea);
     expect(snap.selectedGenres).toEqual([]);
     expect(snap.audioAnalysis).toBeNull();
@@ -51,6 +54,28 @@ describe("project reset helpers", () => {
       );
       resetPersistedPanelSettings();
       expect(loadOpenSoraSettingsFromStorage().installPath).toBe(DEFAULT_OPEN_SORA_SETTINGS.installPath);
+    });
+
+    it("clears Co-Producer LLM and Style-DNA secrets", () => {
+      localStorage.setItem(
+        LLM_SETTINGS_KEY,
+        JSON.stringify({ enabled: true, apiKey: "secret", apiUrl: "https://x", model: "m" }),
+      );
+      localStorage.setItem(
+        STYLE_DNA_SETTINGS_KEY,
+        JSON.stringify({ spotifyClientId: "id", spotifyClientSecret: "sec" }),
+      );
+      resetPersistedPanelSettings();
+      expect(loadCoProducerLlmSettings().apiKey).toBe("");
+      expect(loadStyleDnaSettings().spotifyClientSecret).toBe("");
+    });
+
+    it("clears custom presets and history keys", () => {
+      localStorage.setItem(PRESET_KEY, JSON.stringify({ x: {} }));
+      localStorage.setItem(HISTORY_KEY, JSON.stringify([{ id: 1 }]));
+      resetPersistedPanelSettings();
+      expect(localStorage.getItem(PRESET_KEY)).toBeNull();
+      expect(localStorage.getItem(HISTORY_KEY)).toBeNull();
     });
   });
 });

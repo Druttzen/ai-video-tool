@@ -1,4 +1,4 @@
-import { APP_VERSION, STORAGE_KEY } from "./video-config";
+import { APP_VERSION, STORAGE_KEY, PRESET_KEY, HISTORY_KEY } from "./video-config";
 import { DEFAULT_DIRECTOR_SETTINGS, saveDirectorSettingsToStorage } from "./director-settings";
 import {
   DEFAULT_GPU_WORKFLOW_SETTINGS,
@@ -9,6 +9,12 @@ import {
   saveOpenSoraSettingsToStorage,
 } from "./open-sora-settings";
 import { saveManuscriptChatHistory } from "./manuscript-video-chat";
+import { DEFAULT_LLM_SETTINGS, saveCoProducerLlmSettings } from "./co-producer-llm";
+import {
+  DEFAULT_STYLE_DNA_SETTINGS,
+  saveStyleDnaSettings,
+} from "./style-dna-settings";
+import { clearAllAudioCache } from "./audio-cache";
 import { attachCharacterVoiceFieldsToProjectExport } from "./voice-character-studio-session";
 import { slimStateForPersistence } from "./project-persistence";
 import {
@@ -37,8 +43,13 @@ export function resetPersistedPanelSettings() {
   saveDirectorSettingsToStorage({ ...DEFAULT_DIRECTOR_SETTINGS });
   saveGpuWorkflowSettings({ ...DEFAULT_GPU_WORKFLOW_SETTINGS });
   saveOpenSoraSettingsToStorage({ ...DEFAULT_OPEN_SORA_SETTINGS });
+  saveCoProducerLlmSettings({ ...DEFAULT_LLM_SETTINGS });
+  saveStyleDnaSettings({ ...DEFAULT_STYLE_DNA_SETTINGS });
   saveManuscriptChatHistory([]);
   clearPersistedSetupScan();
+  safeLocalStorage.remove(PRESET_KEY);
+  safeLocalStorage.remove(HISTORY_KEY);
+  void clearAllAudioCache();
   try {
     sessionStorage.removeItem(UNDO_SESSION_KEY);
   } catch {
@@ -67,7 +78,7 @@ export function persistBlankProjectNow(lastAutosavePayloadRef) {
 }
 
 export async function confirmProjectReset(
-  message = "Reset entire project to defaults? Prompts, analyzers, Director, Open-Sora, GPU settings, and history will be cleared.",
+  message = "Reset entire project to defaults? Prompts, analyzers, Director, Open-Sora, GPU settings, Co-Producer API keys, Style-DNA secrets, custom presets, cached audio, and history will be cleared.",
 ) {
   if (typeof window === "undefined") return false;
   if (isElectronApp() && window.electronAPI?.confirmAction) {

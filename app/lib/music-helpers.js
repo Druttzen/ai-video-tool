@@ -1,5 +1,6 @@
 import { getLyricStyleDirection } from "./lyric-generator";
 import { getSunoLanguagePromptRules } from "./suno-lyric-languages";
+import { isSilentVocal } from "./vocal-mode";
 
 export function uniq(arr) {
   return Array.from(new Set(arr));
@@ -35,7 +36,7 @@ export function buildMoodWords(mood) {
 }
 
 export function buildVocalTextForPrompt(vocal, instrumentalVocalFx) {
-  if (vocal === "Instrumental" && instrumentalVocalFx) {
+  if (isSilentVocal(vocal) && instrumentalVocalFx) {
     return "instrumental arrangement with vocal FX only (short chops, textures, one-shots — no sung lyrics or verses)";
   }
   return getVocalText(vocal);
@@ -43,7 +44,7 @@ export function buildVocalTextForPrompt(vocal, instrumentalVocalFx) {
 
 export function getVocalText(vocal) {
   if (!vocal) return "vocal role not selected yet — pick a vocal mode when you reach that step";
-  if (vocal === "Instrumental") return "instrumental only, no vocals, no vocal chops, no mumbled speech textures, do not use lyrics as FX";
+  if (isSilentVocal(vocal)) return "instrumental only, no vocals, no vocal chops, no mumbled speech textures, do not use lyrics as FX";
   if (vocal === "Robotic") return "robotic voice persona, synthetic tone, processed delivery, rhythmic phrases, consistent voice identity";
   if (vocal === "Vocal Chops") return "short rhythmic vocal chops only, no lead singing, no mumbled background speech";
   if (vocal === "Choir") return "choir textures, cinematic vocal layers, no pop lead vocal";
@@ -104,7 +105,7 @@ export function buildLyricPrompt({
     return "[Lyrics: select vocal mode and lyric theme to build direction.]";
   }
 
-  if (vocalRole === "Instrumental") {
+  if (isSilentVocal(vocalRole)) {
     return "[Lyrics: instrumental only, no sung lyrics, no rap, no spoken words.]";
   }
 
