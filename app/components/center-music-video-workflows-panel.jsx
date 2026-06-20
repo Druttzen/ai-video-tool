@@ -18,6 +18,7 @@ export const CenterMusicVideoWorkflowsPanel = memo(function CenterMusicVideoWork
 
   const ctx = {
     audioAnalysis: ws.audioAnalysis,
+    imageAnalysis: ws.imageAnalysis,
     sunoPasteStyle: ws.sunoPasteStyle,
     sunoPasteLyrics: ws.sunoPasteLyrics,
   };
@@ -27,12 +28,14 @@ export const CenterMusicVideoWorkflowsPanel = memo(function CenterMusicVideoWork
       setActiveId(workflowId);
       const result = await runMusicVideoWorkflow(workflowId, {
         audioAnalysis: ws.audioAnalysis,
+        imageAnalysis: ws.imageAnalysis,
         sunoPasteStyle: ws.sunoPasteStyle,
         sunoPasteLyrics: ws.sunoPasteLyrics,
         hasImageRef: Boolean(ws.imageAnalysis && ws.imagePreview),
         promptLength: ws.idea?.length || 0,
         captureSnapshot: ws.captureSnapshot,
         applyAudioToMusicVideo: ws.applyAudioToMusicVideo,
+        applyAudioVisualMusicVideo: ws.applyAudioVisualMusicVideo,
         applySunoPasteToMusicVideo: ws.applySunoPasteToMusicVideo,
         applyMusicVideoFromBoth: ws.applyMusicVideoFromBoth,
         setPromptEngine: ws.setPromptEngine,
@@ -51,7 +54,7 @@ export const CenterMusicVideoWorkflowsPanel = memo(function CenterMusicVideoWork
 
   return (
     <Panel
-      title="Quick Start — Music Video Paths 1–4"
+      title="Quick Start — Music Video Paths 1–5"
       hint="Pick a workflow. Run applies fields and scrolls to Director when ready; Show jumps to the right panel."
       data-testid="music-video-workflows-panel"
       actions={<PanelActions topic="workflows" clearDisabled />}

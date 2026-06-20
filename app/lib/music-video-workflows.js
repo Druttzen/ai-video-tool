@@ -61,14 +61,28 @@ export const MUSIC_VIDEO_WORKFLOWS = [
     scrollTarget: "manuscript-chat-panel",
     directorAfter: true,
   },
+  {
+    id: 5,
+    title: "Audio + picture sync",
+    badge: "E",
+    summary: "Analyzed track + reference image → beat-sync cuts, lip-sync, full song duration.",
+    steps: [
+      "Drop audio and image in Analyzers",
+      "Click Audio + picture → music video",
+      "Open Director — duration matches song length",
+    ],
+    scrollTarget: "analyzers-panel",
+    directorAfter: true,
+  },
 ];
 
 /**
- * @param {number} workflowId 1–4
- * @param {{ audioAnalysis?: object|null, sunoPasteStyle?: string, sunoPasteLyrics?: string }} ctx
+ * @param {number} workflowId 1–5
+ * @param {{ audioAnalysis?: object|null, imageAnalysis?: object|null, sunoPasteStyle?: string, sunoPasteLyrics?: string }} ctx
  */
 export function getMusicVideoWorkflowReadiness(workflowId, ctx) {
   const hasTrack = Boolean(ctx.audioAnalysis);
+  const hasImage = Boolean(ctx.imageAnalysis);
   const hasPaste = Boolean(
     String(ctx.sunoPasteStyle || "").trim() || String(ctx.sunoPasteLyrics || "").trim(),
   );
@@ -101,6 +115,19 @@ export function getMusicVideoWorkflowReadiness(workflowId, ctx) {
       };
     case 4:
       return { ready: true, missing: [], hint: "Write your manuscript — LLM optional" };
+    case 5:
+      return {
+        ready: hasTrack && hasImage,
+        missing: [!hasTrack && "track", !hasImage && "image"].filter(Boolean),
+        hint:
+          hasTrack && hasImage
+            ? "Ready — run Path 5"
+            : !hasTrack && !hasImage
+              ? "Need analyzed audio + image"
+              : !hasTrack
+                ? "Drop audio in Analyzers"
+                : "Drop reference image in Analyzers",
+      };
     default:
       return { ready: false, missing: ["unknown"], hint: "Unknown workflow" };
   }
@@ -122,6 +149,7 @@ export function scrollToPanel(testId) {
 export async function runMusicVideoWorkflow(workflowId, actions) {
   const ctx = {
     audioAnalysis: actions.audioAnalysis,
+    imageAnalysis: actions.imageAnalysis,
     sunoPasteStyle: actions.sunoPasteStyle,
     sunoPasteLyrics: actions.sunoPasteLyrics,
   };
@@ -173,6 +201,18 @@ export async function runMusicVideoWorkflow(workflowId, actions) {
     scrollToPanel("manuscript-chat-panel");
     await maybeRunGpuWorkflow(actions, { hasImageRef: Boolean(actions.hasImageRef) });
     return { ok: true, message: "Path 4 — write your manuscript below (Ctrl+Enter to send)" };
+  }
+
+  if (workflowId === 5) {
+    if (!ready) {
+      scrollToPanel("analyzers-panel");
+      return { ok: false, message: hint };
+    }
+    actions.captureSnapshot("before workflow 5");
+    actions.applyAudioVisualMusicVideo?.();
+    await maybeRunGpuWorkflow(actions, { hasImageRef: Boolean(actions.hasImageRef) });
+    if (wf.directorAfter) scrollToPanel("director-panel");
+    return { ok: true, message: "Path 5 applied — audio + picture beat-sync music video" };
   }
 
   return { ok: false, message: "Unknown workflow" };

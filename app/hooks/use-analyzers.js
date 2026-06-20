@@ -7,6 +7,15 @@ import {
 } from "../lib/analyzer-guided-merge";
 import { buildMusicVideoPatchFromAudio } from "../lib/music-video-bridge";
 import {
+  buildMusicVideoPatchFromAudioAndImage,
+  songDurationSec,
+  syncDirectorSettingsToSong,
+} from "../lib/audio-visual-music-video";
+import {
+  loadDirectorSettingsFromStorage,
+  saveDirectorSettingsToStorage,
+} from "../lib/director-settings";
+import {
   isSupportedAudioFile,
   isSupportedImageFile,
   SUPPORTED_AUDIO_LABEL,
@@ -346,6 +355,27 @@ export function useAnalyzers({
     setStatusWithTime("Suno track mapped to music video fields — open Director to render");
   }, [audioAnalysis, applyAnalyzerPatch, setStatusWithTime]);
 
+  const applyAudioVisualMusicVideo = useCallback(() => {
+    if (!audioAnalysis || !imageAnalysis) {
+      setStatusWithTime("Analyze both an audio track and reference image first");
+      return;
+    }
+    const patch = buildMusicVideoPatchFromAudioAndImage(
+      audioAnalysis,
+      imageAnalysis,
+      formatTime,
+    );
+    const { directorSettingsPatch, ...projectPatch } = patch;
+    applyAnalyzerPatch(projectPatch);
+    saveDirectorSettingsToStorage(
+      directorSettingsPatch || syncDirectorSettingsToSong(audioAnalysis, loadDirectorSettingsFromStorage()),
+    );
+    const durationLabel = directorSettingsPatch?.durationSeconds || String(songDurationSec(audioAnalysis));
+    setStatusWithTime(
+      `Audio + picture → beat-sync MV (${durationLabel}s) — open Director`,
+    );
+  }, [audioAnalysis, applyAnalyzerPatch, imageAnalysis, setStatusWithTime]);
+
   const applyAudioToSunoStyle = useCallback(() => {
     if (!audioAnalysis) {
       setStatusWithTime("No audio analysis yet");
@@ -534,6 +564,7 @@ export function useAnalyzers({
     analyzeAudioFile,
     analyzeImageFile,
     applyAudioToMusicVideo,
+    applyAudioVisualMusicVideo,
     applyAudioToSunoStyle,
     applyImageToSunoStyle,
     audioAnalysis,

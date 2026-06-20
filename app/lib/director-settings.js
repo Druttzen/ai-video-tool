@@ -81,6 +81,7 @@ export function saveDirectorSettingsToStorage(settings) {
   if (typeof window === "undefined") return { ok: false, reason: "no-window" };
   try {
     localStorage.setItem(DIRECTOR_SETTINGS_KEY, JSON.stringify(settings));
+    window.dispatchEvent(new CustomEvent("director-settings-updated", { detail: settings }));
     return { ok: true };
   } catch (e) {
     return { ok: false, reason: e?.message || "storage-failed" };

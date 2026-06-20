@@ -17,6 +17,8 @@ import {
   mapSunoPasteToMusicVideo,
 } from "./suno-to-video-mapper";
 
+export { buildMusicVideoPatchFromAudioAndImage } from "./audio-visual-music-video";
+
 function compactSunoTrackRule(audioAnalysis) {
   if (!audioAnalysis) return "";
   const bpm = audioAnalysis.estimatedBpm ? `${audioAnalysis.estimatedBpm} BPM` : "";

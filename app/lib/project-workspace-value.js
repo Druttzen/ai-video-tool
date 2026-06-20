@@ -10,6 +10,7 @@ export function buildProjectWorkspaceValue(s) {
     analyzeAudioFile: s.analyzeAudioFile,
     analyzeImageFile: s.analyzeImageFile,
     applyAudioToMusicVideo: s.applyAudioToMusicVideo,
+    applyAudioVisualMusicVideo: s.applyAudioVisualMusicVideo,
     applyAudioToSunoStyle: s.applyAudioToSunoStyle,
     applyGenreAnchors: s.applyGenreAnchors,
     applyImageToSunoStyle: s.applyImageToSunoStyle,

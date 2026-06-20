@@ -78,6 +78,14 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
   const aspects = getDirectorAspectRatios();
 
   useEffect(() => {
+    const onSettingsSync = (event) => {
+      if (event?.detail) setSettings(event.detail);
+    };
+    window.addEventListener("director-settings-updated", onSettingsSync);
+    return () => window.removeEventListener("director-settings-updated", onSettingsSync);
+  }, []);
+
+  useEffect(() => {
     if (progressState?.status === "complete") {
       ws.setStatusWithTime("Build complete — 100%");
     } else if (progressState?.status === "cancelled") {

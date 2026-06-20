@@ -137,6 +137,20 @@ export const CenterAnalyzersPanel = memo(function CenterAnalyzersPanel() {
             ) : null}
           </DropBox>
         </div>
+
+        {ws.audioAnalysis && ws.imageAnalysis ? (
+          <button
+            type="button"
+            data-testid="apply-audio-visual-music-video-analyzers"
+            onClick={() => {
+              ws.captureSnapshot("before audio + picture → music video");
+              ws.applyAudioVisualMusicVideo();
+            }}
+            className="mt-3 w-full rounded-2xl border border-emerald-400/40 bg-gradient-to-r from-emerald-500/25 to-cyan-500/20 py-3 text-sm font-bold text-emerald-50 hover:from-emerald-500/35 hover:to-cyan-500/30"
+          >
+            Build music video from audio + picture — beat sync, lip sync, full song length
+          </button>
+        ) : null}
       </Panel>
 
       {ws.sourcePrompt.trim() ? (

@@ -9,8 +9,10 @@ import { promptSymbolOverview } from "../lib/suno-language-index";
 export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
   const ws = useProjectWorkspace();
   const hasTrack = Boolean(ws.audioAnalysis);
+  const hasImage = Boolean(ws.imageAnalysis);
   const hasPaste = Boolean(ws.sunoPasteStyle?.trim() || ws.sunoPasteLyrics?.trim());
   const canBoth = hasTrack && hasPaste;
+  const canAudioVisual = hasTrack && hasImage;
 
   return (
     <Panel
@@ -30,7 +32,9 @@ export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
         <strong className="text-white/65">Path A:</strong> drop a Suno export in Analyzers.
         <strong className="text-white/65"> Path B:</strong> paste Style + Lyrics below.
         <strong className="text-white/65"> Path C:</strong> use both for track-synced visuals with
-        Suno bracket structure. Or describe your vision in <strong className="text-white/65">AI Manuscript Chat</strong> below.
+        Suno bracket structure. <strong className="text-white/65">Path E:</strong> analyzed track +
+        reference image — beat-sync, lip-sync, full song length. Or describe your vision in{" "}
+        <strong className="text-white/65">AI Manuscript Chat</strong> below.
       </p>
 
       <div className="mb-4 grid gap-3 md:grid-cols-2">
@@ -93,6 +97,18 @@ export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
         >
           C · BOTH (track + paste)
         </button>
+        <button
+          type="button"
+          data-testid="apply-audio-visual-music-video"
+          disabled={!canAudioVisual}
+          onClick={() => {
+            ws.captureSnapshot("before audio + picture → music video");
+            ws.applyAudioVisualMusicVideo();
+          }}
+          className="rounded-2xl bg-gradient-to-r from-emerald-300 to-cyan-300 px-4 py-2 text-sm font-bold text-black hover:from-emerald-200 hover:to-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          E · Audio + picture → MV
+        </button>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-3 text-[11px]">
@@ -116,12 +132,12 @@ export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
         </span>
         <span
           className={
-            canBoth
+            canAudioVisual
               ? "rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-emerald-100"
               : "rounded-full border border-white/10 px-2 py-0.5 text-white/35"
           }
         >
-          BOTH ready {canBoth ? "✓" : "—"}
+          Audio + picture {canAudioVisual ? "✓" : "—"}
         </span>
       </div>
 
@@ -131,7 +147,7 @@ export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
           {(ws.audioAnalysis?.suggestedGenres || []).slice(0, 2).join(", ") || "analyzed"}
         </p>
       ) : (
-        <p className="mt-3 text-xs text-white/40">Drop audio in Analyzers above to enable Path A / C.</p>
+        <p className="mt-3 text-xs text-white/40">Drop audio in Analyzers above to enable Path A / C / E.</p>
       )}
 
       <details className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3">

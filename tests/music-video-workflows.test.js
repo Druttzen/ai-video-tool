@@ -6,9 +6,9 @@ import {
 } from "../app/lib/music-video-workflows.js";
 
 describe("music-video-workflows", () => {
-  it("defines four workflows", () => {
-    expect(MUSIC_VIDEO_WORKFLOWS).toHaveLength(4);
-    expect(MUSIC_VIDEO_WORKFLOWS.map((w) => w.id)).toEqual([1, 2, 3, 4]);
+  it("defines five workflows", () => {
+    expect(MUSIC_VIDEO_WORKFLOWS).toHaveLength(5);
+    expect(MUSIC_VIDEO_WORKFLOWS.map((w) => w.id)).toEqual([1, 2, 3, 4, 5]);
   });
 
   it("readiness for path 3 requires track and paste", () => {
@@ -33,6 +33,30 @@ describe("music-video-workflows", () => {
     });
     expect(result.ok).toBe(true);
     expect(applySunoPasteToMusicVideo).toHaveBeenCalled();
+  });
+
+  it("readiness for path 5 requires track and image", () => {
+    expect(getMusicVideoWorkflowReadiness(5, {}).ready).toBe(false);
+    expect(
+      getMusicVideoWorkflowReadiness(5, {
+        audioAnalysis: { estimatedBpm: 120 },
+        imageAnalysis: { visualMood: "noir" },
+      }).ready,
+    ).toBe(true);
+  });
+
+  it("runMusicVideoWorkflow path 5 calls apply audio visual", async () => {
+    const applyAudioVisualMusicVideo = vi.fn();
+    const result = await runMusicVideoWorkflow(5, {
+      audioAnalysis: { estimatedBpm: 120 },
+      imageAnalysis: { visualMood: "noir" },
+      captureSnapshot: vi.fn(),
+      applyAudioVisualMusicVideo,
+      setPromptEngine: vi.fn(),
+      setStatusWithTime: vi.fn(),
+    });
+    expect(result.ok).toBe(true);
+    expect(applyAudioVisualMusicVideo).toHaveBeenCalled();
   });
 
   it("runMusicVideoWorkflow path 1 fails without track", async () => {
