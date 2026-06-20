@@ -1,13 +1,20 @@
 "use client";
 
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useMemo, useCallback } from "react";
 import { useDirectorBuildProgress } from "../hooks/use-director-build-progress";
 import { VideoBuildProgressModal } from "../components/video-build-progress-modal";
+import { revealDirectorOutput } from "../lib/electron-bridge";
 
 const VideoBuildContext = createContext(null);
 
 export function VideoBuildProvider({ children }) {
   const build = useDirectorBuildProgress();
+
+  const handleRevealOutput = useCallback(async () => {
+    const target = build.progressState?.outputVideoPath;
+    if (!target) return { ok: false, error: "No output video" };
+    return revealDirectorOutput(target);
+  }, [build.progressState?.outputVideoPath]);
 
   const value = useMemo(
     () => ({
@@ -36,6 +43,8 @@ export function VideoBuildProvider({ children }) {
         estimatedLabel={build.progressState?.estimatedLabel}
         message={build.progressState?.message}
         finishAtMs={build.progressState?.finishAtMs}
+        outputVideoPath={build.progressState?.outputVideoPath}
+        onRevealOutput={build.progressState?.outputVideoPath ? handleRevealOutput : undefined}
         canCancel={build.canCancelBuild}
         cancelBusy={build.cancelBusy}
         abortBusy={build.abortBusy}

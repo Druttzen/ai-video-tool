@@ -63,6 +63,14 @@ export async function cancelDirectorBuild(payload) {
   return window.electronAPI.cancelDirectorBuild(payload);
 }
 
+/** @returns {Promise<{ ok: boolean, error?: string }>} */
+export async function revealDirectorOutput(filePath) {
+  if (!isElectronApp() || !window.electronAPI?.revealDirectorOutput) {
+    return { ok: false, error: "Reveal output requires the desktop app" };
+  }
+  return window.electronAPI.revealDirectorOutput(filePath);
+}
+
 export async function launchOpenSoraJob(payload) {
   if (!isElectronApp()) {
     return { ok: false, error: "Requires Electron desktop app" };

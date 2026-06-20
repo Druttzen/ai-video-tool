@@ -1,6 +1,6 @@
 # AI Video Creator — Video Prompt Studio
 
-**Version 1.0.2**
+**Version 1.0.3**
 
 A **standalone** video prompt studio by DJ M@D (Bones Vibration). Built on the same architecture as [AI Music Creator](https://github.com/Druttzen/ai-music-tool), but fully focused on **AI video** — not tied to Open-Sora, Suno tokens, or any single cloud provider.
 

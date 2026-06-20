@@ -25,6 +25,7 @@ export const DirectorOutputSettingsPanel = memo(function DirectorOutputSettingsP
   settings,
   onChange,
   filterByAspect = true,
+  renderBackend = "export",
 }) {
   const presets = getOutputPresets();
   const resolutions = useMemo(
@@ -58,6 +59,17 @@ export const DirectorOutputSettingsPanel = memo(function DirectorOutputSettingsP
             Output settings
           </div>
           <p className="mt-1 text-[11px] text-white/50">{formatOutputSettingsSummary(settings)}</p>
+          {renderBackend === "export" ? (
+            <p className="mt-2 text-[10px] leading-relaxed text-amber-200/70">
+              These encoding settings are saved in the job JSON. To get an MP4 file, switch Output mode to
+              Local GPU render and set a pipeline folder under Advanced.
+            </p>
+          ) : (
+            <p className="mt-2 text-[10px] leading-relaxed text-emerald-200/70">
+              Local GPU render uses these settings when your pipeline finishes — output is copied next to the
+              job JSON after render.
+            </p>
+          )}
         </div>
       </div>
 

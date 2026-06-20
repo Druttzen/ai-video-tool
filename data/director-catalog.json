@@ -396,12 +396,12 @@
     {
       "id": "export",
       "label": "Export only",
-      "description": "Copy prompt or download job JSON — works everywhere, no GPU required"
+      "description": "Download job JSON — paste the prompt into Sora, Runway, or Kling. Does not create MP4."
     },
     {
       "id": "local-python",
       "label": "Local GPU render",
-      "description": "Optional: run a compatible local diffusion pipeline via Python (advanced)"
+      "description": "Render MP4 on your GPU — requires a pipeline folder under Director → Advanced"
     }
   ]
 }

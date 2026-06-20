@@ -87,13 +87,20 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
 
   useEffect(() => {
     if (progressState?.status === "complete") {
-      ws.setStatusWithTime("Build complete — 100%");
+      if (progressState?.outputVideoPath) {
+        ws.setStatusWithTime(`MP4 ready — ${progressState.outputVideoPath.split(/[/\\]/).pop()}`);
+        setLastLaunch((prev) =>
+          prev ? { ...prev, outputVideoPath: progressState.outputVideoPath } : prev,
+        );
+      } else {
+        ws.setStatusWithTime("Build complete — 100%");
+      }
     } else if (progressState?.status === "cancelled") {
       ws.setStatusWithTime("Build cancelled");
     } else if (progressState?.status === "failed") {
       ws.setStatusWithTime(progressState.message || "Build failed");
     }
-  }, [progressState?.status, progressState?.message, ws]);
+  }, [progressState?.status, progressState?.message, progressState?.outputVideoPath, ws]);
 
   const handleCancelBuildClick = () => {
     if (!canCancelBuild || cancelBusy) return;
@@ -400,7 +407,7 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
             onStatus={(msg) => ws.setStatusWithTime(msg)}
           />
 
-          <DirectorOutputSettingsPanel settings={settings} onChange={persist} />
+          <DirectorOutputSettingsPanel settings={settings} onChange={persist} renderBackend={settings.renderBackend} />
 
           <DirectorGraphicsApiPanel settings={settings} onChange={persist} />
 
@@ -535,7 +542,12 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
           ) : null}
 
           {lastLaunch?.jobPath ? (
-            <p className="text-[10px] text-white/40">Job: {lastLaunch.jobPath}</p>
+            <div className="space-y-1 text-[10px] text-white/40">
+              <p>Job: {lastLaunch.jobPath}</p>
+              {lastLaunch.outputVideoPath ? (
+                <p className="text-emerald-300/70">Video: {lastLaunch.outputVideoPath}</p>
+              ) : null}
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -547,7 +559,11 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
             onApplySettings={persist}
             onStatus={(msg) => ws.setStatusWithTime(msg)}
           />
-          <p>Optional local GPU pipeline folder (for power users). Leave empty to stay export-only — paste prompts into Sora, Runway, Kling, or any video AI.</p>
+          <p>
+            Local GPU render needs a compatible Python diffusion pipeline on disk. Set the folder path below,
+            choose Output mode → Local GPU render, then Render locally. Export only downloads JSON — it never
+            writes MP4.
+          </p>
           <label className="block">
             <span className="text-white/45">Local pipeline folder</span>
             <input

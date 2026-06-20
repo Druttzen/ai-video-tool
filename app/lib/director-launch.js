@@ -2,6 +2,10 @@ import { buildDirectorJobPayload } from "./director-prompt-builder";
 import { isElectronApp, launchDirectorJob } from "./electron-bridge";
 import { computeBuildPlan } from "./video-build-estimate";
 
+function hasLocalPipelinePath(settings) {
+  return Boolean(String(settings?.localPipelinePath || "").trim());
+}
+
 /** Export-first: always works in browser; optional local render in Electron. */
 export async function sendDirectorJob({ project, settings, imagePayload, buildPlan }) {
   const plan = buildPlan || computeBuildPlan(settings, null, {
@@ -13,7 +17,21 @@ export async function sendDirectorJob({ project, settings, imagePayload, buildPl
     estimatedBuildSeconds: plan.estimatedSeconds,
   });
 
-  if (settings.renderBackend === "local-python" && isElectronApp()) {
+  if (settings.renderBackend === "local-python") {
+    if (!isElectronApp()) {
+      return {
+        ok: false,
+        error: "Local GPU render requires the AI Video Creator desktop app.",
+      };
+    }
+    if (!hasLocalPipelinePath(settings)) {
+      return {
+        ok: false,
+        error:
+          "Local GPU render needs a pipeline folder (Director → Advanced). Output settings (MP4) apply after render — Export only saves job JSON.",
+      };
+    }
+
     const result = await launchDirectorJob({ job, imagePayload, settings });
     return {
       ...result,
@@ -34,7 +52,7 @@ export async function sendDirectorJob({ project, settings, imagePayload, buildPl
   return {
     ok: true,
     exportOnly: true,
-    message: "Director job exported — copy prompt or use any compatible video AI",
+    message: "Director job JSON exported — paste the prompt into Sora/Runway/Kling, or switch Output mode to Local GPU render for MP4.",
     jobPath: null,
     estimatedSeconds: plan.estimatedSeconds,
     estimatedLabel: plan.estimatedLabel,

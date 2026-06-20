@@ -10,6 +10,24 @@ const execFileAsync = promisify(execFile);
 
 let mainWindow = null;
 
+/** Resolve bundled script paths (asar + asarUnpack). */
+function resolveAppScript(relativePath) {
+  const candidates = [path.join(__dirname, relativePath)];
+  if (__dirname.includes("app.asar")) {
+    candidates.push(path.join(__dirname.replace("app.asar", "app.asar.unpacked"), relativePath));
+  }
+  if (process.resourcesPath) {
+    candidates.push(path.join(process.resourcesPath, relativePath));
+  }
+  return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+}
+
+function parseOutputVideoPath(logText) {
+  const matches = [...String(logText || "").matchAll(/\[OUTPUT_VIDEO\]\s+(.+)/g)];
+  if (!matches.length) return null;
+  return matches[matches.length - 1][1].trim();
+}
+
 function appendMainLog(message) {
   try {
     const logPath = path.join(app.getPath("userData"), "main.log");
@@ -270,16 +288,21 @@ function getBuildStatusFromLog({ logPath, pid, startedAt, estimatedMs }) {
     } else if (logTail.includes("--- exit 0 ---")) {
       progress = 100;
       status = "complete";
-      message = "Render finished";
+      const outputVideoPath = parseOutputVideoPath(logTail);
+      message = outputVideoPath
+        ? `Render finished — ${path.basename(outputVideoPath)}`
+        : "Render finished";
     } else if (/--- exit [1-9]\d* ---/.test(logTail)) {
       status = "failed";
       message = "Render exited with error — see log";
     } else if (logTail.includes("No local pipeline configured")) {
-      progress = 100;
-      status = "complete";
-      message = "Job exported";
+      progress = 99;
+      status = "failed";
+      message = "Local pipeline folder missing — set Director → Advanced";
     }
   }
+
+  const outputVideoPath = parseOutputVideoPath(logTail);
 
   const elapsed = Date.now() - (startedAt || Date.now());
   const alive = isProcessAlive(pid);
@@ -311,7 +334,7 @@ function getBuildStatusFromLog({ logPath, pid, startedAt, estimatedMs }) {
     remainingSec = 0;
   }
 
-  return { progress, status, remainingSec, message, logTail, processAlive: alive };
+  return { progress, status, remainingSec, message, logTail, processAlive: alive, outputVideoPath };
 }
 
 function killBuildProcess(pid, logPath) {
@@ -386,6 +409,19 @@ function setupBuildProgressIpc() {
       return { ok: false, error: e?.message || "cancel failed" };
     }
   });
+
+  ipcMain.handle("director:reveal-output", async (_event, filePath) => {
+    try {
+      const target = String(filePath || "").trim();
+      if (!target || !fs.existsSync(target)) {
+        return { ok: false, error: "Output file not found" };
+      }
+      shell.showItemInFolder(target);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e?.message || "reveal failed" };
+    }
+  });
 }
 
 function setupSystemIpc() {
@@ -423,21 +459,26 @@ function setupDirectorIpc() {
       fs.writeFileSync(jobPath, JSON.stringify(job, null, 2));
       fs.writeFileSync(logPath, `[BUILD_PROGRESS] 1 Starting job\n`);
 
-      const pipelinePath = job.localPipelinePath || "";
+      const pipelinePath = String(
+        payload?.settings?.localPipelinePath || job.localPipelinePath || "",
+      ).trim();
       if (!pipelinePath || !fs.existsSync(pipelinePath)) {
-        fs.appendFileSync(logPath, `[BUILD_PROGRESS] 100 Export-only job saved\n--- exit 0 ---\n`);
+        fs.appendFileSync(
+          logPath,
+          "No local pipeline configured — set Director → Advanced\n--- exit 1 ---\n",
+        );
         return {
-          ok: true,
-          exportOnly: true,
+          ok: false,
+          error:
+            "Local GPU render needs a pipeline folder (Director → Advanced). Export only saves job JSON — it does not create MP4.",
           jobPath,
           logPath,
-          message: "Job saved — configure Advanced → local pipeline for GPU render",
         };
       }
 
-      const runnerScript = path.join(__dirname, "scripts", "run-director-job.py");
+      const runnerScript = resolveAppScript("scripts/run-director-job.py");
       if (!fs.existsSync(runnerScript)) {
-        return { ok: false, error: `Runner not found: ${runnerScript}` };
+        return { ok: false, error: `Director runner not found: ${runnerScript}` };
       }
 
       const logStream = fs.createWriteStream(logPath, { flags: "a" });

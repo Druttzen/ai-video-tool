@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+VIDEO_EXTS = {".mp4", ".mov", ".webm", ".mkv", ".gif"}
 
 RESOLUTION_CONFIG = {
     "256px": "configs/diffusion/inference/t2i2v_256px.py",
@@ -33,6 +36,33 @@ def resolve_config_path(pipeline_root: Path, job: dict) -> str:
     if legacy.is_file():
         return str(legacy.relative_to(pipeline_root))
     return candidate
+
+
+def find_newest_video(root: Path) -> Path | None:
+    if not root.is_dir():
+        return None
+    candidates = [
+        path
+        for path in root.rglob("*")
+        if path.is_file() and path.suffix.lower() in VIDEO_EXTS
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda path: path.stat().st_mtime)
+
+
+def stage_output_video(job_path: Path, pipeline_root: Path, job: dict) -> Path | None:
+    outputs_dir = pipeline_root / "outputs"
+    search_root = outputs_dir if outputs_dir.is_dir() else pipeline_root
+    source = find_newest_video(search_root)
+    if not source:
+        return None
+
+    output = job.get("output") or {}
+    container = str(output.get("container") or source.suffix.lstrip(".") or "mp4").lstrip(".")
+    dest = job_path.parent / f"{job_path.stem}-output.{container}"
+    shutil.copy2(source, dest)
+    return dest
 
 
 def main() -> int:
@@ -118,6 +148,9 @@ def main() -> int:
 
     result = subprocess.run(cmd, cwd=pipeline_root)
     if result.returncode == 0:
+        staged = stage_output_video(job_path, pipeline_root, job)
+        if staged:
+            print(f"[OUTPUT_VIDEO] {staged}", flush=True)
         print("[BUILD_PROGRESS] 100 Render complete", flush=True)
     else:
         print(f"[BUILD_PROGRESS] 99 Render failed (code {result.returncode})", flush=True)

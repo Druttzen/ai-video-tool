@@ -22,6 +22,8 @@ export const VideoBuildProgressModal = memo(function VideoBuildProgressModal({
   canCancel = false,
   cancelBusy = false,
   abortBusy = false,
+  outputVideoPath = null,
+  onRevealOutput,
 }) {
   if (!open) return null;
 
@@ -105,6 +107,23 @@ export const VideoBuildProgressModal = memo(function VideoBuildProgressModal({
         </dl>
 
         {message ? <p className="mt-3 text-xs leading-relaxed text-white/55">{message}</p> : null}
+
+        {done && outputVideoPath ? (
+          <div className="mt-3 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+            <div className="font-bold">Output video</div>
+            <p className="mt-1 break-all text-[11px] text-emerald-50/80">{outputVideoPath}</p>
+            {onRevealOutput ? (
+              <button
+                type="button"
+                onClick={onRevealOutput}
+                data-testid="video-build-reveal-output"
+                className="mt-2 rounded-xl border border-emerald-300/40 bg-emerald-400/15 px-3 py-1.5 text-[11px] font-bold text-emerald-50 hover:bg-emerald-400/25"
+              >
+                Show in folder
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="mt-5 flex flex-wrap gap-2">
           {canCancel ? (

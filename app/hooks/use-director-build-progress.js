@@ -83,6 +83,7 @@ export function useDirectorBuildProgress() {
           remainingSec: res.remainingSec,
           status: res.status,
           message: res.message,
+          outputVideoPath: res.outputVideoPath || null,
         });
         if (res.status === "complete" || res.status === "failed" || res.status === "cancelled") {
           stop();

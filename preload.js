@@ -16,4 +16,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getSystemStats: () => ipcRenderer.invoke("system:get-stats"),
   getDirectorBuildStatus: (payload) => ipcRenderer.invoke("director:get-build-status", payload),
   cancelDirectorBuild: (payload) => ipcRenderer.invoke("director:cancel-build", payload),
+  revealDirectorOutput: (filePath) => ipcRenderer.invoke("director:reveal-output", filePath),
 });
