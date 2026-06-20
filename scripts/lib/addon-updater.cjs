@@ -1143,6 +1143,7 @@ async function updateAddon({ addonId, userDataPath, scan, openSoraPath, pythonPa
 
 async function updateAllAddons(params) {
   const manifest = loadAddonManifest();
+  const forceReinstall = Boolean(params.forceReinstall);
   const order = manifest.installOrder || [
     "git",
     "nodejs",
@@ -1162,9 +1163,18 @@ async function updateAllAddons(params) {
   for (const addonId of order) {
     const check = await checkAddonUpdates(params);
     const item = check.items.find((row) => row.id === addonId);
-    if (!item?.updateAvailable) {
+    if (!forceReinstall && !item?.updateAvailable) {
       results.push({ id: addonId, ok: true, skipped: true, message: item?.message || "Up to date" });
       continue;
+    }
+
+    if (params.onProgress) {
+      params.onProgress({
+        phase: "addon-start",
+        addonId,
+        label: item?.label || addonId,
+        forceReinstall,
+      });
     }
 
     if (addonId === "git" && !(await gitAvailable())) {
@@ -1189,6 +1199,14 @@ async function updateAllAddons(params) {
       pythonPath: lastPythonPath,
     });
     results.push({ id: addonId, ...result });
+
+    if (params.onProgress) {
+      params.onProgress({
+        phase: "addon-done",
+        addonId,
+        item: { id: addonId, ...result },
+      });
+    }
 
     if (addonId === "python" && result.ok && result.path) {
       lastPythonPath = result.path;

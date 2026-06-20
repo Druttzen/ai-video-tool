@@ -64,15 +64,168 @@ async function scanMissingAddons({ userDataPath } = {}) {
   };
 }
 
+/** Critical addons that must pass safe scan before proceeding to the main app. */
+const SAFE_SCAN_CRITICAL = new Set([
+  "git",
+  "nodejs",
+  "python",
+  "venv",
+  "open-sora",
+  "requirements",
+  "pip-deps",
+]);
+
+const SAFE_SCAN_OPTIONAL = new Set(["ffmpeg", "models", "wsl"]);
+
+/**
+ * Final verification scan — critical vs optional issues.
+ * @param {object} params
+ * @param {string} [params.userDataPath]
+ */
+async function runSafeScan({ userDataPath } = {}) {
+  const base = userDataPath || defaultUserDataPath();
+  const envScan = await scanSetupEnvironment({ userDataPath: base });
+  const report = await checkAddonUpdates({ scan: envScan, userDataPath: base });
+
+  const criticalIssues = [];
+  const optionalIssues = [];
+
+  for (const item of report.items || []) {
+    if (!item.updateAvailable) continue;
+    if (item.id === "git" && item.needsManualInstall) {
+      criticalIssues.push(item);
+    } else if (SAFE_SCAN_CRITICAL.has(item.id)) {
+      criticalIssues.push(item);
+    } else if (SAFE_SCAN_OPTIONAL.has(item.id)) {
+      optionalIssues.push(item);
+    }
+  }
+
+  const ok = criticalIssues.length === 0;
+  let summary;
+  if (ok && optionalIssues.length === 0) {
+    summary = "Safe scan passed — all addons ready";
+  } else if (ok) {
+    summary = `Safe scan passed — ${optionalIssues.length} optional item(s) remain (FFmpeg, models, or WSL)`;
+  } else {
+    summary = `Safe scan failed — ${criticalIssues.length} critical item(s): ${criticalIssues.map((i) => i.label || i.id).join(", ")}`;
+  }
+
+  return {
+    ok,
+    safe: ok,
+    scannedAt: new Date().toISOString(),
+    platform: envScan.platform,
+    userDataPath: base,
+    envScan,
+    items: report.items,
+    criticalIssues,
+    optionalIssues,
+    summary,
+  };
+}
+
+/**
+ * Full forced setup pipeline for standalone Setup Hub / first-run installer.
+ * 1) Audit scan  2) Force reinstall (install order)  3) Update pass  4) Safe scan
+ * @param {object} params
+ * @param {string} params.userDataPath
+ * @param {(payload: object) => void} [params.onProgress]
+ */
+async function forceInstallPipeline({ userDataPath, onProgress = () => {} } = {}) {
+  const base = userDataPath || defaultUserDataPath();
+
+  const freshScan = async () => scanSetupEnvironment({ userDataPath: base });
+
+  onProgress({ phase: "audit-scan", message: "Phase 1/4 — scanning for required addons, tools, and apps…" });
+  const audit = await scanMissingAddons({ userDataPath: base });
+  onProgress({
+    phase: "audit-scan-done",
+    message: audit.summary,
+    report: audit,
+    missingCount: audit.missingCount,
+  });
+
+  const needsForceReinstall =
+    audit.missingCount > 0 ||
+    audit.items.some((item) => item.updateAvailable && SAFE_SCAN_CRITICAL.has(item.id));
+
+  if (needsForceReinstall) {
+    onProgress({
+      phase: "force-reinstall",
+      message: `Phase 2/4 — force reinstalling all managed addons in protocol order (${audit.missingCount} missing)…`,
+    });
+  } else {
+    onProgress({
+      phase: "force-reinstall",
+      message: "Phase 2/4 — verifying managed stack (force reinstall in protocol order)…",
+    });
+  }
+
+  const reinstall = await updateAllAddons({
+    userDataPath: base,
+    scan: await freshScan(),
+    forceReinstall: true,
+    onProgress,
+  });
+
+  onProgress({
+    phase: "update-all",
+    message: "Phase 3/4 — applying updates (pull, sync, pip refresh)…",
+  });
+
+  const update = await updateAllAddons({
+    userDataPath: base,
+    scan: await freshScan(),
+    forceReinstall: false,
+    onProgress,
+  });
+
+  onProgress({ phase: "safe-scan", message: "Phase 4/4 — running safe verification scan…" });
+  const safe = await runSafeScan({ userDataPath: base });
+  onProgress({
+    phase: "safe-scan-done",
+    message: safe.summary,
+    report: safe,
+    safe,
+  });
+
+  const allResults = [...(reinstall.results || []), ...(update.results || [])];
+
+  return {
+    ok: Boolean(safe.ok && (reinstall.ok || update.ok)),
+    audit,
+    reinstall,
+    update,
+    safe,
+    results: allResults,
+    postScan: safe,
+  };
+}
+
 /**
  * Install tools using protocol order. Scans first unless disabled.
  * @param {object} params
  * @param {string} params.userDataPath
  * @param {string|null} [params.addonId] single addon or all
  * @param {boolean} [params.skipScan]
+ * @param {boolean} [params.forceReinstall]
+ * @param {boolean} [params.forcePipeline] run full 4-phase pipeline
  */
-async function installTools({ userDataPath, addonId = null, skipScan = false } = {}) {
+async function installTools({
+  userDataPath,
+  addonId = null,
+  skipScan = false,
+  forceReinstall = false,
+  forcePipeline = false,
+  onProgress = () => {},
+} = {}) {
   const base = userDataPath || defaultUserDataPath();
+
+  if (forcePipeline && !addonId) {
+    return forceInstallPipeline({ userDataPath: base, onProgress });
+  }
+
   const protocol = getInstallProtocol();
 
   let preScan = null;
@@ -92,8 +245,13 @@ async function installTools({ userDataPath, addonId = null, skipScan = false } =
     };
   }
 
-  const batch = await updateAllAddons({ userDataPath: base, scan: await scanSetupEnvironment({ userDataPath: base }) });
-  const postScan = await scanMissingAddons({ userDataPath: base });
+  const batch = await updateAllAddons({
+    userDataPath: base,
+    scan: await scanSetupEnvironment({ userDataPath: base }),
+    forceReinstall,
+    onProgress,
+  });
+  const postScan = await runSafeScan({ userDataPath: base });
   return {
     ok: Boolean(batch.ok),
     results: batch.results,
@@ -103,7 +261,9 @@ async function installTools({ userDataPath, addonId = null, skipScan = false } =
 }
 
 module.exports = {
+  forceInstallPipeline,
   getInstallProtocol,
   installTools,
+  runSafeScan,
   scanMissingAddons,
 };

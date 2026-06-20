@@ -51,6 +51,7 @@ async function main() {
     const result = await installTools({
       userDataPath,
       addonId: addonId || null,
+      forcePipeline: !addonId,
     });
     if (jsonOut) console.log(JSON.stringify(result, null, 2));
     else {

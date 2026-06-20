@@ -12,7 +12,7 @@ import {
   syncAddonRequirements,
 } from "../scripts/lib/addon-updater.cjs";
 import { getBundledRequirementsTemplatePath } from "../scripts/lib/addon-paths.cjs";
-import { getInstallProtocol, scanMissingAddons } from "../scripts/lib/tool-installer.cjs";
+import { getInstallProtocol, scanMissingAddons, runSafeScan } from "../scripts/lib/tool-installer.cjs";
 
 describe("addon-updater", () => {
   it("compareSemver orders versions", () => {
@@ -85,5 +85,15 @@ describe("tool-installer", () => {
     expect(report).toHaveProperty("missingCount");
     expect(report).toHaveProperty("items");
     expect(report.summary).toMatch(/missing|All managed/i);
+  });
+
+  it("runSafeScan returns critical vs optional issues", async () => {
+    const report = await runSafeScan({
+      userDataPath: path.join(os.tmpdir(), "ai-video-tool-safe-" + Date.now()),
+    });
+    expect(report).toHaveProperty("safe");
+    expect(report).toHaveProperty("criticalIssues");
+    expect(report).toHaveProperty("optionalIssues");
+    expect(report.summary).toMatch(/Safe scan/i);
   });
 });

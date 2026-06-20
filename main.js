@@ -548,6 +548,8 @@ function setupAddonUpdaterIpc() {
         userDataPath: app.getPath("userData"),
         addonId: payload?.addonId || null,
         skipScan: Boolean(payload?.skipScan),
+        forcePipeline: payload?.forcePipeline ?? !payload?.addonId,
+        forceReinstall: Boolean(payload?.forceReinstall),
       });
       return result;
     } catch (e) {

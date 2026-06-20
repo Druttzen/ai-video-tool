@@ -10,6 +10,16 @@
 
   let busy = true;
 
+  const ACTIVE_PHASES = new Set([
+    "audit-scan",
+    "force-reinstall",
+    "update-all",
+    "safe-scan",
+    "scan",
+    "install",
+    "addon-start",
+  ]);
+
   function setBusy(value) {
     busy = value;
     btnRetry.disabled = value;
@@ -32,12 +42,13 @@
     addonList.innerHTML = "";
     for (const item of report.items) {
       const row = document.createElement("div");
-      row.className = "addon-row " + (item.updateAvailable ? "missing" : "ok");
+      const issue = item.updateAvailable || item.needsManualInstall;
+      row.className = "addon-row " + (issue ? "missing" : "ok");
       row.innerHTML =
         "<span>" +
         (item.label || item.id) +
         "</span><span>" +
-        (item.updateAvailable ? "Missing" : "OK") +
+        (issue ? "Needs fix" : "OK") +
         "</span>";
       addonList.appendChild(row);
     }
@@ -48,18 +59,27 @@
 
     if (payload.message) {
       statusText.textContent = payload.message;
-      appendLog(payload.message, payload.phase === "error" ? "err" : "");
     }
 
-    if (payload.phase === "scan" || payload.phase === "install") {
+    if (ACTIVE_PHASES.has(payload.phase)) {
       statusCard.classList.remove("success", "error");
       progressBar.classList.remove("done");
       setBusy(true);
+      if (payload.message) {
+        appendLog(payload.message);
+      }
     }
 
-    if (payload.phase === "scan-done" && payload.report) {
+    if (
+      (payload.phase === "audit-scan-done" || payload.phase === "scan-done" || payload.phase === "safe-scan-done") &&
+      payload.report
+    ) {
       renderAddonList(payload.report);
-      appendLog(payload.report.summary || "Scan complete", "ok");
+      appendLog(payload.report.summary || payload.message || "Scan complete", payload.phase === "safe-scan-done" ? "ok" : "");
+    }
+
+    if (payload.phase === "addon-start" && payload.label) {
+      appendLog(`→ ${payload.label}${payload.forceReinstall ? " (force reinstall)" : ""}`);
     }
 
     if (payload.phase === "addon" && payload.item) {
@@ -72,6 +92,10 @@
       }
     }
 
+    if (payload.phase === "proceed") {
+      appendLog(payload.message || "Proceeding to main app…", "ok");
+    }
+
     if (payload.phase === "complete") {
       progressBar.classList.add("done");
       setBusy(false);
@@ -80,10 +104,10 @@
       if (payload.ok) {
         statusCard.classList.add("success");
         statusCard.classList.remove("error");
-        appendLog("Setup finished.", "ok");
+        appendLog(payload.message || "Setup finished.", "ok");
       } else {
         statusCard.classList.add("error");
-        appendLog("Setup finished with errors.", "err");
+        appendLog(payload.message || "Setup finished with errors.", "err");
       }
     }
 
@@ -103,7 +127,7 @@
     statusCard.classList.remove("success", "error");
     setBusy(true);
     btnMain.disabled = true;
-    appendLog("Retrying scan and install…");
+    appendLog("Retrying full pipeline (audit → reinstall → update → safe scan)…");
     void window.setupHubAPI.runAutoSetup();
   });
 
@@ -128,5 +152,5 @@
     });
   }
 
-  appendLog("Setup Hub ready — auto scan starting…");
+  appendLog("Setup Hub ready — starting 4-phase pipeline…");
 })();

@@ -1,5 +1,5 @@
 /**
- * Standalone All-in-One Setup Hub — scan + install all managed addons on launch.
+ * Standalone All-in-One Setup Hub — forced scan, reinstall, update, and safe verification.
  * Shares userData with the main AI Video Creator app (%APPDATA%/AI Video Creator).
  */
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
@@ -7,9 +7,7 @@ const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
 const { defaultUserDataPath } = require("./scripts/lib/open-sora-paths.cjs");
-const { scanSetupEnvironment } = require("./scripts/lib/environment-scan.cjs");
-const { installTools, scanMissingAddons } = require("./scripts/lib/tool-installer.cjs");
-const { checkAddonUpdates } = require("./scripts/lib/addon-updater.cjs");
+const { forceInstallPipeline } = require("./scripts/lib/tool-installer.cjs");
 
 const pkg = require("./package.json");
 
@@ -38,6 +36,15 @@ function resolveMainAppExecutable() {
   return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
 }
 
+function launchMainApp() {
+  const exe = resolveMainAppExecutable();
+  if (!fs.existsSync(exe)) {
+    return { ok: false, error: `Main app not found at ${exe}` };
+  }
+  spawn(exe, [], { detached: true, stdio: "ignore" }).unref();
+  return { ok: true, path: exe };
+}
+
 async function runAutoSetup() {
   if (setupRunning) return { ok: false, error: "Setup already running" };
   setupRunning = true;
@@ -45,62 +52,50 @@ async function runAutoSetup() {
   const userDataPath = app.getPath("userData");
 
   try {
-    sendProgress({ phase: "scan", message: "Scanning environment and managed addons…" });
-
-    const envScan = await scanSetupEnvironment({ userDataPath });
-    const preScan = await scanMissingAddons({ userDataPath });
-
-    sendProgress({
-      phase: "scan-done",
-      message: preScan.summary,
-      envScan: { platform: envScan.platform, forceManaged: envScan.forceManaged },
-      report: preScan,
+    const pipeline = await forceInstallPipeline({
+      userDataPath,
+      onProgress: (payload) => {
+        sendProgress(payload);
+        if (payload.phase === "addon-done" && payload.item) {
+          sendProgress({
+            phase: "addon",
+            item: payload.item,
+            message: payload.item.message || payload.item.error || payload.item.id,
+          });
+        }
+      },
     });
 
-    if (preScan.missingCount === 0) {
-      sendProgress({
-        phase: "complete",
-        ok: true,
-        message: "All managed addons are already installed.",
-        report: preScan,
-        results: [],
-      });
-      return { ok: true, skipped: true, postScan: preScan };
+    const safeOk = Boolean(pipeline.safe?.ok);
+    let proceed = null;
+
+    if (safeOk) {
+      sendProgress({ phase: "proceed", message: "Safe scan passed — launching AI Video Creator…" });
+      proceed = launchMainApp();
+      if (!proceed.ok) {
+        sendProgress({
+          phase: "proceed-skipped",
+          message: proceed.error || "Main app not found — open manually when ready",
+        });
+      }
     }
-
-    sendProgress({
-      phase: "install",
-      message: `Installing ${preScan.missingCount} addon(s) — this may take a long time (Python, Open-Sora, torch)…`,
-      missingIds: preScan.missingIds,
-    });
-
-    const batch = await installTools({ userDataPath, skipScan: true });
-
-    for (const row of batch.results || []) {
-      sendProgress({
-        phase: "addon",
-        item: row,
-        message: row.message || row.error || row.id,
-      });
-    }
-
-    const postScan = batch.postScan || (await scanMissingAddons({ userDataPath }));
-    const check = await checkAddonUpdates({ scan: envScan, userDataPath });
 
     sendProgress({
       phase: "complete",
-      ok: Boolean(batch.ok),
-      message: batch.ok
-        ? postScan.missingCount === 0
-          ? "All managed addons installed successfully."
-          : `${postScan.missingCount} item(s) still need attention (e.g. Git or model weights).`
-        : "Some addon installs failed — review the log below and retry.",
-      report: postScan,
-      check,
-      results: batch.results,
+      ok: safeOk && pipeline.ok,
+      message: safeOk
+        ? proceed?.ok
+          ? "Setup complete — AI Video Creator is starting."
+          : "Setup complete — safe scan passed. Open AI Video Creator when ready."
+        : pipeline.safe?.summary || "Setup finished with critical issues — review and retry.",
+      report: pipeline.safe,
+      audit: pipeline.audit,
+      safe: pipeline.safe,
+      results: pipeline.results,
+      proceed,
     });
 
-    return batch;
+    return pipeline;
   } catch (e) {
     const message = e?.message || String(e);
     sendProgress({ phase: "error", ok: false, error: message });
@@ -157,14 +152,7 @@ function setupIpc() {
     await shell.openExternal(target);
     return { ok: true };
   });
-  ipcMain.handle("setup-hub:open-main", () => {
-    const exe = resolveMainAppExecutable();
-    if (!fs.existsSync(exe)) {
-      return { ok: false, error: `Main app not found at ${exe}` };
-    }
-    spawn(exe, [], { detached: true, stdio: "ignore" }).unref();
-    return { ok: true, path: exe };
-  });
+  ipcMain.handle("setup-hub:open-main", () => launchMainApp());
 }
 
 app.whenReady().then(() => {

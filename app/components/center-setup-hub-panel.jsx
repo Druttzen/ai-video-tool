@@ -235,7 +235,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
     setAddonBusy(true);
     try {
       skipAutoUpdateRef.current = true;
-      const batch = await installToolsFromHost({});
+      const batch = await installToolsFromHost({ forcePipeline: true });
       if (batch?.postScan?.items) setAddonReport({ ok: batch.postScan.ok, checkedAt: batch.postScan.scannedAt, items: batch.postScan.items });
       if (batch?.results) applyAddonUpdatePaths(batch.results);
       await runScan({ skipAutoUpdate: true });
