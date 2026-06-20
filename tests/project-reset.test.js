@@ -13,8 +13,8 @@ import { PRESET_KEY, HISTORY_KEY } from "../app/lib/video-config.js";
 
 describe("project reset helpers", () => {
   it("buildBlankProjectSnapshot clears prompts and analyzers", () => {
-    const snap = buildBlankProjectSnapshot("1.0.9");
-    expect(snap.appVersion).toBe("1.0.9");
+    const snap = buildBlankProjectSnapshot("1.0.10");
+    expect(snap.appVersion).toBe("1.0.10");
     expect(snap.idea).toBe(BLANK_STATE.idea);
     expect(snap.selectedGenres).toEqual([]);
     expect(snap.audioAnalysis).toBeNull();

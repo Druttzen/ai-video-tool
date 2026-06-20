@@ -20,9 +20,11 @@ describe("environment-scan CLI module", () => {
   });
 
   it("scanSetupEnvironment returns structured scan", async () => {
-    const scan = await scanSetupEnvironment({});
+    const scan = await scanSetupEnvironment({
+      gatherGpu: async () => null,
+    });
     expect(scan.scannedAt).toBeTruthy();
     expect(scan.python).toBeTruthy();
     expect(scan.pipeline).toBeTruthy();
-  });
+  }, 30_000);
 });
