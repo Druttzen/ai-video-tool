@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -16,7 +16,9 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "sync:suno-catalog": "node scripts/sync-suno-catalog.cjs",
+    "smoke:desktop": "node scripts/smoke-desktop-setup.cjs",
+    "smoke:local-mp4": "node scripts/smoke-local-mp4.cjs --check-only",
+    "addons:check": "node scripts/check-addon-updates.cjs",
     "sync:open-sora-terms": "node scripts/sync-open-sora-terms.cjs",
     "sync:open-sora-catalog": "node scripts/sync-open-sora-catalog.cjs",
     "check": "npm run test && npm run lint && npm run build",
@@ -59,7 +61,10 @@
       "icon.ico",
       "scripts/run-director-job.py",
       "scripts/run-open-sora-job.py",
-      "scripts/sync-open-sora-catalog.cjs"
+      "scripts/sync-open-sora-catalog.cjs",
+      "scripts/lib/environment-scan.cjs",
+      "scripts/lib/addon-updater.cjs",
+      "data/addon-updates-manifest.json"
     ],
     "asarUnpack": [
       "scripts/**/*.py"

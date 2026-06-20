@@ -11,8 +11,10 @@ import {
 } from "./open-sora-settings";
 import { isCoProducerLlmReady } from "./co-producer-llm";
 import { isElectronApp, scanSetupEnvironmentFromHost } from "./electron-bridge";
+import { safeLocalStorage } from "./safe-local-storage";
 
 export const SETUP_HUB_EVENT = "setup-hub-updated";
+export const SETUP_HUB_SCAN_KEY = "ai_video_creator_setup_hub_scan_v1";
 
 export function getSetupHubModules() {
   return manifest.modules || [];
@@ -106,6 +108,48 @@ export function buildSetupScanFromHost(hostScan, { coProducerLlmSettings } = {})
   return { scannedAt: scan.scannedAt || new Date().toISOString(), modules, raw: scan };
 }
 
+export function loadPersistedSetupScan() {
+  if (typeof window === "undefined") return null;
+  const parsed = safeLocalStorage.getJSON(SETUP_HUB_SCAN_KEY, null);
+  if (!parsed?.modules) return null;
+  return parsed;
+}
+
+export function savePersistedSetupScan(scan) {
+  if (typeof window === "undefined" || !scan?.modules) return;
+  safeLocalStorage.setJSON(SETUP_HUB_SCAN_KEY, scan);
+}
+
+export function clearPersistedSetupScan() {
+  if (typeof window === "undefined") return;
+  safeLocalStorage.remove(SETUP_HUB_SCAN_KEY);
+}
+
+/** @returns {{ id: string, label: string, status: string, message: string, fixHint: string, scrollTarget: string|null, requiredForLocalMp4: boolean }[]} */
+export function getMissingSetupChecklist(scan) {
+  if (!scan?.modules) return [];
+  const modules = getSetupHubModules();
+  return modules
+    .map((mod) => {
+      const row = scan.modules[mod.id];
+      const status = row?.status || "unknown";
+      return {
+        id: mod.id,
+        label: mod.label,
+        status,
+        message: row?.message || "",
+        fixHint: mod.fixHint || row?.message || "",
+        scrollTarget: mod.scrollTarget || null,
+        requiredForLocalMp4: Boolean(mod.requiredForLocalMp4),
+      };
+    })
+    .filter(
+      (item) =>
+        item.status === "missing" ||
+        (item.requiredForLocalMp4 && item.status !== "ready"),
+    );
+}
+
 export async function runSetupEnvironmentScan({ directorSettings, openSoraSettings, coProducerLlmSettings } = {}) {
   if (!isElectronApp()) {
     const browserScan = buildSetupScanFromHost(
@@ -124,6 +168,7 @@ export async function runSetupEnvironmentScan({ directorSettings, openSoraSettin
       { coProducerLlmSettings },
     );
     notifySetupHubUpdated(browserScan);
+    savePersistedSetupScan(browserScan);
     return { ok: true, scan: browserScan };
   }
 
@@ -134,6 +179,7 @@ export async function runSetupEnvironmentScan({ directorSettings, openSoraSettin
   if (!host?.ok) return host;
   const scan = buildSetupScanFromHost(host, { coProducerLlmSettings });
   notifySetupHubUpdated(scan);
+  savePersistedSetupScan(scan);
   return { ok: true, scan };
 }
 

@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0",
+  "addons": {
+    "open-sora": {
+      "label": "Open-Sora",
+      "repo": "https://github.com/hpcaitech/Open-Sora.git",
+      "branch": "main",
+      "requirementsFile": "requirements.txt"
+    },
+    "python": {
+      "label": "Python",
+      "minimumVersion": "3.10.0",
+      "recommendedVersion": "3.11.9",
+      "embed": {
+        "win32": {
+          "version": "3.11.9",
+          "url": "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip",
+          "executable": "python.exe"
+        },
+        "linux": {
+          "version": "3.11.9",
+          "url": "https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tgz",
+          "note": "Use system package manager on Linux — embed auto-install is Windows-only"
+        },
+        "darwin": {
+          "version": "3.11.9",
+          "note": "Use brew install python@3.11 on macOS — embed auto-install is Windows-only"
+        }
+      }
+    },
+    "ffmpeg": {
+      "label": "FFmpeg",
+      "builds": {
+        "win32": {
+          "version": "6.1.1",
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/v6.1.1/ffmpeg-6.1.1-win64-gpl.zip",
+          "zipExecutable": "ffmpeg.exe"
+        }
+      }
+    }
+  }
+}

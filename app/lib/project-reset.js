@@ -17,6 +17,7 @@ import {
   pickSnapshotFields,
   projectReducer,
 } from "./project-state";
+import { clearPersistedSetupScan } from "./setup-hub";
 import { isElectronApp } from "./electron-bridge";
 import { safeLocalStorage } from "./safe-local-storage";
 
@@ -37,6 +38,7 @@ export function resetPersistedPanelSettings() {
   saveGpuWorkflowSettings({ ...DEFAULT_GPU_WORKFLOW_SETTINGS });
   saveOpenSoraSettingsToStorage({ ...DEFAULT_OPEN_SORA_SETTINGS });
   saveManuscriptChatHistory([]);
+  clearPersistedSetupScan();
   try {
     sessionStorage.removeItem(UNDO_SESSION_KEY);
   } catch {

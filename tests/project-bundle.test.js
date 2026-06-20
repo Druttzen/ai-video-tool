@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   PROJECT_BUNDLE_FORMAT,
+  PROJECT_BUNDLE_FORMAT_LEGACY,
   buildProjectBundleExport,
   mergeCustomPresetsMaps,
   parseProjectBundleImport,
@@ -48,6 +49,12 @@ describe("project-bundle", () => {
     expect(legacy.project.idea).toBe("legacy");
     expect(legacy.customPresets.B.genres).toEqual(["House"]);
     expect(legacy.bundleMeta).toBeNull();
+
+    const legacyMusic = parseProjectBundleImport({
+      bundleFormat: PROJECT_BUNDLE_FORMAT_LEGACY,
+      project: { idea: "from music tool" },
+    });
+    expect(legacyMusic.project.idea).toBe("from music tool");
   });
 
   it("mergeCustomPresetsMaps lets import win on name clash", () => {

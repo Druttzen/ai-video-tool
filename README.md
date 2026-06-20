@@ -1,6 +1,6 @@
 # AI Video Creator — Video Prompt Studio
 
-**Version 1.0.5**
+**Version 1.0.6**
 
 A **standalone** video prompt studio by DJ M@D (Bones Vibration). Built on the same architecture as [AI Music Creator](https://github.com/Druttzen/ai-music-tool), but fully focused on **AI video** — not tied to Open-Sora, Suno tokens, or any single cloud provider.
 
@@ -133,6 +133,45 @@ The **Setup Hub** panel (top of workspace) scans your environment and links opti
 - Enables all GPU workflow functions + auto-run on paths and before render
 
 Bundled placeholders (optional pack-in for installers): `resources/python`, `resources/tools/ffmpeg`.
+
+### Open-Sora paths (all platforms)
+
+| OS | Default probe path | Override |
+|----|-------------------|----------|
+| **Windows** | `E:\Open-Sora` | Setup Hub link path or `OPEN_SORA_ROOT` env |
+| **macOS / Linux** | `~/Open-Sora` | Same — clone repo into home folder or set env |
+
+```bash
+# CLI smoke (no Electron) — exit 0 when Python + pipeline found
+npm run smoke:desktop
+npm run smoke:desktop -- --pipeline ~/Open-Sora --json
+
+# Local MP4 prerequisite check + optional job JSON
+npm run smoke:local-mp4
+npm run smoke:local-mp4 -- --pipeline E:\Open-Sora --write-job ./director-smoke.json
+```
+
+Setup Hub **remembers your last scan** and shows a **Fix for local MP4** checklist with panel links when Python or pipeline is missing.
+
+### Addon auto-update (desktop)
+
+Setup Hub can **check and install updates** for local render dependencies:
+
+| Addon | Auto-update behavior |
+|-------|----------------------|
+| **Open-Sora** | `git clone` or `git pull` + optional `pip install -r requirements.txt` |
+| **Python** | Windows embeddable zip → `%AppData%/…/addons/python/` |
+| **FFmpeg** | Static Windows build → `%AppData%/…/addons/ffmpeg/` |
+
+- Toggle **Auto-update … after each environment scan** in Setup Hub
+- Or use **Check addon updates** / **Update all addons**
+- CLI: `npm run addons:check`
+
+Manifest: `data/addon-updates-manifest.json` (pinned URLs/versions).
+
+### Project bundles
+
+Exports use **`ai-video-creator-bundle`** (`ai-video-bundle.json`). Imports still accept legacy **`ai-music-creator-bundle`** from AI Music Creator.
 
 ## Legacy note
 

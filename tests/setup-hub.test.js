@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSetupScanFromHost,
+  getMissingSetupChecklist,
   getSetupHubModules,
   summarizeSetupScan,
 } from "../app/lib/setup-hub.js";
@@ -71,6 +72,21 @@ describe("setup hub", () => {
     const summary = summarizeSetupScan(scan);
     expect(summary.localRenderReady).toBe(false);
     expect(summary.label).not.toContain("local MP4 ready");
+  });
+
+  it("getMissingSetupChecklist lists python and pipeline when missing", () => {
+    const scan = buildSetupScanFromHost({
+      ok: true,
+      scan: {
+        python: { ok: false },
+        pipeline: { ok: false },
+        gpu: null,
+      },
+    });
+    const list = getMissingSetupChecklist(scan);
+    expect(list.some((x) => x.id === "python")).toBe(true);
+    expect(list.some((x) => x.id === "pipeline")).toBe(true);
+    expect(list.find((x) => x.id === "python")?.fixHint).toMatch(/Python/i);
   });
 
   it("summarizeSetupScan handles missing scan", () => {

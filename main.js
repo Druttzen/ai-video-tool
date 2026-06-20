@@ -4,7 +4,7 @@ const fs = require("fs");
 const os = require("os");
 const { spawn, execFile } = require("child_process");
 const { promisify } = require("util");
-const pkg = require("./package.json");
+const { scanSetupEnvironment: scanHostEnvironment } = require("./scripts/lib/environment-scan.cjs");
 
 const execFileAsync = promisify(execFile);
 
@@ -424,141 +424,77 @@ function setupBuildProgressIpc() {
   });
 }
 
-function isPipelineFolder(dir) {
-  const target = String(dir || "").trim();
-  if (!target || !fs.existsSync(target)) return false;
-  return (
-    fs.existsSync(path.join(target, "inference.py")) ||
-    fs.existsSync(path.join(target, "app_pro.py")) ||
-    fs.existsSync(path.join(target, "configs"))
-  );
-}
-
-function resolveBundledResource(relativePath) {
-  if (!process.resourcesPath) return null;
-  const candidate = path.join(process.resourcesPath, relativePath);
-  return fs.existsSync(candidate) ? candidate : null;
-}
-
-async function probePythonExecutable(pythonPath) {
-  const target = String(pythonPath || "").trim() || "python";
-  try {
-    const { stdout } = await execFileAsync(target, ["--version"], {
-      timeout: 8000,
-      shell: process.platform === "win32",
-    });
-    const raw = String(stdout || "").trim();
-    return {
-      ok: true,
-      path: target,
-      version: raw.replace(/^Python\s+/i, "") || raw,
-      bundled: Boolean(process.resourcesPath && target.includes(process.resourcesPath)),
-    };
-  } catch (e) {
-    return { ok: false, path: target, error: e?.message || "Python not found" };
-  }
-}
-
-async function probeFfmpegExecutable(ffmpegPath) {
-  const target = String(ffmpegPath || "").trim() || "ffmpeg";
-  try {
-    await execFileAsync(target, ["-version"], {
-      timeout: 5000,
-      shell: process.platform === "win32",
-    });
-    return {
-      ok: true,
-      path: target,
-      bundled: Boolean(process.resourcesPath && target.includes(process.resourcesPath)),
-    };
-  } catch (e) {
-    return { ok: false, path: target, error: e?.message || "ffmpeg not found" };
-  }
-}
-
 async function scanSetupEnvironment(payload = {}) {
-  const directorSettings = payload?.directorSettings || {};
-  const openSoraInstallPath = String(payload?.openSoraInstallPath || "").trim();
+  return scanHostEnvironment({
+    directorSettings: payload?.directorSettings || {},
+    openSoraInstallPath: payload?.openSoraInstallPath || "",
+    resourcesPath: process.resourcesPath || null,
+    userDataPath: app.getPath("userData"),
+    packaged: app.isPackaged,
+    gatherGpu: gatherNativeSystemStats,
+  });
+}
 
-  const bundledPython =
-    process.platform === "win32"
-      ? resolveBundledResource(path.join("python", "python.exe"))
-      : resolveBundledResource(path.join("python", "bin", "python3")) ||
-        resolveBundledResource(path.join("python", "bin", "python"));
+function setupAddonUpdaterIpc() {
+  const {
+    checkAddonUpdates,
+    updateAddon,
+    updateAllAddons,
+  } = require("./scripts/lib/addon-updater.cjs");
 
-  const bundledFfmpeg =
-    process.platform === "win32"
-      ? resolveBundledResource(path.join("tools", "ffmpeg", "ffmpeg.exe"))
-      : resolveBundledResource(path.join("tools", "ffmpeg", "ffmpeg"));
-
-  const pythonCandidates = [
-    String(directorSettings.localPythonPath || "").trim(),
-    bundledPython,
-    process.platform === "win32" ? "py" : "python3",
-    "python",
-  ].filter(Boolean);
-
-  let python = { ok: false, error: "Python not found — install 3.10+ or bundle under resources/python" };
-  for (const candidate of [...new Set(pythonCandidates)]) {
-    const probe = await probePythonExecutable(candidate);
-    if (probe.ok) {
-      python = probe;
-      break;
+  ipcMain.handle("setup:check-addon-updates", async (_event, payload) => {
+    try {
+      const userDataPath = app.getPath("userData");
+      const scan = payload?.scan || (await scanSetupEnvironment(payload));
+      const result = await checkAddonUpdates({
+        scan: scan?.scan || scan,
+        userDataPath,
+        openSoraPath: payload?.openSoraInstallPath || payload?.openSoraPath,
+      });
+      return { ok: true, ...result };
+    } catch (e) {
+      return { ok: false, error: e?.message || "addon check failed" };
     }
-    python = probe;
-  }
+  });
 
-  const pipelinePath = String(directorSettings.localPipelinePath || "").trim();
-  const pipeline =
-    pipelinePath && isPipelineFolder(pipelinePath)
-      ? { ok: true, path: pipelinePath }
-      : {
-          ok: false,
-          path: pipelinePath,
-          error: pipelinePath
-            ? `Pipeline folder missing inference.py — ${pipelinePath}`
-            : "Set Director → Advanced → local pipeline folder",
-        };
-
-  const openSoraCandidates = [
-    openSoraInstallPath,
-    pipelinePath,
-    process.platform === "win32" ? "E:\\Open-Sora" : path.join(os.homedir(), "Open-Sora"),
-  ].filter(Boolean);
-
-  let openSora = {
-    ok: false,
-    error: "Optional — clone Open-Sora or set install path in Open-Sora panel",
-  };
-  for (const candidate of [...new Set(openSoraCandidates)]) {
-    if (isPipelineFolder(candidate)) {
-      openSora = { ok: true, path: candidate };
-      break;
+  ipcMain.handle("setup:update-addon", async (_event, payload) => {
+    try {
+      const userDataPath = app.getPath("userData");
+      const scanPayload = payload?.scan ? null : payload;
+      const scanResult = payload?.scan
+        ? { scan: payload.scan }
+        : scanPayload
+          ? await scanSetupEnvironment(scanPayload)
+          : await scanSetupEnvironment(payload);
+      const scan = scanResult?.scan || scanResult;
+      const result = await updateAddon({
+        addonId: payload?.addonId,
+        userDataPath,
+        scan,
+        openSoraPath: payload?.openSoraPath || payload?.openSoraInstallPath,
+        pythonPath: payload?.pythonPath,
+      });
+      return result;
+    } catch (e) {
+      return { ok: false, error: e?.message || "addon update failed" };
     }
-  }
+  });
 
-  const ffmpegCandidates = [bundledFfmpeg, "ffmpeg"].filter(Boolean);
-  let ffmpeg = { ok: false, error: "Optional — not required for prompt studio" };
-  for (const candidate of [...new Set(ffmpegCandidates)]) {
-    const probe = await probeFfmpegExecutable(candidate);
-    if (probe.ok) {
-      ffmpeg = probe;
-      break;
+  ipcMain.handle("setup:update-all-addons", async (_event, payload) => {
+    try {
+      const userDataPath = app.getPath("userData");
+      const scanResult = await scanSetupEnvironment(payload);
+      const result = await updateAllAddons({
+        scan: scanResult,
+        userDataPath,
+        openSoraPath: payload?.openSoraInstallPath,
+        pythonPath: payload?.pythonPath,
+      });
+      return result;
+    } catch (e) {
+      return { ok: false, error: e?.message || "addon batch update failed" };
     }
-    ffmpeg = probe;
-  }
-
-  const gpu = await gatherNativeSystemStats();
-
-  return {
-    scannedAt: new Date().toISOString(),
-    electron: { packaged: app.isPackaged, dev: !app.isPackaged },
-    python,
-    pipeline,
-    openSora,
-    ffmpeg,
-    gpu,
-  };
+  });
 }
 
 function setupSetupHubIpc() {
@@ -965,6 +901,7 @@ app.whenReady().then(() => {
   setupAppIpc();
   setupSystemIpc();
   setupSetupHubIpc();
+  setupAddonUpdaterIpc();
   setupBuildProgressIpc();
   setupDirectorIpc();
   setupOpenSoraIpc();

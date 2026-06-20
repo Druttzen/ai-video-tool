@@ -52,7 +52,7 @@ test.describe("project bundle e2e", () => {
     });
   });
 
-  test("Export Bundle downloads ai-music-creator-bundle JSON", async ({ page }) => {
+  test("Export Bundle downloads ai-video-creator-bundle JSON", async ({ page }) => {
     await dismissSplash(page);
 
     const panel = saveLoadPanel(page);
@@ -68,13 +68,13 @@ test.describe("project bundle e2e", () => {
     await expectToast(page, /Exported project bundle/i);
 
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe("ai-music-bundle.json");
+    expect(download.suggestedFilename()).toBe("ai-video-bundle.json");
 
     const downloadPath = await download.path();
     expect(downloadPath).toBeTruthy();
     const raw = JSON.parse(fs.readFileSync(downloadPath, "utf8"));
 
-    expect(raw.bundleFormat).toBe("ai-music-creator-bundle");
+    expect(raw.bundleFormat).toBe("ai-video-creator-bundle");
     expect(raw.project.idea).toBe("Export bundle marker");
     expect(raw.customPresets["E2E Saved Preset"]).toBeTruthy();
   });

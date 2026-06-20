@@ -19,4 +19,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   revealDirectorOutput: (filePath) => ipcRenderer.invoke("director:reveal-output", filePath),
   confirmAction: (payload) => ipcRenderer.invoke("app:confirm-action", payload),
   scanSetupEnvironment: (payload) => ipcRenderer.invoke("setup:scan-environment", payload),
+  checkAddonUpdates: (payload) => ipcRenderer.invoke("setup:check-addon-updates", payload),
+  updateAddon: (payload) => ipcRenderer.invoke("setup:update-addon", payload),
+  updateAllAddons: (payload) => ipcRenderer.invoke("setup:update-all-addons", payload),
 });

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "All-in-One Setup Hub",
   "modules": [
     {
@@ -7,7 +7,8 @@
       "label": "Desktop shell",
       "description": "Electron app — local render, GPU scan, auto-update",
       "requiresElectron": true,
-      "scrollTarget": null
+      "scrollTarget": null,
+      "fixHint": "Install the Windows desktop app from GitHub Releases for local GPU render and Setup Hub scan."
     },
     {
       "id": "director",
@@ -25,27 +26,34 @@
       "id": "python",
       "label": "Python runtime",
       "description": "Required for local GPU diffusion render",
-      "requiresElectron": true
+      "requiresElectron": true,
+      "requiredForLocalMp4": true,
+      "scrollTarget": "director-panel",
+      "fixHint": "Install Python 3.10+ (python.org). Set path in Director → Advanced → Python, or run: npm run smoke:desktop"
     },
     {
       "id": "pipeline",
       "label": "Diffusion pipeline",
       "description": "Open-Sora-compatible folder with inference.py + configs",
       "requiresElectron": true,
-      "scrollTarget": "director-panel"
+      "requiredForLocalMp4": true,
+      "scrollTarget": "director-panel",
+      "fixHint": "Clone Open-Sora into ~/Open-Sora (macOS/Linux) or E:\\Open-Sora (Windows). Link in Setup Hub or Director → Advanced → pipeline folder."
     },
     {
       "id": "open-sora",
       "label": "Open-Sora install",
       "description": "Optional legacy pipeline path — can link to Director",
       "requiresElectron": true,
-      "scrollTarget": "open-sora-panel"
+      "scrollTarget": "open-sora-panel",
+      "fixHint": "Set install path below or use Link Open-Sora → Director in Setup Hub."
     },
     {
       "id": "gpu",
       "label": "GPU + graphics",
       "description": "VRAM tier, CUDA/Vulkan/DirectML, workflow preflight",
-      "scrollTarget": "gpu-workflow-panel"
+      "scrollTarget": "gpu-workflow-panel",
+      "fixHint": "Optional for export mode. For local render, use an NVIDIA/AMD/Intel discrete GPU and run GPU Workflow preflight."
     },
     {
       "id": "workflows",
@@ -57,7 +65,8 @@
       "id": "co-producer",
       "label": "Co-Producer LLM",
       "description": "Optional OpenAI-compatible API for lyrics/manuscript",
-      "scrollTarget": "co-producer-panel"
+      "scrollTarget": "co-producer-panel",
+      "fixHint": "Add API URL + key in Co-Producer panel (optional — heuristic mode works offline)."
     },
     {
       "id": "style-dna",
@@ -69,7 +78,8 @@
       "id": "ffmpeg",
       "label": "FFmpeg",
       "description": "Optional bundled or PATH ffmpeg for future transcode hooks",
-      "requiresElectron": true
+      "requiresElectron": true,
+      "fixHint": "Optional — install ffmpeg on PATH or bundle under resources/tools/ffmpeg."
     },
     {
       "id": "export-cloud",

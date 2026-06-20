@@ -42,7 +42,7 @@ export const HISTORY_KEY = "ai_video_creator_prompt_history_v1";
 export const APP_VERSION =
   typeof process !== "undefined" && process.env.NEXT_PUBLIC_APP_VERSION
     ? process.env.NEXT_PUBLIC_APP_VERSION
-    : "1.0.5";
+    : "1.0.6";
 export const AUTHOR = "DJ M@D";
 
 export const DEFAULT_STATE = {

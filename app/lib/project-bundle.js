@@ -14,8 +14,15 @@ import {
   normalizeCharacterVoiceStudioSession,
 } from "./voice-character-studio-session";
 
-export const PROJECT_BUNDLE_FORMAT = "ai-music-creator-bundle";
+export const PROJECT_BUNDLE_FORMAT = "ai-video-creator-bundle";
+/** @deprecated Import-only alias — exports use PROJECT_BUNDLE_FORMAT */
+export const PROJECT_BUNDLE_FORMAT_LEGACY = "ai-music-creator-bundle";
+export const PROJECT_BUNDLE_FORMATS = [PROJECT_BUNDLE_FORMAT, PROJECT_BUNDLE_FORMAT_LEGACY];
 export const PROJECT_BUNDLE_VERSION = 1;
+
+function isKnownBundleFormat(format) {
+  return PROJECT_BUNDLE_FORMATS.includes(String(format || ""));
+}
 
 /**
  * @param {unknown} presets
@@ -76,7 +83,7 @@ export function parseProjectBundleImport(raw) {
     throw new Error("Invalid project file");
   }
 
-  if (raw.bundleFormat === PROJECT_BUNDLE_FORMAT) {
+  if (isKnownBundleFormat(raw.bundleFormat)) {
     const project = raw.project && typeof raw.project === "object" ? { ...raw.project } : {};
     if (raw.appVersion) project.appVersion = raw.appVersion;
 
@@ -126,7 +133,7 @@ export function summarizeProjectBundle(raw) {
     const cvSession = extractCharacterVoiceStudioSessionFromProject(project);
     return {
       ok: true,
-      isBundle: raw?.bundleFormat === PROJECT_BUNDLE_FORMAT,
+      isBundle: isKnownBundleFormat(raw?.bundleFormat),
       appVersion: project.appVersion || null,
       guidedStep: typeof project.guidedStep === "number" ? project.guidedStep : 0,
       customPresetCount: Object.keys(customPresets).length,

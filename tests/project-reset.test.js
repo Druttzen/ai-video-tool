@@ -10,8 +10,8 @@ import {
 
 describe("project reset helpers", () => {
   it("buildBlankProjectSnapshot clears prompts and analyzers", () => {
-    const snap = buildBlankProjectSnapshot("1.0.5");
-    expect(snap.appVersion).toBe("1.0.5");
+    const snap = buildBlankProjectSnapshot("1.0.6");
+    expect(snap.appVersion).toBe("1.0.6");
     expect(snap.idea).toBe(BLANK_STATE.idea);
     expect(snap.selectedGenres).toEqual([]);
     expect(snap.audioAnalysis).toBeNull();

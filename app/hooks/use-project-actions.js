@@ -289,7 +289,7 @@ export function useProjectActions({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "ai-music-bundle.json";
+    a.download = "ai-video-bundle.json";
     a.click();
     URL.revokeObjectURL(url);
     setStatusWithTime("Exported project bundle (project + style presets + voice profile)");
