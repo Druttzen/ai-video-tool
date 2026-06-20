@@ -66,6 +66,7 @@ test.describe("Audio + picture music video e2e", () => {
 
     await analyzerPanel(page).getByTestId("apply-audio-visual-music-video-analyzers").click();
     await expect(page.getByTestId("action-toast")).toContainText(/beat-sync MV/i);
+    await expect(directorPanel(page)).toBeInViewport({ timeout: 15000 });
     await expectBeatSyncMusicVideoState(page);
     await expectDirectorI2vExport(page);
   });
@@ -78,6 +79,7 @@ test.describe("Audio + picture music video e2e", () => {
     await studio.scrollIntoViewIfNeeded();
     await studio.getByTestId("apply-audio-visual-music-video").click();
     await expect(page.getByTestId("action-toast")).toContainText(/beat-sync MV/i);
+    await expect(directorPanel(page)).toBeInViewport({ timeout: 15000 });
     await expectBeatSyncMusicVideoState(page);
   });
 

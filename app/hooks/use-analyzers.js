@@ -44,6 +44,7 @@ import { measureIntegratedLoudness } from "../lib/lufs-meter";
 import { exportEnhancedInWorker } from "../lib/studio-export-client";
 import { normalizeStudioExportFormat } from "../lib/audio-export-formats";
 import { resolvePolishStepIndex } from "../lib/suno-guided-workflow";
+import { scrollToPanel } from "../lib/music-video-workflows";
 
 export function useAnalyzers({
   promptEngine,
@@ -372,8 +373,11 @@ export function useAnalyzers({
     );
     const durationLabel = directorSettingsPatch?.durationSeconds || String(songDurationSec(audioAnalysis));
     setStatusWithTime(
-      `Audio + picture → beat-sync MV (${durationLabel}s) — open Director`,
+      `Audio + picture → beat-sync MV (${durationLabel}s) — Director ready`,
     );
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => scrollToPanel("director-panel"));
+    }
   }, [audioAnalysis, applyAnalyzerPatch, imageAnalysis, setStatusWithTime]);
 
   const applyAudioToSunoStyle = useCallback(() => {

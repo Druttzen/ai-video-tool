@@ -137,7 +137,7 @@ export function getMusicVideoWorkflowReadiness(workflowId, ctx) {
 export function scrollToPanel(testId) {
   if (typeof document === "undefined") return;
   document.querySelector(`[data-testid="${testId}"]`)?.scrollIntoView({
-    behavior: "smooth",
+    behavior: "instant",
     block: "start",
   });
 }

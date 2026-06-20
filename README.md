@@ -35,6 +35,34 @@ npm run electron     # desktop — export + optional local render
 4. **Director Engine → Render** → Copy prompt or Export job
 5. Paste into your video AI of choice
 
+## Music video — audio + picture (Path E)
+
+Build a beat-synced music video from an **analyzed track** and **reference image** (no Suno paste required).
+
+| Entry point | Where |
+|-------------|--------|
+| **Path E** button | Drag & Drop Analyzers (when both files are loaded) or **Suno → Music Video Studio** |
+| **Workflow 5** | Quick Start — Music Video Paths 1–5 → **Run path 5** |
+
+What Path E applies:
+
+- **Beat sync** — BPM grid, timestamped shot structure, `Beat grid` scene scaffold in generated lyrics
+- **Lip sync** — lip-sync rules and vocal performance beats when the track analysis suggests vocals (prompt-level; not frame-accurate mouth sync)
+- **Duration sync** — project `tempo` and Director `durationSeconds` match song length (**capped at 120s** for hardware comfort)
+- **Auto i2v** — enables `useI2vWhenImage`; exported Director jobs attach the analyzed image as `ref_image_name` when you render/export
+
+After Path E runs, the app **scrolls to Director** so you can export or render immediately.
+
+### All music video paths (A–E)
+
+| Path | Input | Use when |
+|------|--------|----------|
+| **A** | Analyzed audio only | Track → video fields |
+| **B** | Suno Style + Lyrics paste | Paste-driven MV |
+| **C** | Track + paste | Full sync with bracket structure |
+| **D** | Manuscript chat | Write your own brief |
+| **E** | Track + reference image | Beat sync, lip-sync scaffold, full-track duration, auto i2v |
+
 ## Prompt engines
 
 | Engine | Use when |
@@ -55,6 +83,7 @@ npm run electron     # desktop — export + optional local render
 
 - `data/director-catalog.json` — native templates, vocabulary, quality presets
 - `app/lib/director-*.js` — prompt builder, wizard, inspiration, settings
+- `app/lib/audio-visual-music-video.js` — Path E: audio + image → beat-sync MV patch and Director duration sync
 - `app/components/center-director-panel.jsx` — unified Create / Render / Advanced UI
 - `scripts/run-director-job.py` — optional local GPU backend runner
 
