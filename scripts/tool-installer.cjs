@@ -4,7 +4,7 @@
  *
  * Usage:
  *   node scripts/tool-installer.cjs scan [--json]
- *   node scripts/tool-installer.cjs install [--addon <id>] [--json]
+ *   node scripts/tool-installer.cjs install [--addon <id>] [--json] [--pip-via-python]
  *   node scripts/tool-installer.cjs protocol [--json]
  */
 const os = require("os");
@@ -48,10 +48,13 @@ async function main() {
   }
 
   if (cmd === "install") {
+    const forcePipeline = process.argv.includes("--force-pipeline") || !addonId;
+    const pipViaPython = process.argv.includes("--pip-via-python");
     const result = await installTools({
       userDataPath,
       addonId: addonId || null,
-      forcePipeline: !addonId,
+      forcePipeline,
+      pipViaPython,
     });
     if (jsonOut) console.log(JSON.stringify(result, null, 2));
     else {

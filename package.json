@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -20,7 +20,7 @@
     "smoke:local-mp4": "node scripts/smoke-local-mp4.cjs --check-only",
     "addons:check": "node scripts/check-addon-updates.cjs",
     "tools:scan": "node scripts/tool-installer.cjs scan",
-    "tools:install": "node scripts/tool-installer.cjs install",
+    "tools:install": "node scripts/install-addons-runner.cjs",
     "tools:protocol": "node scripts/tool-installer.cjs protocol",
     "sync:open-sora-terms": "node scripts/sync-open-sora-terms.cjs",
     "sync:open-sora-catalog": "node scripts/sync-open-sora-catalog.cjs",
@@ -30,9 +30,9 @@
     "build:readme-pdf": "node scripts/generate-readme-pdf.cjs",
     "build:installer-license": "node scripts/generate-installer-license.cjs",
     "setup-hub": "electron setup-hub-main.js",
-    "build:setup-hub-exe": "node scripts/build-setup-hub-exe.cjs",
+    "install-addons": "node scripts/install-addons-runner.cjs",
     "prepare:electron-dist": "node scripts/prep-electron-dist.cjs",
-    "dist": "npm run build && npm run build:readme-pdf && npm run build:installer-license && npm run build:setup-hub-exe && npm run prepare:electron-dist && node scripts/run-electron-builder.cjs"
+    "dist": "npm run build && npm run build:readme-pdf && npm run build:installer-license && npm run prepare:electron-dist && node scripts/run-electron-builder.cjs"
   },
   "dependencies": {
     "electron-updater": "^6.8.3",
@@ -73,8 +73,11 @@
       "scripts/lib/addon-platform.cjs",
       "scripts/lib/tool-installer.cjs",
       "scripts/lib/setup-hub-console.cjs",
+      "scripts/lib/install-console.cjs",
       "scripts/lib/addon-updater.cjs",
       "scripts/tool-installer.cjs",
+      "scripts/install-addons-runner.cjs",
+      "scripts/install-addons-pip.py",
       "scripts/wsl-addon-bootstrap.sh",
       "data/addon-updates-manifest.json",
       "data/addon-requirements.txt",
@@ -83,15 +86,17 @@
     ],
     "asarUnpack": [
       "scripts/**/*.py",
-      "scripts/wsl-addon-bootstrap.sh"
+      "scripts/wsl-addon-bootstrap.sh",
+      "scripts/install-addons-pip.py",
+      "scripts/install-addons-runner.cjs"
     ],
     "extraResources": [
       "build/AI_Video_Creator_README.pdf"
     ],
     "extraFiles": [
       {
-        "from": "build/setup-hub-exe/setup-hub.exe",
-        "to": "setup-hub.exe"
+        "from": "scripts/install-addons.cmd",
+        "to": "install-addons.cmd"
       }
     ],
     "directories": {

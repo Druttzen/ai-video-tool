@@ -548,10 +548,25 @@ function setupAddonUpdaterIpc() {
     const useProgressConsole = bulkInstall || Boolean(payload?.forcePipeline);
     let progressConsole = null;
 
+    if (bulkInstall && process.platform === "win32" && app.isPackaged) {
+      const installCmd = path.join(path.dirname(process.execPath), "install-addons.cmd");
+      if (fs.existsSync(installCmd)) {
+        spawn("cmd.exe", ["/c", installCmd], { detached: true, stdio: "ignore", windowsHide: false }).unref();
+        return {
+          ok: true,
+          launched: true,
+          message: "Install Addons CMD opened — watch progress in that window",
+        };
+      }
+    }
+
     try {
       if (useProgressConsole) {
-        const { createProgressReporter } = require("./scripts/lib/setup-hub-console.cjs");
-        progressConsole = createProgressReporter(userDataPath, { version: pkg.version, openConsole: true });
+        const { createInstallReporter } = require("./scripts/lib/install-console.cjs");
+        progressConsole = createInstallReporter(userDataPath, {
+          version: pkg.version,
+          echoToConsole: false,
+        });
       }
 
       const result = await installTools({
@@ -560,6 +575,7 @@ function setupAddonUpdaterIpc() {
         skipScan: Boolean(payload?.skipScan),
         forcePipeline: payload?.forcePipeline ?? bulkInstall,
         forceReinstall: Boolean(payload?.forceReinstall),
+        pipViaPython: Boolean(payload?.pipViaPython),
         onProgress: progressConsole ? (progress) => progressConsole.report(progress) : undefined,
       });
 

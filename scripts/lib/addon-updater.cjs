@@ -426,6 +426,54 @@ async function pipInstallOptionalPackages(userDataPath) {
   return { ok: true, installed, failed, message: `Optional pip: ${installed.length} ok, ${failed.length} skipped` };
 }
 
+async function runPipInstallPythonScript(userDataPath, reqPath) {
+  const { resolveBundledScript } = require("./install-console.cjs");
+  const scriptPath = resolveBundledScript("scripts/install-addons-pip.py");
+  if (!fileExists(scriptPath)) {
+    return { ok: false, error: `Missing pip install script: ${scriptPath}`, requirementsPath: reqPath };
+  }
+
+  const venvPy = requireManagedVenvPython(userDataPath, true);
+  const optionalPath = getBundledOptionalRequirementsPath();
+  const openSoraPath = getManagedOpenSoraDir(userDataPath);
+  const args = [
+    scriptPath,
+    "--python",
+    venvPy,
+    "--requirements",
+    reqPath,
+    "--open-sora",
+    openSoraPath,
+  ];
+  if (fileExists(optionalPath)) {
+    args.push("--optional", optionalPath);
+  }
+
+  const code = await new Promise((resolve, reject) => {
+    const child = spawn(venvPy, args, {
+      stdio: "inherit",
+      env: { ...process.env, VIRTUAL_ENV: getManagedVenvDir(userDataPath) },
+    });
+    child.on("error", reject);
+    child.on("close", (exitCode) => resolve(exitCode ?? 1));
+  });
+
+  if (code !== 0) {
+    return {
+      ok: false,
+      error: `pip install script exited ${code}`,
+      requirementsPath: reqPath,
+    };
+  }
+
+  return {
+    ok: true,
+    path: venvPy,
+    message: "pip install via Python CMD (requirements.txt)",
+    requirementsPath: reqPath,
+  };
+}
+
 async function bootstrapEmbedPip(pythonExe, userDataPath, manifest) {
   const platformKey = manifestPlatformKey(process.platform);
   const embed = manifest.addons.python.embed?.[platformKey];
@@ -896,11 +944,15 @@ async function updateRequirements({ userDataPath }) {
   return { ok: true, ...result };
 }
 
-async function updatePipDeps({ userDataPath }) {
+async function updatePipDeps({ userDataPath, pipViaPython = false } = {}) {
   requireManagedVenvPython(userDataPath, true);
 
   syncAddonRequirements(userDataPath, { openSoraPath: getManagedOpenSoraDir(userDataPath) });
   const reqPath = getManagedRequirementsPath(userDataPath);
+
+  if (pipViaPython) {
+    return runPipInstallPythonScript(userDataPath, reqPath);
+  }
 
   try {
     const torchResult = await installTorchInVenv(userDataPath);
@@ -1094,7 +1146,7 @@ async function updateModels({ userDataPath, manifest }) {
   };
 }
 
-async function updateAddon({ addonId, userDataPath, scan, openSoraPath, pythonPath }) {
+async function updateAddon({ addonId, userDataPath, scan, openSoraPath, pythonPath, pipViaPython = false }) {
   scan = normalizeHostScan(scan);
   const manifest = loadAddonManifest();
   const id = String(addonId || "").trim();
@@ -1127,7 +1179,7 @@ async function updateAddon({ addonId, userDataPath, scan, openSoraPath, pythonPa
     return updateRequirements({ userDataPath });
   }
   if (id === "pip-deps") {
-    return updatePipDeps({ userDataPath });
+    return updatePipDeps({ userDataPath, pipViaPython });
   }
   if (id === "ffmpeg") {
     return updateFfmpeg({ userDataPath, manifest });
@@ -1204,6 +1256,7 @@ async function updateAllAddons(params) {
       ...params,
       addonId,
       pythonPath: lastPythonPath,
+      pipViaPython: Boolean(params.pipViaPython),
     });
     results.push({ id: addonId, ...result });
 

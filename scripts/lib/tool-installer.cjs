@@ -132,7 +132,7 @@ async function runSafeScan({ userDataPath } = {}) {
  * @param {string} params.userDataPath
  * @param {(payload: object) => void} [params.onProgress]
  */
-async function forceInstallPipeline({ userDataPath, onProgress = () => {} } = {}) {
+async function forceInstallPipeline({ userDataPath, onProgress = () => {}, pipViaPython = false } = {}) {
   const base = userDataPath || defaultUserDataPath();
 
   const freshScan = async () => scanSetupEnvironment({ userDataPath: base });
@@ -167,6 +167,7 @@ async function forceInstallPipeline({ userDataPath, onProgress = () => {} } = {}
     scan: await freshScan(),
     forceReinstall: true,
     onProgress,
+    pipViaPython,
   });
 
   onProgress({
@@ -179,6 +180,7 @@ async function forceInstallPipeline({ userDataPath, onProgress = () => {} } = {}
     scan: await freshScan(),
     forceReinstall: false,
     onProgress,
+    pipViaPython,
   });
 
   onProgress({ phase: "safe-scan", message: "Phase 4/4 — running safe verification scan…" });
@@ -218,12 +220,13 @@ async function installTools({
   skipScan = false,
   forceReinstall = false,
   forcePipeline = false,
+  pipViaPython = false,
   onProgress = () => {},
 } = {}) {
   const base = userDataPath || defaultUserDataPath();
 
   if (forcePipeline && !addonId) {
-    return forceInstallPipeline({ userDataPath: base, onProgress });
+    return forceInstallPipeline({ userDataPath: base, onProgress, pipViaPython });
   }
 
   const protocol = getInstallProtocol();
@@ -250,6 +253,7 @@ async function installTools({
     scan: await scanSetupEnvironment({ userDataPath: base }),
     forceReinstall,
     onProgress,
+    pipViaPython,
   });
   const postScan = await runSafeScan({ userDataPath: base });
   return {

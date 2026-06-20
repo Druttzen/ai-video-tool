@@ -10,7 +10,10 @@ const SETUP_HUB_MAIN_SCRIPTS = [
   "scripts/lib/addon-platform.cjs",
   "scripts/lib/addon-updater.cjs",
   "scripts/lib/tool-installer.cjs",
+  "scripts/lib/install-console.cjs",
   "scripts/tool-installer.cjs",
+  "scripts/install-addons-runner.cjs",
+  "scripts/install-addons-pip.py",
   "scripts/wsl-addon-bootstrap.sh",
 ];
 
@@ -21,13 +24,10 @@ const SETUP_HUB_DATA_FILES = [
   "data/setup-hub-manifest.json",
 ];
 
-const STANDALONE_SETUP_HUB_FILES = [
-  "setup-hub-main.js",
-  "setup-hub-preload.js",
-  "setup-hub/index.html",
-  "setup-hub/renderer.js",
-  "scripts/build-setup-hub-exe.cjs",
-  "scripts/lib/setup-hub-console.cjs",
+const INSTALL_ADDONS_FILES = [
+  "scripts/install-addons.cmd",
+  "scripts/install-addons-runner.cjs",
+  "scripts/install-addons-pip.py",
   "build/installer.nsh",
 ];
 
@@ -56,31 +56,46 @@ describe("electron packaging files", () => {
     }
   });
 
-  it("includes standalone Setup Hub exe bundling config", () => {
+  it("bundles install-addons.cmd instead of standalone setup-hub.exe", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 
-    for (const rel of STANDALONE_SETUP_HUB_FILES) {
+    for (const rel of INSTALL_ADDONS_FILES) {
       expect(fs.existsSync(path.join(root, rel)), `repo file missing: ${rel}`).toBe(true);
     }
 
     const extraFiles = pkg.build?.extraFiles || [];
-    expect(extraFiles.some((entry) => String(entry.from || entry).includes("setup-hub.exe"))).toBe(true);
+    expect(extraFiles.some((entry) => String(entry.to || entry.from || entry).includes("install-addons.cmd"))).toBe(
+      true,
+    );
+    expect(extraFiles.some((entry) => String(entry.from || entry).includes("setup-hub.exe"))).toBe(false);
     expect(pkg.build?.nsis?.include).toBe("build/installer.nsh");
     expect(pkg.build?.nsis?.runAfterFinish).toBe(false);
+
+    const nsh = fs.readFileSync(path.join(root, "build/installer.nsh"), "utf8");
+    expect(nsh).toMatch(/install-addons\.cmd/);
+    expect(nsh).not.toMatch(/setup-hub\.exe/);
   });
 
-  it("release workflow builds setup-hub exe before electron-builder", () => {
+  it("unpacks pip install script for Python CMD subprocess", () => {
+    const root = path.join(import.meta.dirname, "..");
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+    const unpack = pkg.build?.asarUnpack || [];
+    expect(unpack.some((entry) => entry.includes("install-addons-pip.py"))).toBe(true);
+    expect(unpack.some((entry) => entry.includes("install-addons-runner.cjs"))).toBe(true);
+  });
+
+  it("release workflow does not build setup-hub exe", () => {
     const root = path.join(import.meta.dirname, "..");
     const releaseYml = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
-    expect(releaseYml).toMatch(/build:setup-hub-exe/);
+    expect(releaseYml).not.toMatch(/build:setup-hub-exe/);
     expect(releaseYml).toMatch(/prepare:electron-dist/);
   });
 
   it("ships version 1.0.16 with Setup Hub manifest v2 and WSL script unpack", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-    expect(pkg.version).toBe("1.0.16");
+    expect(pkg.version).toBe("1.0.17");
     expect((pkg.build?.asarUnpack || []).some((entry) => entry.includes("wsl-addon-bootstrap"))).toBe(true);
     const hub = JSON.parse(fs.readFileSync(path.join(root, "data/setup-hub-manifest.json"), "utf8"));
     expect(hub.version).toBe("2.0.0");

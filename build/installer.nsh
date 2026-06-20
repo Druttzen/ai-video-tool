@@ -1,16 +1,16 @@
-; Custom NSIS hooks — bundle Setup Hub shortcut and launch it after install.
+; Custom NSIS hooks — Install Addons CMD launcher (Python pip + requirements.txt).
 
 !macro customInstall
   CreateDirectory "$SMPROGRAMS\AI Video Creator"
-  CreateShortcut "$SMPROGRAMS\AI Video Creator\Setup Hub.lnk" "$INSTDIR\setup-hub.exe" "" "$INSTDIR\setup-hub.exe" 0
-  CreateShortcut "$DESKTOP\AI Video Creator Setup Hub.lnk" "$INSTDIR\setup-hub.exe" "" "$INSTDIR\setup-hub.exe" 0
+  CreateShortcut "$SMPROGRAMS\AI Video Creator\Install Addons.lnk" "$INSTDIR\install-addons.cmd" "" "$INSTDIR\ai-video-tool.exe" 0
+  CreateShortcut "$DESKTOP\AI Video Creator Install Addons.lnk" "$INSTDIR\install-addons.cmd" "" "$INSTDIR\ai-video-tool.exe" 0
 !macroend
 
 !macro customUnInstall
-  Delete "$SMPROGRAMS\AI Video Creator\Setup Hub.lnk"
-  Delete "$DESKTOP\AI Video Creator Setup Hub.lnk"
+  Delete "$SMPROGRAMS\AI Video Creator\Install Addons.lnk"
+  Delete "$DESKTOP\AI Video Creator Install Addons.lnk"
 !macroend
 
 !macro customFinish
-  Exec '"$INSTDIR\setup-hub.exe"'
+  Exec '"$INSTDIR\install-addons.cmd"'
 !macroend
