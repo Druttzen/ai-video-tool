@@ -4,7 +4,7 @@ import { dismissSplash } from "./helpers.js";
 test("Co-Producer Generate Lyrics produces style-tagged draft", async ({ page }) => {
   await dismissSplash(page);
 
-  await page.getByRole("button", { name: "Male Lead" }).first().click();
+  await page.getByRole("button", { name: "Voiceover" }).first().click();
   await page.getByTestId("co-producer-generate-lyrics").first().click();
 
   const lyricsBox = page.locator("textarea").first();

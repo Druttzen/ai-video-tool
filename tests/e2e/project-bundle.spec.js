@@ -5,6 +5,7 @@ import {
   dismissSplash,
   expectToast,
   ideaInput,
+  importBundleFile,
   musicControlsPanel,
   saveLoadPanel,
   skipSplashIfVisible,
@@ -20,15 +21,15 @@ test.describe("project bundle e2e", () => {
   test("Import Bundle restores project fields and merges custom presets", async ({ page }) => {
     await dismissSplash(page);
 
-    const panel = saveLoadPanel(page);
-    await panel.locator('input[type="file"][accept="application/json"]').setInputFiles(BUNDLE_FIXTURE);
+    await importBundleFile(page, BUNDLE_FIXTURE);
 
     await expectToast(page, /Imported project bundle/i);
     await expect(ideaInput(page)).toHaveValue("Imported from bundle fixture");
 
     const controls = musicControlsPanel(page);
-    await expect(controls.getByRole("button", { name: "House", exact: true })).toHaveClass(/border-cyan-300/);
-    await expect(controls.getByRole("button", { name: "Female Lead", exact: true })).toHaveClass(
+    await expect(controls.getByRole("button", { name: "Cinematic", exact: true })).toHaveClass(/border-cyan-300/);
+    await expect(controls.getByRole("button", { name: "Noir", exact: true })).toHaveClass(/border-cyan-300/);
+    await expect(controls.getByRole("button", { name: "Voiceover", exact: true })).toHaveClass(
       /border-cyan-300/,
     );
 

@@ -4,7 +4,7 @@ import {
   coProducerPanel,
   dismissSplash,
   lyricStylePanel,
-  musicControlsPanel,
+  selectSunoEngine,
 } from "./helpers.js";
 
 const INSTRUMENTAL_FIXTURE = "tests/fixtures/e2e-instrumental-bed.wav";
@@ -12,11 +12,6 @@ const INSTRUMENTAL_FIXTURE = "tests/fixtures/e2e-instrumental-bed.wav";
 test.describe("Instrumental track lyrics e2e", () => {
   test("drop instrumental audio and add timed lyrics scaffold", async ({ page }) => {
     await dismissSplash(page);
-
-    const controlsPanel = musicControlsPanel(page);
-    const instrumentalPill = controlsPanel.getByRole("button", { name: "Instrumental", exact: true });
-    await instrumentalPill.click();
-    await expect(instrumentalPill).toHaveClass(/border-cyan-300/);
 
     const panel = analyzerPanel(page);
     await panel.scrollIntoViewIfNeeded();
@@ -36,12 +31,10 @@ test.describe("Instrumental track lyrics e2e", () => {
     await expect(toast).toBeVisible();
     await expect(toast).toContainText(/singable draft added/i);
 
-    await expect(page.getByRole("heading", { name: /Lyric direction \(\d+ \/ \d+\)/ })).toBeVisible();
-
-    await expect(instrumentalPill).not.toHaveClass(/border-cyan-300/);
+    await expect(page.getByRole("heading", { name: /Suno path — Narrative beats \(6 \/ 8\)/ })).toBeVisible();
 
     const lyricPanel = lyricStylePanel(page);
-    await expect(lyricPanel.locator("label").filter({ hasText: "Lyric Theme" }).locator("input")).not.toHaveValue(
+    await expect(lyricPanel.locator("label").filter({ hasText: "Narrative theme" }).locator("input")).not.toHaveValue(
       "",
     );
 

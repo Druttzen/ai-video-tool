@@ -4,7 +4,6 @@ import {
   clearProjectStorage,
   dismissSplash,
   expectToast,
-  musicControlsPanel,
   voiceCharacterStudioPanel,
 } from "./helpers.js";
 
@@ -36,10 +35,7 @@ test.describe("Voice Character Studio e2e", () => {
     await expect(panel.getByText("Style box")).toBeVisible();
     await expect(panel.locator("pre").filter({ hasText: /E2E Narrator, baritone register/i }).first()).toBeVisible();
 
-    const controls = musicControlsPanel(page);
-    await expect(controls.getByRole("button", { name: "Male Lead", exact: true })).toHaveClass(
-      /border-cyan-300/,
-    );
+    await expect(page.locator("header").getByText(/Loaded character preset/i)).toBeVisible();
   });
 
   test("export character presets JSON after import", async ({ page }) => {

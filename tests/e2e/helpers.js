@@ -1,5 +1,8 @@
 import { expect } from "@playwright/test";
 
+export const FACTORY_PRESET = "Cinematic Opening";
+export const STORAGE_KEY = "ai_video_creator_visual_tool_v1";
+
 export async function clearProjectStorage(page) {
   await page.addInitScript(() => {
     if (sessionStorage.getItem("__e2e_storage_cleared__")) return;
@@ -36,18 +39,22 @@ export function analyzerPanel(page) {
 }
 
 export function coProducerPanel(page) {
-  return page.locator("section").filter({ hasText: "Co‑Producer AI" });
+  return page
+    .locator("section.rounded-3xl")
+    .filter({ has: page.getByRole("heading", { name: "Co‑Producer AI", level: 2 }) });
 }
 
 export function saveLoadPanel(page) {
-  return page.locator("section").filter({ hasText: "Save / Load" });
+  return page
+    .locator("section.rounded-3xl")
+    .filter({ has: page.getByRole("heading", { name: "Save / Load", level: 2 }) });
 }
 
 export function ideaInput(page) {
   return page
-    .locator("section")
-    .filter({ hasText: "Step 1 — Idea Input" })
-    .locator("input")
+    .locator("section.rounded-3xl")
+    .filter({ has: page.getByRole("heading", { name: "Step 1 — Idea Input", level: 2 }) })
+    .locator('input:not([type="checkbox"])')
     .first();
 }
 
@@ -58,12 +65,14 @@ export function voiceCharacterStudioPanel(page) {
 }
 
 export function musicControlsPanel(page) {
-  return page.locator("section").filter({ hasText: "Step 3 — Clickable Music Controls" });
+  return page
+    .locator("section.rounded-3xl")
+    .filter({ has: page.getByRole("heading", { name: "Step 3 — Visual Controls", level: 2 }) });
 }
 
 export function lyricStylePanel(page) {
   return page.locator("section.rounded-3xl").filter({
-    has: page.getByRole("heading", { name: "Lyric Style Generator" }),
+    has: page.getByRole("heading", { name: "Narrative Direction" }),
   });
 }
 
@@ -74,7 +83,9 @@ export function guidedSunoPanel(page) {
 }
 
 export function promptPreviewPanel(page) {
-  return page.locator("section").filter({ hasText: "Prompt Preview" });
+  return page
+    .locator("section.rounded-3xl")
+    .filter({ has: page.getByRole("heading", { name: "Prompt Preview", level: 2 }) });
 }
 
 export function sunoReimportPanel(page) {
@@ -85,9 +96,25 @@ export function styleDnaSearchPanel(page) {
   return page.getByTestId("style-dna-search-panel");
 }
 
-export async function selectStandardEngine(page) {
+export async function selectDirectorEngine(page) {
   const coPanel = coProducerPanel(page);
-  await coPanel.locator("label").filter({ hasText: "Prompt Engine" }).locator("select").selectOption("Standard");
+  await coPanel.locator("label").filter({ hasText: "Prompt Engine" }).locator("select").selectOption("Director");
+}
+
+/** @deprecated use selectDirectorEngine — legacy alias for pre-video rename */
+export async function selectStandardEngine(page) {
+  return selectDirectorEngine(page);
+}
+
+export async function loadFactoryPreset(page, presetName = FACTORY_PRESET) {
+  const presetsPanel = page
+    .locator("section.rounded-3xl")
+    .filter({ has: page.getByRole("heading", { name: "Style Presets", level: 2 }) });
+  await presetsPanel.getByRole("button", { name: presetName, exact: true }).click();
+}
+
+export async function importBundleFile(page, fixturePath) {
+  await page.locator("#global-import-bundle").setInputFiles(fixturePath);
 }
 
 export async function expectToast(page, textPattern) {

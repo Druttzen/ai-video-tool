@@ -4,6 +4,7 @@ import {
   applyGpuWorkflowPreset,
   getGpuWorkflowFunctions,
   getGpuWorkflowPresets,
+  runGpuWorkflowPipeline,
   toggleGpuWorkflowFunction,
 } from "../app/lib/gpu-workflow-functions.js";
 import { DEFAULT_DIRECTOR_SETTINGS } from "../app/lib/director-settings.js";
@@ -53,5 +54,22 @@ describe("GPU workflow functions", () => {
     expect(applied).toContain("auto-optimize");
     expect(settings.resolution).toBeTruthy();
     expect(settings.motionScore).toBeGreaterThan(3);
+  });
+
+  it("skips unavailable seed-variations in pipeline", async () => {
+    const gpuSettings = {
+      enabledIds: ["seed-variations"],
+      vramGuardMode: "warn",
+    };
+    const result = await runGpuWorkflowPipeline({
+      settings: DEFAULT_DIRECTOR_SETTINGS,
+      gpuSettings,
+      stats: null,
+      hasImageRef: false,
+      promptLength: 0,
+    });
+    expect(result.skipped.some((s) => s.id === "seed-variations")).toBe(true);
+    expect(result.settings.gpuSeedVariationCount).toBeUndefined();
+    expect(result.applied).not.toContain("seed-variations");
   });
 });

@@ -2,20 +2,17 @@ import { test, expect } from "@playwright/test";
 import {
   dismissSplash,
   expectToast,
+  loadFactoryPreset,
   promptPreviewPanel,
   selectStandardEngine,
   sunoReimportPanel,
 } from "./helpers.js";
 
-async function loadTechnoCorePreset(page) {
-  await page.getByRole("button", { name: "Techno Core", exact: true }).first().click();
-}
-
 test.describe("Suno re-import panel e2e", () => {
   test("paste diff, use pasted for copy, and apply pasted lyrics", async ({ page }) => {
     await dismissSplash(page);
     await selectStandardEngine(page);
-    await loadTechnoCorePreset(page);
+    await loadFactoryPreset(page);
 
     const panel = sunoReimportPanel(page);
     await panel.scrollIntoViewIfNeeded();
@@ -28,7 +25,7 @@ test.describe("Suno re-import panel e2e", () => {
     expect(builtStyle.length).toBeGreaterThan(10);
 
     await styleField.fill(`e2e darker mix, ${builtStyle}`);
-    await panel.getByTestId("suno-reimport-lyrics").fill("[Club chant]\nE2E reimport lyric line");
+    await panel.getByTestId("suno-reimport-lyrics").fill("[Poetic voiceover]\nE2E reimport lyric line");
 
     const diff = panel.getByTestId("suno-reimport-diff");
     await expect(diff).toBeVisible();

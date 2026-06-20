@@ -41,7 +41,9 @@ export const CenterMusicControlsPanel = memo(function CenterMusicControlsPanel()
   const [craft, setCraft] = useState(DEFAULT_DIRECTOR_SETTINGS);
 
   useEffect(() => {
-    if (isDirector) setCraft(loadDirectorSettingsFromStorage());
+    if (!isDirector) return;
+    const stored = loadDirectorSettingsFromStorage();
+    queueMicrotask(() => setCraft(stored));
   }, [isDirector]);
 
   const persistCraft = (patch) => {

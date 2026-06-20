@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { dismissSplash, guidedSunoPanel, selectSunoEngine } from "./helpers.js";
+import { dismissSplash, guidedSunoPanel, loadFactoryPreset, selectSunoEngine } from "./helpers.js";
 
 test.describe("Guided Suno path e2e", () => {
   test("factory preset, step navigation, final style under 1000 chars", async ({
@@ -13,15 +13,15 @@ test.describe("Guided Suno path e2e", () => {
     await guided.scrollIntoViewIfNeeded();
 
     await expect(
-      guided.getByRole("heading", { name: /Suno path — Style preset \(1 \/ 8\)/ }),
+      guided.getByRole("heading", { name: /Suno path — Visual preset \(1 \/ 8\)/ }),
     ).toBeVisible();
 
-    await guided.getByRole("button", { name: "Techno Core" }).click();
-    await expect(page.getByTestId("action-toast")).toContainText(/Loaded preset: Techno Core/i);
+    await loadFactoryPreset(page);
+    await expect(page.getByTestId("action-toast")).toContainText(/Loaded preset:/i);
 
     const preview = guided.locator(".font-mono.text-cyan-50\\/90").first();
     await expect(preview).not.toHaveText("—");
-    await expect(preview).toContainText(/Techno|130/i);
+    await expect(preview).toContainText(/Cinematic|10s/i);
 
     await guided.getByRole("button", { name: "Next step" }).click();
     await expect(
@@ -30,12 +30,12 @@ test.describe("Guided Suno path e2e", () => {
 
     await guided.getByRole("button", { name: "Next step" }).click();
     await expect(
-      guided.getByRole("heading", { name: /Suno path — Groove & sound \(3 \/ 8\)/ }),
+      guided.getByRole("heading", { name: /Suno path — Camera & light \(3 \/ 8\)/ }),
     ).toBeVisible();
 
     await guided.getByRole("button", { name: "Skip to final copy" }).click();
     await expect(
-      guided.getByRole("heading", { name: /Suno path — Copy to Suno \(8 \/ 8\)/ }),
+      guided.getByRole("heading", { name: /Suno path — Copy & export \(8 \/ 8\)/ }),
     ).toBeVisible();
 
     const charLine = guided.getByText(/\d+ \/ 1000 chars/);
@@ -55,6 +55,6 @@ test.describe("Guided Suno path e2e", () => {
     const styleClipboard = await page.evaluate(() => navigator.clipboard.readText());
     expect(styleClipboard.length).toBe(styleLen);
     expect(styleClipboard.length).toBeLessThanOrEqual(1000);
-    expect(styleClipboard).toMatch(/Techno|130/i);
+    expect(styleClipboard).toMatch(/Cinematic|10s/i);
   });
 });

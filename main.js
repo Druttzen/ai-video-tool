@@ -463,12 +463,123 @@ function setupDirectorIpc() {
   };
 
   ipcMain.handle("director:launch-job", launchDirectorJobHandler);
-  ipcMain.handle("open-sora:launch-job", launchDirectorJobHandler);
+}
 
-  ipcMain.handle("open-sora:open-ui", async () => ({
-    ok: false,
-    error: "Use Director Engine — export prompt or Advanced local pipeline",
-  }));
+function setupOpenSoraIpc() {
+  ipcMain.handle("open-sora:launch-job", async (_event, payload) => {
+    try {
+      const job = payload?.job || {};
+      const imagePayload = payload?.imagePayload;
+      const pythonPath = payload?.pythonPath || job.pythonPath || "python";
+      const mode = payload?.mode || "pipeline";
+
+      const jobsDir = path.join(app.getPath("userData"), "open-sora-jobs");
+      fs.mkdirSync(jobsDir, { recursive: true });
+      const stamp = Date.now();
+      const jobPath = path.join(jobsDir, `job-${stamp}.json`);
+      const logPath = path.join(jobsDir, `job-${stamp}.log`);
+
+      if (imagePayload?.base64 && imagePayload?.name) {
+        const safeName = String(imagePayload.name).replace(/[^\w.\-]+/g, "_");
+        const refPath = path.join(jobsDir, `ref-${stamp}-${safeName}`);
+        fs.writeFileSync(refPath, Buffer.from(imagePayload.base64, "base64"));
+        job.ref_image = refPath;
+        job.cond_type = job.cond_type || "i2v_head";
+        job.i2v = true;
+      }
+
+      fs.writeFileSync(jobPath, JSON.stringify(job, null, 2));
+
+      const installPath = job.installPath || "E:\\Open-Sora";
+      if (mode === "ui") {
+        const appPro = path.join(installPath, "app_pro.py");
+        if (!fs.existsSync(appPro)) {
+          return { ok: false, error: `app_pro.py not found: ${appPro}` };
+        }
+        const uiProc = spawn(pythonPath, [appPro], {
+          cwd: installPath,
+          detached: true,
+          stdio: "ignore",
+          shell: process.platform === "win32",
+        });
+        uiProc.unref();
+        return { ok: true, jobPath, logPath, ui: true, message: "Open-Sora UI launched" };
+      }
+
+      if (!fs.existsSync(installPath)) {
+        fs.writeFileSync(
+          logPath,
+          `[BUILD_PROGRESS] 100 Export-only job saved\n--- exit 0 ---\nInstall path missing: ${installPath}\n`,
+        );
+        return {
+          ok: true,
+          exportOnly: true,
+          jobPath,
+          logPath,
+          message: `Job saved — set Open-Sora install path (${installPath} not found)`,
+        };
+      }
+
+      const runnerScript = path.join(__dirname, "scripts", "run-open-sora-job.py");
+      if (!fs.existsSync(runnerScript)) {
+        return { ok: false, error: `Runner not found: ${runnerScript}` };
+      }
+
+      const logStream = fs.createWriteStream(logPath, { flags: "a" });
+      fs.appendFileSync(logPath, `[BUILD_PROGRESS] 1 Starting Open-Sora job\n`);
+      const child = spawn(pythonPath, [runnerScript, jobPath], {
+        cwd: __dirname,
+        detached: true,
+        stdio: ["ignore", "pipe", "pipe"],
+        shell: process.platform === "win32",
+        env: { ...process.env, PYTHONUNBUFFERED: "1" },
+      });
+
+      child.stdout.on("data", (d) => {
+        logStream.write(d);
+        const text = d.toString();
+        const pctMatch = text.match(/(\d{1,3})%/);
+        if (pctMatch) logStream.write(`[BUILD_PROGRESS] ${pctMatch[1]}\n`);
+      });
+      child.stderr.on("data", (d) => logStream.write(d));
+      child.on("close", (code) => {
+        logStream.write(`\n[BUILD_PROGRESS] ${code === 0 ? 100 : 99}\n--- exit ${code} ---\n`);
+        logStream.end();
+      });
+      child.unref();
+
+      return {
+        ok: true,
+        jobPath,
+        logPath,
+        pid: child.pid,
+        message: "Open-Sora pipeline started in background",
+      };
+    } catch (e) {
+      return { ok: false, error: e?.message || "launch failed" };
+    }
+  });
+
+  ipcMain.handle("open-sora:open-ui", async (_event, payload) => {
+    try {
+      const installPath = payload?.installPath || "E:\\Open-Sora";
+      const pythonPath = payload?.pythonPath || "python";
+      const appPro = path.join(installPath, "app_pro.py");
+      if (!fs.existsSync(appPro)) {
+        return { ok: false, error: `app_pro.py not found: ${appPro}` };
+      }
+      const uiProc = spawn(pythonPath, [appPro], {
+        cwd: installPath,
+        detached: true,
+        stdio: "ignore",
+        shell: process.platform === "win32",
+      });
+      uiProc.unref();
+      return { ok: true, message: "Open-Sora UI launched" };
+    } catch (e) {
+      return { ok: false, error: e?.message || "ui launch failed" };
+    }
+  });
 
   ipcMain.handle("open-sora:sync-catalog", async (_event, installPath) => {
     try {
@@ -561,6 +672,7 @@ app.whenReady().then(() => {
   setupSystemIpc();
   setupBuildProgressIpc();
   setupDirectorIpc();
+  setupOpenSoraIpc();
   createWindow();
   setupAutoUpdater();
 });

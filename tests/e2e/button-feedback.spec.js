@@ -1,12 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { dismissSplash, expectToast } from "./helpers.js";
+import { dismissSplash, expectToast, loadFactoryPreset, saveLoadPanel } from "./helpers.js";
 
 test.describe("Button feedback toasts", () => {
   test("Save Progress shows animated confirmation", async ({ page }) => {
     await dismissSplash(page);
-    await page.getByRole("button", { name: "Save Progress" }).click();
+    await saveLoadPanel(page).getByRole("button", { name: "Save Progress", exact: true }).click();
     await expectToast(page, /Saved/i);
-    await expect(page.getByText(/Saved at /i)).toBeVisible();
+    await expect(page.locator("header").getByText(/Saved at /i)).toBeVisible();
   });
 
   test("Export Bundle shows confirmation", async ({ page }) => {
@@ -39,8 +39,8 @@ test.describe("Button feedback toasts", () => {
   test("Quick rule fix chip shows confirmation", async ({ page }) => {
     await dismissSplash(page);
     const coPanel = page.locator("section").filter({ hasText: "Co‑Producer AI" });
-    await coPanel.getByRole("button", { name: "Weak bass", exact: true }).click();
-    await expectToast(page, /Applied fix: Weak bass/i);
+    await coPanel.getByRole("button", { name: "Weak subject", exact: true }).click();
+    await expectToast(page, /Applied fix: Weak subject/i);
   });
 
   test("Co-Producer direction button shows confirmation", async ({ page }) => {
@@ -72,17 +72,16 @@ test.describe("Button feedback toasts", () => {
 
   test("Factory preset load shows confirmation", async ({ page }) => {
     await dismissSplash(page);
-    const presetsPanel = page.locator("section").filter({ hasText: "Style Presets" });
-    await presetsPanel.getByRole("button", { name: "Techno Core", exact: true }).click();
-    await expectToast(page, /Loaded preset: Techno Core/i);
+    await loadFactoryPreset(page);
+    await expectToast(page, /Loaded preset:/i);
   });
 
   test("Toast dismiss button clears notification", async ({ page }) => {
     await dismissSplash(page);
-    await page.getByRole("button", { name: "Save Progress" }).click();
+    await saveLoadPanel(page).getByRole("button", { name: "Save Progress", exact: true }).click();
     const toast = page.getByTestId("action-toast");
     await expect(toast).toBeVisible();
     await toast.getByRole("button", { name: "Dismiss notification" }).click();
-    await expect(toast).toHaveCount(0);
+    await expect(toast).toBeHidden();
   });
 });

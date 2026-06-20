@@ -204,12 +204,18 @@ export async function runGpuWorkflowPipeline(params) {
     }
   }
 
+  const skippedIds = new Set(skipped.map((s) => s.id));
+  const filteredGpuSettings = {
+    ...gpuSettings,
+    enabledIds: (gpuSettings.enabledIds || []).filter((id) => !skippedIds.has(id)),
+  };
+
   if (isEnabled(gpuSettings, "scan-hardware")) {
     stats = await gatherSystemStats();
     applied.push("scan-hardware");
   }
 
-  const transform = applyGpuFunctionsToSettings(settings, stats, gpuSettings, ctx);
+  const transform = applyGpuFunctionsToSettings(settings, stats, filteredGpuSettings, ctx);
   settings = transform.settings;
   applied.push(...transform.applied.filter((id) => !applied.includes(id)));
 

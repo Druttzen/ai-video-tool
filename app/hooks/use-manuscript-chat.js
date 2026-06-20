@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { isCoProducerLlmReady } from "../lib/co-producer-llm";
 import {
   buildManuscriptChatLlmMessages,
@@ -21,15 +21,11 @@ export function useManuscriptChat({
   setStatusWithTime,
   projectContext,
 }) {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => loadManuscriptChatHistory());
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [lastProposal, setLastProposal] = useState(null);
   const abortRef = useRef(null);
-
-  useEffect(() => {
-    setMessages(loadManuscriptChatHistory());
-  }, []);
 
   const persist = useCallback((next) => {
     setMessages(next);

@@ -4,9 +4,12 @@ import {
   dismissSplash,
   expectToast,
   ideaInput,
+  importBundleFile,
+  loadFactoryPreset,
   musicControlsPanel,
   saveLoadPanel,
   skipSplashIfVisible,
+  STORAGE_KEY,
   voiceCharacterStudioPanel,
 } from "./helpers.js";
 
@@ -20,16 +23,15 @@ test.describe("Project persistence e2e", () => {
   test("Import JSON restores fixture fields in the UI", async ({ page }) => {
     await dismissSplash(page);
 
-    const panel = saveLoadPanel(page);
-    await panel.locator('input[type="file"][accept="application/json"]').setInputFiles(IMPORT_FIXTURE);
+    await importBundleFile(page, IMPORT_FIXTURE);
 
     await expectToast(page, /Imported project bundle/i);
     await expect(ideaInput(page)).toHaveValue("Imported from P14 fixture");
 
     const controls = musicControlsPanel(page);
-    const afrobeats = controls.getByRole("button", { name: "Afrobeats", exact: true });
-    await expect(afrobeats).toHaveClass(/border-cyan-300/);
-    await expect(controls.getByRole("button", { name: "Male Lead", exact: true })).toHaveClass(
+    const cinematic = controls.getByRole("button", { name: "Cinematic", exact: true });
+    await expect(cinematic).toHaveClass(/border-cyan-300/);
+    await expect(controls.getByRole("button", { name: "Voiceover", exact: true })).toHaveClass(
       /border-cyan-300/,
     );
   });
@@ -37,28 +39,26 @@ test.describe("Project persistence e2e", () => {
   test("Revert to last snapshot restores state captured before preset load", async ({ page }) => {
     await dismissSplash(page);
 
-    const panel = saveLoadPanel(page);
-    await panel.locator('input[type="file"][accept="application/json"]').setInputFiles(IMPORT_FIXTURE);
+    await importBundleFile(page, IMPORT_FIXTURE);
     await expect(ideaInput(page)).toHaveValue("Imported from P14 fixture");
 
     const controls = musicControlsPanel(page);
-    const afrobeats = controls.getByRole("button", { name: "Afrobeats", exact: true });
-    await expect(afrobeats).toHaveClass(/border-cyan-300/);
+    const cinematic = controls.getByRole("button", { name: "Cinematic", exact: true });
+    await expect(cinematic).toHaveClass(/border-cyan-300/);
 
-    const presetsPanel = page.locator("section").filter({ hasText: "Style Presets" });
-    await presetsPanel.getByRole("button", { name: "Techno Core", exact: true }).click();
-    await expectToast(page, /Loaded preset: Techno Core/i);
+    await loadFactoryPreset(page, "Neon Night Chase");
+    await expectToast(page, /Loaded preset:/i);
 
-    const techno = controls.getByRole("button", { name: "Techno", exact: true });
-    await expect(techno).toHaveClass(/border-cyan-300/);
-    await expect(afrobeats).not.toHaveClass(/border-cyan-300/);
+    const noir = controls.getByRole("button", { name: "Noir", exact: true });
+    await expect(noir).toHaveClass(/border-cyan-300/);
+    await expect(cinematic).toHaveClass(/border-cyan-300/);
     await expect(ideaInput(page)).toHaveValue("Imported from P14 fixture");
 
-    await panel.getByRole("button", { name: "Revert to last snapshot" }).click();
+    await saveLoadPanel(page).getByRole("button", { name: "Revert to last snapshot" }).click();
     await expectToast(page, /Reverted to last snapshot/i);
 
-    await expect(afrobeats).toHaveClass(/border-cyan-300/);
-    await expect(techno).not.toHaveClass(/border-cyan-300/);
+    await expect(cinematic).toHaveClass(/border-cyan-300/);
+    await expect(noir).not.toHaveClass(/border-cyan-300/);
     await expect(ideaInput(page)).toHaveValue("Imported from P14 fixture");
   });
 
@@ -70,7 +70,7 @@ test.describe("Project persistence e2e", () => {
 
     await expect(page.locator("header").getByText(/Autosaved at/i)).toBeVisible({ timeout: 5000 });
 
-    const stored = await page.evaluate(() => localStorage.getItem("ai_video_creator_visual_tool_v3"));
+    const stored = await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY);
     expect(stored).toContain(marker);
 
     await page.reload();
@@ -85,8 +85,7 @@ test.describe("Project persistence e2e", () => {
 
     await dismissSplash(page);
 
-    const panel = saveLoadPanel(page);
-    await panel.locator('input[type="file"][accept="application/json"]').setInputFiles(fixture);
+    await importBundleFile(page, fixture);
     await expectToast(page, /Imported project bundle/i);
     await expect(ideaInput(page)).toHaveValue("Imported with character voice presets");
 
@@ -104,8 +103,7 @@ test.describe("Project persistence e2e", () => {
   test("revert snapshot restores project state before character preset import", async ({ page }) => {
     await dismissSplash(page);
 
-    const panel = saveLoadPanel(page);
-    await panel.locator('input[type="file"][accept="application/json"]').setInputFiles(IMPORT_FIXTURE);
+    await importBundleFile(page, IMPORT_FIXTURE);
     await expect(ideaInput(page)).toHaveValue("Imported from P14 fixture");
 
     const studio = voiceCharacterStudioPanel(page);
@@ -116,7 +114,7 @@ test.describe("Project persistence e2e", () => {
     await expectToast(page, /Imported 1 character preset/i);
     await expect(studio.getByText("E2E Narrator", { exact: true })).toBeVisible();
 
-    await panel.getByRole("button", { name: "Revert to last snapshot" }).click();
+    await saveLoadPanel(page).getByRole("button", { name: "Revert to last snapshot" }).click();
     await expectToast(page, /Reverted to last snapshot/i);
 
     await expect(studio.getByText("E2E Narrator", { exact: true })).not.toBeVisible();
@@ -128,8 +126,7 @@ test.describe("Project persistence e2e", () => {
 
     await dismissSplash(page);
 
-    const panel = saveLoadPanel(page);
-    await panel.locator('input[type="file"][accept="application/json"]').setInputFiles(fixture);
+    await importBundleFile(page, fixture);
     await expectToast(page, /Imported project bundle/i);
 
     const studio = voiceCharacterStudioPanel(page);
@@ -158,8 +155,7 @@ test.describe("Project persistence e2e", () => {
 
     await dismissSplash(page);
 
-    const panel = saveLoadPanel(page);
-    await panel.locator('input[type="file"][accept="application/json"]').setInputFiles(fixture);
+    await importBundleFile(page, fixture);
     await expectToast(page, /Imported project bundle/i);
 
     const studio = voiceCharacterStudioPanel(page);

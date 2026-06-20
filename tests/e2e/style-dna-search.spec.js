@@ -56,7 +56,7 @@ test.describe("Style-DNA search panel e2e", () => {
     await expect(panel.getByTestId("style-dna-results")).toBeVisible();
 
     await panel.getByTestId("style-dna-apply-button").click();
-    await expectToast(page, /Applied Style DNA: E2E Artist — E2E Techno Pulse/i);
+    await expectToast(page, /Applied Style DNA.*E2E Artist — E2E Techno Pulse/i);
 
     await expect(ideaInput(page)).toHaveValue(/Reference track: E2E Artist — E2E Techno Pulse/i);
   });

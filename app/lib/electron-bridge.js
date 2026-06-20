@@ -63,12 +63,26 @@ export async function cancelDirectorBuild(payload) {
   return window.electronAPI.cancelDirectorBuild(payload);
 }
 
-/** @deprecated use launchDirectorJob */
 export async function launchOpenSoraJob(payload) {
-  return launchDirectorJob(payload);
+  if (!isElectronApp()) {
+    return { ok: false, error: "Requires Electron desktop app" };
+  }
+  return window.electronAPI.launchOpenSoraJob(payload);
 }
 
-/** @deprecated */
-export async function openOpenSoraUi() {
-  return { ok: false, error: "Removed — use Director Engine export or Advanced local pipeline" };
+export async function openOpenSoraUi(payload = {}) {
+  if (!isElectronApp()) {
+    return { ok: false, error: "Open-Sora UI launch requires the Electron desktop app" };
+  }
+  if (!window.electronAPI?.openOpenSoraUi) {
+    return { ok: false, error: "Open-Sora UI not available in this build" };
+  }
+  return window.electronAPI.openOpenSoraUi(payload);
+}
+
+export async function syncOpenSoraCatalog(installPath) {
+  if (!isElectronApp() || !window.electronAPI?.syncOpenSoraCatalog) {
+    return { ok: false, error: "Catalog sync requires the Electron desktop app" };
+  }
+  return window.electronAPI.syncOpenSoraCatalog(installPath);
 }

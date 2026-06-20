@@ -262,6 +262,8 @@ export function usePromptPipeline(input) {
     moodWords,
     input.selectedSounds,
     input.selectedRhythms,
+    input.mood,
+    input.imageAnalysis,
     vocalText,
     input.structure,
     input.idea,
