@@ -6,6 +6,7 @@ const { spawn, execFile } = require("child_process");
 const { promisify } = require("util");
 const { scanSetupEnvironment: scanHostEnvironment } = require("./scripts/lib/environment-scan.cjs");
 
+const pkg = require("./package.json");
 const execFileAsync = promisify(execFile);
 
 let mainWindow = null;
