@@ -13,10 +13,12 @@ import {
 import { buildOpenSoraJobPayload } from "../lib/open-sora-prompt-builder";
 import { launchOpenSoraAppUi, sendToOpenSora } from "../lib/open-sora-launch";
 import { isElectronApp } from "../lib/electron-bridge";
+import { trackLaunchBuildProgress, useVideoBuild } from "../context/video-build-context";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 
 export const CenterOpenSoraExportPanel = memo(function CenterOpenSoraExportPanel() {
   const ws = useProjectWorkspace();
+  const { startBuildProgress, isBuilding } = useVideoBuild();
   const [settings, setSettings] = useState(DEFAULT_OPEN_SORA_SETTINGS);
   const [sendBusy, setSendBusy] = useState(false);
   const [lastLaunch, setLastLaunch] = useState(null);
@@ -69,7 +71,7 @@ export const CenterOpenSoraExportPanel = memo(function CenterOpenSoraExportPanel
   const hasImageRef = Boolean(ws.imageAnalysis && ws.imagePreview);
 
   const handleSend = async () => {
-    if (!job.prompt || sendBusy) return;
+    if (!job.prompt || sendBusy || isBuilding) return;
     setSendBusy(true);
     try {
       let imagePayload = null;
@@ -78,6 +80,11 @@ export const CenterOpenSoraExportPanel = memo(function CenterOpenSoraExportPanel
       }
       const result = await sendToOpenSora({ project: projectFields, settings, imagePayload, mode: "pipeline" });
       setLastLaunch(result);
+      trackLaunchBuildProgress(startBuildProgress, result, {
+        title: "Open-Sora render",
+        estimatedSeconds: settings.estimatedBuildSeconds || 240,
+        estimatedLabel: settings.estimatedBuildLabel || "≈4 min",
+      });
       if (result.ok) {
         const i2vNote = imagePayload ? " (i2v ref attached)" : "";
         ws.setStatusWithTime(
@@ -251,12 +258,12 @@ export const CenterOpenSoraExportPanel = memo(function CenterOpenSoraExportPanel
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <button
           type="button"
-          disabled={!job.prompt || sendBusy}
+          disabled={!job.prompt || sendBusy || isBuilding}
           onClick={handleSend}
           data-testid="send-to-open-sora"
           className="rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-3 text-sm font-bold text-black hover:opacity-90 disabled:opacity-40"
         >
-          {sendBusy ? "Sending…" : "Send to Open-Sora"}
+          {sendBusy || isBuilding ? "Working…" : "Send to Open-Sora"}
         </button>
         <button
           type="button"

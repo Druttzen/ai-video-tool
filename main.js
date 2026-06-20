@@ -244,10 +244,19 @@ function getBuildStatusFromLog({ logPath, pid, startedAt, estimatedMs }) {
     }
   }
 
-  const remainingSec = Math.max(
-    0,
-    Math.ceil(((estimatedMs || 60000) - elapsed) / 1000),
-  );
+  let remainingSec = Math.max(0, Math.ceil(((estimatedMs || 60000) - elapsed) / 1000));
+  if (status === "running" && progress > 0 && progress < 100) {
+    remainingSec = Math.max(
+      0,
+      Math.ceil((((estimatedMs || 60000) * (100 - progress)) / 100 - elapsed) / 1000),
+    );
+    if (remainingSec === 0 && progress < 99) {
+      remainingSec = Math.max(1, Math.ceil(((estimatedMs || 60000) * (100 - progress)) / 100 / 1000));
+    }
+  }
+  if (status === "complete" || status === "cancelled" || status === "failed") {
+    remainingSec = 0;
+  }
 
   return { progress, status, remainingSec, message, logTail, processAlive: alive };
 }
@@ -516,6 +525,8 @@ function setupOpenSoraIpc() {
           exportOnly: true,
           jobPath,
           logPath,
+          startedAt: stamp,
+          estimatedMs: 5000,
           message: `Job saved — set Open-Sora install path (${installPath} not found)`,
         };
       }
@@ -527,6 +538,7 @@ function setupOpenSoraIpc() {
 
       const logStream = fs.createWriteStream(logPath, { flags: "a" });
       fs.appendFileSync(logPath, `[BUILD_PROGRESS] 1 Starting Open-Sora job\n`);
+      const estimatedMs = Math.max(60000, (job.estimatedBuildSeconds || 240) * 1000);
       const child = spawn(pythonPath, [runnerScript, jobPath], {
         cwd: __dirname,
         detached: true,
@@ -545,14 +557,25 @@ function setupOpenSoraIpc() {
       child.on("close", (code) => {
         logStream.write(`\n[BUILD_PROGRESS] ${code === 0 ? 100 : 99}\n--- exit ${code} ---\n`);
         logStream.end();
+        activeBuilds.delete(logPath);
       });
       child.unref();
+
+      activeBuilds.set(logPath, {
+        pid: child.pid,
+        startedAt: stamp,
+        logPath,
+        child,
+        logStream,
+      });
 
       return {
         ok: true,
         jobPath,
         logPath,
         pid: child.pid,
+        startedAt: stamp,
+        estimatedMs,
         message: "Open-Sora pipeline started in background",
       };
     } catch (e) {

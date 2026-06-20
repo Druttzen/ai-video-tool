@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { computeFinishAtMs, formatBuildCountdown, formatFinishTime } from "../lib/build-progress-format";
 
 const STATUS_STYLES = {
   ok: "bg-emerald-400",
@@ -115,12 +116,14 @@ export const DirectorBuildProgressPanel = memo(function DirectorBuildProgressPan
   onCancel,
   canCancel = false,
   cancelBusy = false,
+  finishAtMs,
 }) {
   const pct = Math.min(100, Math.max(0, Math.round(progress || 0)));
   const active = status === "running" || status === "starting" || status === "cancelling";
   const done = status === "complete";
   const failed = status === "failed";
   const cancelled = status === "cancelled";
+  const finishAt = finishAtMs ?? computeFinishAtMs(remainingSec);
 
   return (
     <div
@@ -176,7 +179,9 @@ export const DirectorBuildProgressPanel = memo(function DirectorBuildProgressPan
         <span>
           {active ? (
             <>
-              Time left: <span className="font-bold text-white/90">{formatCountdown(remainingSec)}</span>
+              ETA: <span className="font-bold text-white/90">{formatBuildCountdown(remainingSec)}</span>
+              {" · "}
+              Done by: <span className="font-bold text-violet-100">{formatFinishTime(finishAt)}</span>
             </>
           ) : done ? (
             "Finished"
@@ -194,10 +199,3 @@ export const DirectorBuildProgressPanel = memo(function DirectorBuildProgressPan
   );
 });
 
-function formatCountdown(seconds) {
-  const s = Math.max(0, Math.round(seconds));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  if (m > 0) return `${m}:${String(r).padStart(2, "0")}`;
-  return `${s}s`;
-}

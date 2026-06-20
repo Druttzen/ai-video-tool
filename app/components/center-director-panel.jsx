@@ -37,14 +37,14 @@ import { buildDirectorJobPayload } from "../lib/director-prompt-builder";
 import { sendDirectorJob } from "../lib/director-launch";
 import { isElectronApp } from "../lib/electron-bridge";
 import { DirectorHardwarePanel } from "./director-hardware-panel";
-import { DirectorBuildLoadPanel, DirectorBuildProgressPanel } from "./director-build-metrics";
+import { DirectorBuildLoadPanel } from "./director-build-metrics";
 import { DirectorVideoLengthPunishmentPanel } from "./director-video-length-punishment-panel";
 import { DirectorBenchmarkSuggestionsPanel } from "./director-benchmark-suggestions-panel";
 import { DirectorOutputSettingsPanel } from "./director-output-settings-panel";
 import { DirectorGraphicsApiPanel } from "./director-graphics-api-panel";
 import { computeBuildPlan } from "../lib/video-build-estimate";
 import { loadCachedSystemStats } from "../lib/system-stats";
-import { useDirectorBuildProgress } from "../hooks/use-director-build-progress";
+import { trackLaunchBuildProgress, useVideoBuild } from "../context/video-build-context";
 import {
   loadGpuWorkflowSettings,
   runGpuWorkflowPipeline,
@@ -61,15 +61,15 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
   const [wizardInput, setWizardInput] = useState("");
   const [sendBusy, setSendBusy] = useState(false);
   const [lastLaunch, setLastLaunch] = useState(null);
-  const [cancelBusy, setCancelBusy] = useState(false);
   const {
     progressState,
     isBuilding,
     canCancelBuild,
     startBuildProgress,
-    cancelBuild,
     resetBuildProgress,
-  } = useDirectorBuildProgress();
+    handleCancelBuild,
+    cancelBusy,
+  } = useVideoBuild();
 
   const qualityPresets = getDirectorQualityPresets();
   const backends = getDirectorRenderBackends();
@@ -87,14 +87,9 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
     }
   }, [progressState?.status, progressState?.message, ws]);
 
-  const handleCancelBuild = async () => {
+  const handleCancelBuildClick = () => {
     if (!canCancelBuild || cancelBusy) return;
-    setCancelBusy(true);
-    try {
-      await cancelBuild();
-    } finally {
-      setCancelBusy(false);
-    }
+    handleCancelBuild();
   };
 
   const persist = (next) => {
@@ -225,25 +220,11 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
       });
       setLastLaunch(result);
 
-      const estimatedMs = result.estimatedMs || plan.estimatedSeconds * 1000;
-      if (result.logPath) {
-        startBuildProgress({
-          logPath: result.logPath,
-          pid: result.pid,
-          startedAt: result.startedAt || Date.now(),
-          estimatedMs,
-          estimatedLabel: plan.estimatedLabel,
-          message: result.message,
-        });
-      } else {
-        startBuildProgress({
-          simulated: true,
-          startedAt: Date.now(),
-          estimatedMs: Math.max(2000, Math.min(8000, estimatedMs / 10)),
-          estimatedLabel: plan.estimatedLabel,
-          message: result.message || "Exporting job…",
-        });
-      }
+      trackLaunchBuildProgress(startBuildProgress, result, {
+        title: "Director render",
+        estimatedSeconds: plan.estimatedSeconds,
+        estimatedLabel: plan.estimatedLabel,
+      });
 
       ws.setStatusWithTime(result.message || (result.ok ? "Render started" : "Failed"));
     } finally {
@@ -495,19 +476,6 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
             {job.prompt || "(build your scene in Create tab or Idea panel)"}
           </pre>
 
-          {progressState ? (
-            <DirectorBuildProgressPanel
-              progress={progressState.progress}
-              remainingSec={progressState.remainingSec}
-              status={progressState.status}
-              estimatedLabel={progressState.estimatedLabel}
-              message={progressState.message}
-              canCancel={canCancelBuild}
-              cancelBusy={cancelBusy}
-              onCancel={handleCancelBuild}
-            />
-          ) : null}
-
           <div className="grid gap-2 sm:grid-cols-2">
             <button
               type="button"
@@ -526,7 +494,7 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
               <button
                 type="button"
                 disabled={cancelBusy || progressState?.status === "cancelling"}
-                onClick={handleCancelBuild}
+                onClick={handleCancelBuildClick}
                 data-testid="cancel-build-action"
                 className="rounded-2xl border border-rose-400/40 bg-rose-500/15 px-4 py-3 text-sm font-bold text-rose-100 hover:bg-rose-500/25 disabled:opacity-50 sm:col-span-2"
               >

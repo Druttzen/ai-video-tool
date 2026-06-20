@@ -1,0 +1,89 @@
+"use client";
+
+import { createContext, useContext, useMemo } from "react";
+import { useDirectorBuildProgress } from "../hooks/use-director-build-progress";
+import { VideoBuildProgressModal } from "../components/video-build-progress-modal";
+
+const VideoBuildContext = createContext(null);
+
+export function VideoBuildProvider({ children }) {
+  const build = useDirectorBuildProgress();
+
+  const value = useMemo(
+    () => ({
+      progressState: build.progressState,
+      isBuilding: build.isBuilding,
+      canCancelBuild: build.canCancelBuild,
+      startBuildProgress: build.startBuildProgress,
+      cancelBuild: build.cancelBuild,
+      abortOnError: build.abortOnError,
+      resetBuildProgress: build.resetBuildProgress,
+      dismissBuildModal: build.dismissBuildModal,
+      modalOpen: build.modalOpen,
+    }),
+    [build],
+  );
+
+  return (
+    <VideoBuildContext.Provider value={value}>
+      {children}
+      <VideoBuildProgressModal
+        open={build.modalOpen}
+        title={build.progressState?.title || "Video build"}
+        progress={build.progressState?.progress}
+        remainingSec={build.progressState?.remainingSec}
+        status={build.progressState?.status}
+        estimatedLabel={build.progressState?.estimatedLabel}
+        message={build.progressState?.message}
+        finishAtMs={build.progressState?.finishAtMs}
+        canCancel={build.canCancelBuild}
+        cancelBusy={build.cancelBusy}
+        abortBusy={build.abortBusy}
+        onCancel={build.handleCancelBuild}
+        onAbortError={build.handleAbortOnError}
+        onClose={build.dismissBuildModal}
+      />
+    </VideoBuildContext.Provider>
+  );
+}
+
+export function useVideoBuild() {
+  const ctx = useContext(VideoBuildContext);
+  if (!ctx) {
+    throw new Error("useVideoBuild must be used within VideoBuildProvider");
+  }
+  return ctx;
+}
+
+/** Start progress tracking from a Director / Open-Sora launch result. */
+export function trackLaunchBuildProgress(startBuildProgress, result, opts = {}) {
+  if (!result?.ok) return;
+
+  const estimatedMs =
+    result.estimatedMs || (opts.estimatedSeconds ? opts.estimatedSeconds * 1000 : 180000);
+  const estimatedLabel = result.estimatedLabel || opts.estimatedLabel || "";
+  const title = opts.title || "Video build";
+
+  if (result.logPath) {
+    startBuildProgress({
+      logPath: result.logPath,
+      pid: result.pid,
+      startedAt: result.startedAt || Date.now(),
+      estimatedMs,
+      estimatedLabel,
+      message: result.message,
+      title,
+      simulated: false,
+    });
+    return;
+  }
+
+  startBuildProgress({
+    simulated: true,
+    startedAt: Date.now(),
+    estimatedMs: Math.max(2000, Math.min(8000, estimatedMs / 10)),
+    estimatedLabel,
+    message: result.message || "Exporting job…",
+    title,
+  });
+}
