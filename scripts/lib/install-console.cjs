@@ -45,8 +45,9 @@ function createInstallReporter(userDataPath, { version = "", echoToConsole = tru
 
 function resolveBundledScript(relativePath) {
   const rel = String(relativePath || "").replace(/\\/g, "/");
+  const repoRoot = path.join(__dirname, "..", "..");
   const candidates = [
-    path.join(__dirname, "..", rel),
+    path.join(repoRoot, rel),
     path.join(process.cwd(), rel),
   ];
   if (process.resourcesPath) {

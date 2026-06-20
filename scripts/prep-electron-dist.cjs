@@ -10,7 +10,7 @@ const path = require("path");
 const { setTimeout: delay } = require("timers/promises");
 
 const ROOT = path.join(__dirname, "..");
-const PRODUCT_EXE = "ai-video-tool.exe";
+const PRODUCT_EXES = ["ai-video-tool.exe", "setup-hub.exe"];
 const MARKER_PATH = path.join(ROOT, "build", ".electron-dist-output");
 
 function readPkg() {
@@ -74,14 +74,16 @@ async function main() {
     return;
   }
 
-  try {
-    execSync(`taskkill /F /IM "${PRODUCT_EXE}"`, {
-      stdio: "ignore",
-      windowsHide: true,
-    });
-    console.log(`Stopped ${PRODUCT_EXE} before packaging.`);
-  } catch {
-    // Not running — OK
+  for (const exe of PRODUCT_EXES) {
+    try {
+      execSync(`taskkill /F /IM "${exe}"`, {
+        stdio: "ignore",
+        windowsHide: true,
+      });
+      console.log(`Stopped ${exe} before packaging.`);
+    } catch {
+      // Not running — OK
+    }
   }
 
   await delay(1200);

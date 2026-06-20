@@ -17,8 +17,12 @@ set "APP_DIR=%~dp0"
 set "ADDON_USER_DATA=%APPDATA%\AI Video Creator"
 set "ELECTRON_RUN_AS_NODE=1"
 
-set "RUNNER=%APP_DIR%resources\app.asar.unpacked\scripts\install-addons-runner.cjs"
-if not exist "%RUNNER%" set "RUNNER=%APP_DIR%scripts\install-addons-runner.cjs"
+set "RUNNER=%APP_DIR%resources\app.asar\scripts\install-addons-runner.cjs"
+if not exist "%APP_DIR%resources\app.asar" (
+  echo [ERROR] App bundle not found at %APP_DIR%resources\app.asar
+  set "EXIT_CODE=1"
+  goto finish
+)
 
 if not exist "%APP_DIR%ai-video-tool.exe" (
   echo [ERROR] ai-video-tool.exe not found in %APP_DIR%
@@ -40,5 +44,4 @@ if "%EXIT_CODE%"=="0" (
 :finish
 echo.
 pause
-endlocal
 exit /b %EXIT_CODE%

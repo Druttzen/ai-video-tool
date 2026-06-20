@@ -4,16 +4,36 @@
  * Run with ELECTRON_RUN_AS_NODE=1 and packaged ai-video-tool.exe, or: node scripts/install-addons-runner.cjs
  */
 const path = require("path");
+const fs = require("fs");
 const { forceInstallPipeline } = require("./lib/tool-installer.cjs");
 const { createInstallReporter } = require("./lib/install-console.cjs");
 const { defaultUserDataPath } = require("./lib/open-sora-paths.cjs");
 
-const pkg = require("../package.json");
+function readPkgVersion() {
+  const candidates = [
+    path.join(__dirname, "..", "package.json"),
+    path.join(process.resourcesPath || "", "app.asar", "package.json"),
+  ];
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        return JSON.parse(fs.readFileSync(candidate, "utf8")).version || "";
+      }
+    } catch {
+      /* try next */
+    }
+  }
+  try {
+    return require("../package.json").version || "";
+  } catch {
+    return "";
+  }
+}
 
 async function main() {
   const userDataPath = process.env.ADDON_USER_DATA || defaultUserDataPath();
   const reporter = createInstallReporter(userDataPath, {
-    version: pkg.version,
+    version: readPkgVersion(),
     echoToConsole: true,
   });
 

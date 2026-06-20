@@ -20,7 +20,7 @@ describe("setup-hub-console", () => {
     const logPath = initProgressLog(userData, { version: "1.0.14" });
     expect(logPath).toBe(getLogPath(userData));
     const text = fs.readFileSync(logPath, "utf8");
-    expect(text).toMatch(/Setup Hub Install/);
+    expect(text).toMatch(/Install Addons/);
     expect(text).toMatch(/1\.0\.14/);
   });
 

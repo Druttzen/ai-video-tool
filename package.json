@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -29,7 +29,6 @@
     "electron": "electron .",
     "build:readme-pdf": "node scripts/generate-readme-pdf.cjs",
     "build:installer-license": "node scripts/generate-installer-license.cjs",
-    "setup-hub": "electron setup-hub-main.js",
     "install-addons": "node scripts/install-addons-runner.cjs",
     "prepare:electron-dist": "node scripts/prep-electron-dist.cjs",
     "dist": "npm run build && npm run build:readme-pdf && npm run build:installer-license && npm run prepare:electron-dist && node scripts/run-electron-builder.cjs"
@@ -87,8 +86,7 @@
     "asarUnpack": [
       "scripts/**/*.py",
       "scripts/wsl-addon-bootstrap.sh",
-      "scripts/install-addons-pip.py",
-      "scripts/install-addons-runner.cjs"
+      "scripts/install-addons-pip.py"
     ],
     "extraResources": [
       "build/AI_Video_Creator_README.pdf"

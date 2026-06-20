@@ -2,6 +2,6 @@ Set WshShell = CreateObject("WScript.Shell")
 Set FSO = CreateObject("Scripting.FileSystemObject")
 
 scriptDir = FSO.GetParentFolderName(WScript.ScriptFullName)
-vbsPath = FSO.BuildPath(scriptDir, "scripts\run_silent.vbs")
+batPath = FSO.BuildPath(scriptDir, "RUN.bat")
 
-WshShell.Run "wscript.exe """ & vbsPath & """", 0, False
+WshShell.Run "cmd /c """ & batPath & """", 0

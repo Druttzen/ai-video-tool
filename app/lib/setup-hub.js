@@ -91,7 +91,7 @@ export function buildSetupScanFromHost(hostScan, { coProducerLlmSettings } = {})
         }
       : {
           status: "missing",
-          message: scan.python?.error || "Run Setup Hub → Update all addons (managed Python embed)",
+          message: scan.python?.error || "Run Install Addons or Setup Hub → Install all tools (managed Python embed)",
         },
     pipeline: scan.pipeline?.ok
       ? {
@@ -102,7 +102,7 @@ export function buildSetupScanFromHost(hostScan, { coProducerLlmSettings } = {})
         }
       : {
           status: "missing",
-          message: scan.pipeline?.error || "Run Setup Hub → Update all addons (managed Open-Sora)",
+          message: scan.pipeline?.error || "Run Install Addons or Setup Hub → Install all tools (managed Open-Sora)",
         },
     "open-sora": scan.openSora?.ok
       ? {
@@ -113,7 +113,7 @@ export function buildSetupScanFromHost(hostScan, { coProducerLlmSettings } = {})
         }
       : {
           status: scan.forceManaged ? "missing" : "optional",
-          message: scan.openSora?.error || "Run Setup Hub → Update all addons",
+          message: scan.openSora?.error || "Run Install Addons or Setup Hub → Install all tools",
         },
     gpu: scan.gpu?.primaryGpu
       ? {
@@ -135,7 +135,7 @@ export function buildSetupScanFromHost(hostScan, { coProducerLlmSettings } = {})
               ? "Bundled ffmpeg"
               : `ffmpeg on PATH (${scan.ffmpeg.path})`,
         }
-      : { status: "optional", message: "Optional — install via Setup Hub addon update" },
+      : { status: "optional", message: "Optional — install via Install Addons or Setup Hub → Update all addons" },
     venv: scan.venv?.ok
       ? { status: "ready", message: `Managed venv — ${scan.venv.path}` }
       : {

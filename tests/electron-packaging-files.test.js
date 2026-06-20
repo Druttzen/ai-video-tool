@@ -82,7 +82,11 @@ describe("electron packaging files", () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
     const unpack = pkg.build?.asarUnpack || [];
     expect(unpack.some((entry) => entry.includes("install-addons-pip.py"))).toBe(true);
-    expect(unpack.some((entry) => entry.includes("install-addons-runner.cjs"))).toBe(true);
+    expect(unpack.some((entry) => entry.includes("install-addons-runner.cjs"))).toBe(false);
+
+    const cmd = fs.readFileSync(path.join(root, "scripts/install-addons.cmd"), "utf8");
+    expect(cmd).toMatch(/app\.asar\\scripts\\install-addons-runner\.cjs/);
+    expect(cmd).not.toMatch(/app\.asar\.unpacked\\scripts\\install-addons-runner/);
   });
 
   it("release workflow does not build setup-hub exe", () => {
@@ -95,7 +99,7 @@ describe("electron packaging files", () => {
   it("ships version 1.0.16 with Setup Hub manifest v2 and WSL script unpack", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-    expect(pkg.version).toBe("1.0.17");
+    expect(pkg.version).toBe("1.0.18");
     expect((pkg.build?.asarUnpack || []).some((entry) => entry.includes("wsl-addon-bootstrap"))).toBe(true);
     const hub = JSON.parse(fs.readFileSync(path.join(root, "data/setup-hub-manifest.json"), "utf8"));
     expect(hub.version).toBe("2.0.0");

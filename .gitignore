@@ -30,7 +30,9 @@
 /dist/
 /electron-dist/
 /electron-dist-*/
+/electron-dist-verify/
 /verify-dist/
+/build/setup-hub-exe/
 /build/.electron-dist-output
 
 # Duplicate logo at repo root (canonical copy is public/bones-logo.png)

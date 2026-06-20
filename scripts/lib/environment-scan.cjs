@@ -142,7 +142,7 @@ async function scanSetupEnvironment({
   let python = {
     ok: false,
     error: forceManaged
-      ? "Managed Python not installed — run Setup Hub → Update all addons"
+      ? "Managed Python not installed — run Install Addons or Setup Hub → Install all tools"
       : "Python not found — install 3.10+ or bundle under resources/python",
   };
   for (const candidate of [...new Set(pythonCandidates)]) {
@@ -176,7 +176,7 @@ async function scanSetupEnvironment({
           path: pipelinePath,
           managed: forceManaged,
           error: forceManaged
-            ? "Managed Open-Sora not installed — run Setup Hub → Update all addons"
+            ? "Managed Open-Sora not installed — run Install Addons or Setup Hub → Install all tools"
             : pipelinePath
               ? `Pipeline folder missing inference.py — ${pipelinePath}`
               : "Set Director → Advanced → local pipeline folder",
@@ -190,7 +190,7 @@ async function scanSetupEnvironment({
     ok: false,
     managed: forceManaged,
     error: forceManaged
-      ? "Managed Open-Sora not installed — run Setup Hub → Update all addons"
+      ? "Managed Open-Sora not installed — run Install Addons or Setup Hub → Install all tools"
       : "Optional — clone Open-Sora or set install path in Open-Sora panel",
   };
   for (const candidate of [...new Set(openSoraCandidates.map(String))]) {

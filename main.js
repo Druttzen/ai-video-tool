@@ -560,6 +560,9 @@ function setupAddonUpdaterIpc() {
       }
     }
 
+    const pipViaPython =
+      Boolean(payload?.pipViaPython) || (bulkInstall && process.platform === "win32");
+
     try {
       if (useProgressConsole) {
         const { createInstallReporter } = require("./scripts/lib/install-console.cjs");
@@ -575,7 +578,7 @@ function setupAddonUpdaterIpc() {
         skipScan: Boolean(payload?.skipScan),
         forcePipeline: payload?.forcePipeline ?? bulkInstall,
         forceReinstall: Boolean(payload?.forceReinstall),
-        pipViaPython: Boolean(payload?.pipViaPython),
+        pipViaPython,
         onProgress: progressConsole ? (progress) => progressConsole.report(progress) : undefined,
       });
 

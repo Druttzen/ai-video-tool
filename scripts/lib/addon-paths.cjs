@@ -126,7 +126,7 @@ function requireManagedVenvPython(userDataPath, force = true) {
   const venvPy = getVenvPythonPath(userDataPath);
   if (fileExists(venvPy)) return venvPy;
   if (force) {
-    throw new Error("Managed venv required — run Setup Hub → Update all addons or: npm run tools:install");
+    throw new Error("Managed venv required — run Install Addons or: npm run tools:install");
   }
   return null;
 }

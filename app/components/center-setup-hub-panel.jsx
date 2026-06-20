@@ -236,6 +236,10 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
     try {
       skipAutoUpdateRef.current = true;
       const batch = await installToolsFromHost({ forcePipeline: true });
+      if (batch?.launched) {
+        ws.setStatusWithTime(batch.message || "Install Addons CMD opened", "info");
+        return;
+      }
       if (batch?.postScan?.items) setAddonReport({ ok: batch.postScan.ok, checkedAt: batch.postScan.scannedAt, items: batch.postScan.items });
       if (batch?.results) applyAddonUpdatePaths(batch.results);
       await runScan({ skipAutoUpdate: true });
@@ -250,6 +254,10 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
     try {
       skipAutoUpdateRef.current = true;
       const batch = await installToolsFromHost({ forcePipeline: false });
+      if (batch?.launched) {
+        ws.setStatusWithTime(batch.message || "Install Addons CMD opened", "info");
+        return;
+      }
       if (batch?.postScan?.items) {
         setAddonReport({
           ok: batch.postScan.ok,
@@ -304,7 +312,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
   return (
     <Panel
       title="All-in-One Setup Hub"
-      hint="Scan managed addons under AppData — Python, venv, Open-Sora, pip deps, FFmpeg, models — then apply the maxed standalone profile."
+      hint="Scan managed addons under AppData — Python, venv, Open-Sora, pip deps, FFmpeg, models. Use Install Addons (CMD) or Install all tools here."
       data-testid="setup-hub-panel"
       actions={
         <PanelActions
@@ -545,7 +553,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
         </div>
         {forceManaged ? (
           <div className="mt-2 text-xs text-white/45">
-            Managed mode — Open-Sora is installed under AppData via Setup Hub. Custom paths are ignored.
+            Managed mode — Open-Sora is installed under AppData via Install Addons. Custom paths are ignored.
           </div>
         ) : null}
       </div>

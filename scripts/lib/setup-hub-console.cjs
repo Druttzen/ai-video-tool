@@ -35,7 +35,7 @@ function initProgressLog(userDataPath, { version = "" } = {}) {
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
   const header = [
     "============================================================",
-    "  AI Video Creator — Setup Hub Install / Update Progress",
+    "  AI Video Creator — Install Addons / Update Progress",
     version ? `  Version: ${version}` : "",
     `  Started: ${new Date().toISOString()}`,
     `  Log file: ${logPath}`,
