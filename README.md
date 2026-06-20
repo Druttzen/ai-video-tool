@@ -77,7 +77,34 @@ After Path E runs, the app **scrolls to Director** so you can export or render i
 | `npm run dev` | Next.js dev server |
 | `npm run electron` | Desktop app |
 | `npm run check` | Tests + lint + build |
-| `npm run dist` | Windows installer |
+| `npm run dist` | Windows installer (local build, no publish) |
+
+## Desktop (Electron)
+
+Packaged Windows builds include **auto-update** via `electron-updater` (same flow as [AI Music Creator](https://github.com/Druttzen/ai-music-tool)):
+
+- **Desktop update controls** — “Check for updates” and “Restart to install” in the header status panel (packaged app only).
+- **Startup check** — ~8 seconds after launch, the app checks GitHub Releases for a newer version, downloads in the background, and prompts when ready.
+- **Release workflow** — push a `v*` tag to publish the Windows installer and `latest.yml` for auto-update (see `.github/workflows/release.yml`).
+
+```bash
+npm run dist
+```
+
+Runs `npm run build`, regenerates **`build/AI_Video_Creator_README.pdf`** from this README (`npm run build:readme-pdf`), prepares `out/` for Electron (`npm run prepare:electron-dist`), then **electron-builder**. Installer output under `electron-dist/`.
+
+Publish a release from CI:
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+### Electron auto-update
+
+Packaged builds check **GitHub Releases** for `Druttzen/ai-video-tool` on startup. Updates require a published release with `latest.yml` from `electron-builder --publish` (the release workflow does this automatically). Dev/`npm run electron` skips update checks.
+
+If `electron-dist/win-unpacked` is locked, `prepare:electron-dist` falls back to `electron-dist-fresh`, `electron-dist-v{version}`, or a timestamped folder. Close any running **AI Video Creator** instance before rebuilding.
 
 ## Project layout
 

@@ -27,6 +27,9 @@ export function useElectronUpdates() {
         setDownloaded(true);
         setStatus(payload.message || "Update ready — restart to install.");
       }
+      if (payload?.status === "not-available") {
+        setStatus("You are on the latest release.");
+      }
     });
   }, []);
 

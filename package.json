@@ -58,7 +58,7 @@
       "icon.ico"
     ],
     "extraResources": [
-      "build/AI_Music_Creator_README.pdf"
+      "build/AI_Video_Creator_README.pdf"
     ],
     "directories": {
       "buildResources": "build",

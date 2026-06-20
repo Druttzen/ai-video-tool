@@ -646,6 +646,12 @@ function setupAutoUpdater() {
       }
     });
 
+    autoUpdater.on("update-not-available", () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("app-update-status", { status: "not-available" });
+      }
+    });
+
     autoUpdater.on("error", (err) => {
       console.warn("autoUpdater:", err?.message || err);
     });

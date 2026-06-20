@@ -1,5 +1,5 @@
 /**
- * Build build/AI_Music_Creator_README.pdf from README.md (Electron first-launch doc).
+ * Build build/AI_Video_Creator_README.pdf from README.md (Electron first-launch doc).
  */
 const fs = require("fs");
 const path = require("path");
@@ -7,7 +7,7 @@ const PDFDocument = require("pdfkit");
 
 const ROOT = path.join(__dirname, "..");
 const README_PATH = path.join(ROOT, "README.md");
-const OUT_PATH = path.join(ROOT, "build", "AI_Music_Creator_README.pdf");
+const OUT_PATH = path.join(ROOT, "build", "AI_Video_Creator_README.pdf");
 
 function readVersion() {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
