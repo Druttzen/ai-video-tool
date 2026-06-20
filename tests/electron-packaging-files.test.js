@@ -21,6 +21,15 @@ const SETUP_HUB_DATA_FILES = [
   "data/setup-hub-manifest.json",
 ];
 
+const STANDALONE_SETUP_HUB_FILES = [
+  "setup-hub-main.js",
+  "setup-hub-preload.js",
+  "setup-hub/index.html",
+  "setup-hub/renderer.js",
+  "scripts/build-setup-hub-exe.cjs",
+  "build/installer.nsh",
+];
+
 describe("electron packaging files", () => {
   it("includes every main-process script required at startup", () => {
     const root = path.join(import.meta.dirname, "..");
@@ -35,7 +44,7 @@ describe("electron packaging files", () => {
     }
   });
 
-  it("includes Setup Hub tool installer scripts and manifests for v1.0.11+", () => {
+  it("includes Setup Hub tool installer scripts and manifests", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
     const files = new Set(pkg.build?.files || []);
@@ -46,10 +55,24 @@ describe("electron packaging files", () => {
     }
   });
 
-  it("ships version 1.0.12 with Setup Hub manifest v2 and WSL script unpack", () => {
+  it("includes standalone Setup Hub exe bundling config", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-    expect(pkg.version).toBe("1.0.12");
+
+    for (const rel of STANDALONE_SETUP_HUB_FILES) {
+      expect(fs.existsSync(path.join(root, rel)), `repo file missing: ${rel}`).toBe(true);
+    }
+
+    const extraFiles = pkg.build?.extraFiles || [];
+    expect(extraFiles.some((entry) => String(entry.from || entry).includes("setup-hub.exe"))).toBe(true);
+    expect(pkg.build?.nsis?.include).toBe("build/installer.nsh");
+    expect(pkg.build?.nsis?.runAfterFinish).toBe(false);
+  });
+
+  it("ships version 1.0.13 with Setup Hub manifest v2 and WSL script unpack", () => {
+    const root = path.join(import.meta.dirname, "..");
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+    expect(pkg.version).toBe("1.0.13");
     expect((pkg.build?.asarUnpack || []).some((entry) => entry.includes("wsl-addon-bootstrap"))).toBe(true);
     const hub = JSON.parse(fs.readFileSync(path.join(root, "data/setup-hub-manifest.json"), "utf8"));
     expect(hub.version).toBe("2.0.0");

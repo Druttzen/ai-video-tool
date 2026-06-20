@@ -24,6 +24,7 @@
 !/build/
 !/build/AI_Video_Creator_README.pdf
 !/build/LICENSE.txt
+!/build/installer.nsh
 
 # Windows installer / local packaging output (rebuild with npm run dist)
 /dist/

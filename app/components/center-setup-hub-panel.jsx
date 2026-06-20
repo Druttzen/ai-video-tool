@@ -172,7 +172,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
 
   useEffect(() => {
     if (!isElectronApp()) return;
-    void runScan();
+    void runScan({ skipAutoUpdate: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <title>All-in-One Setup Hub</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: #0b0d10;
+        color: #e8eaed;
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 28px 24px 32px;
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #a5f3fc;
+      }
+      .sub {
+        margin: 0 0 20px;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+        line-height: 1.45;
+      }
+      .status-card {
+        border: 1px solid rgba(34, 211, 238, 0.25);
+        background: rgba(34, 211, 238, 0.06);
+        border-radius: 16px;
+        padding: 16px 18px;
+        margin-bottom: 16px;
+      }
+      .status-card.error {
+        border-color: rgba(251, 113, 133, 0.35);
+        background: rgba(251, 113, 133, 0.08);
+      }
+      .status-card.success {
+        border-color: rgba(52, 211, 153, 0.35);
+        background: rgba(52, 211, 153, 0.08);
+      }
+      .status-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 6px;
+      }
+      .status-text {
+        font-size: 0.95rem;
+        line-height: 1.45;
+      }
+      .progress-bar {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 12px;
+      }
+      .progress-bar > span {
+        display: block;
+        height: 100%;
+        width: 30%;
+        background: linear-gradient(90deg, #22d3ee, #818cf8);
+        border-radius: 999px;
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      .progress-bar.done > span {
+        width: 100%;
+        animation: none;
+        background: #34d399;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: translateX(-20%);
+          opacity: 0.7;
+        }
+        50% {
+          transform: translateX(220%);
+          opacity: 1;
+        }
+      }
+      .log {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.35);
+        border-radius: 14px;
+        padding: 12px 14px;
+        max-height: 280px;
+        overflow-y: auto;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 0.72rem;
+        line-height: 1.55;
+      }
+      .log-entry {
+        margin: 0 0 4px;
+        color: rgba(255, 255, 255, 0.65);
+      }
+      .log-entry.ok {
+        color: #6ee7b7;
+      }
+      .log-entry.warn {
+        color: #fcd34d;
+      }
+      .log-entry.err {
+        color: #fda4af;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      button {
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.06);
+        color: #e8eaed;
+        border-radius: 12px;
+        padding: 10px 16px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.12);
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      button.primary {
+        border-color: rgba(52, 211, 153, 0.4);
+        background: rgba(52, 211, 153, 0.15);
+        color: #a7f3d0;
+      }
+      button.accent {
+        border-color: rgba(34, 211, 238, 0.35);
+        background: rgba(34, 211, 238, 0.12);
+        color: #a5f3fc;
+      }
+      .addon-list {
+        margin-top: 14px;
+        display: grid;
+        gap: 6px;
+      }
+      .addon-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 0.78rem;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(0, 0, 0, 0.2);
+      }
+      .addon-row.missing {
+        border-color: rgba(251, 113, 133, 0.25);
+      }
+      .addon-row.ok {
+        border-color: rgba(52, 211, 153, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>All-in-One Setup Hub</h1>
+      <p class="sub">
+        Installs managed addons under <strong>%APPDATA%\AI Video Creator\addons</strong> — Python, venv,
+        Open-Sora, pip deps, FFmpeg, models, and WSL stack. Scan and install start automatically.
+      </p>
+
+      <div id="status-card" class="status-card">
+        <div class="status-label">Status</div>
+        <div id="status-text" class="status-text">Starting…</div>
+        <div id="progress-bar" class="progress-bar"><span></span></div>
+      </div>
+
+      <div id="addon-list" class="addon-list" hidden></div>
+
+      <div id="log" class="log" aria-live="polite"></div>
+
+      <div class="actions">
+        <button id="btn-retry" class="accent" type="button" disabled>Retry install</button>
+        <button id="btn-main" class="primary" type="button" disabled>Open AI Video Creator</button>
+        <button id="btn-close" type="button">Close</button>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

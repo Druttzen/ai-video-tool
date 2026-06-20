@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -29,8 +29,10 @@
     "electron": "electron .",
     "build:readme-pdf": "node scripts/generate-readme-pdf.cjs",
     "build:installer-license": "node scripts/generate-installer-license.cjs",
+    "setup-hub": "electron setup-hub-main.js",
+    "build:setup-hub-exe": "node scripts/build-setup-hub-exe.cjs",
     "prepare:electron-dist": "node scripts/prep-electron-dist.cjs",
-    "dist": "npm run build && npm run build:readme-pdf && npm run build:installer-license && npm run prepare:electron-dist && node scripts/run-electron-builder.cjs"
+    "dist": "npm run build && npm run build:readme-pdf && npm run build:installer-license && npm run build:setup-hub-exe && npm run prepare:electron-dist && node scripts/run-electron-builder.cjs"
   },
   "dependencies": {
     "electron-updater": "^6.8.3",
@@ -85,6 +87,12 @@
     "extraResources": [
       "build/AI_Video_Creator_README.pdf"
     ],
+    "extraFiles": [
+      {
+        "from": "build/setup-hub-exe/setup-hub.exe",
+        "to": "setup-hub.exe"
+      }
+    ],
     "directories": {
       "buildResources": "build",
       "output": "electron-dist"
@@ -99,7 +107,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "runAfterFinish": true,
+      "runAfterFinish": false,
+      "include": "build/installer.nsh",
       "license": "build/LICENSE.txt",
       "shortcutName": "AI Video Creator",
       "uninstallDisplayName": "AI Video Creator"
