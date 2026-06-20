@@ -101,7 +101,7 @@
     {
       "id": "workflows",
       "label": "Music video paths",
-      "description": "Paths A–E — track, paste, manuscript, beat-sync MV",
+      "description": "Paths A–E — track, paste, manuscript, librosa beat-sync MV",
       "scrollTarget": "music-video-workflows-panel"
     },
     {

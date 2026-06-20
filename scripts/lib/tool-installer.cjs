@@ -75,7 +75,7 @@ const SAFE_SCAN_CRITICAL = new Set([
   "pip-deps",
 ]);
 
-const SAFE_SCAN_OPTIONAL = new Set(["ffmpeg", "models", "wsl"]);
+const SAFE_SCAN_OPTIONAL = new Set(["ffmpeg", "models", "wsl", "music-video-sync"]);
 
 /**
  * Final verification scan — critical vs optional issues.
@@ -106,7 +106,7 @@ async function runSafeScan({ userDataPath } = {}) {
   if (ok && optionalIssues.length === 0) {
     summary = "Safe scan passed — all addons ready";
   } else if (ok) {
-    summary = `Safe scan passed — ${optionalIssues.length} optional item(s) remain (FFmpeg, models, or WSL)`;
+    summary = `Safe scan passed — ${optionalIssues.length} optional item(s) remain (FFmpeg, models, WSL, or music video sync)`;
   } else {
     summary = `Safe scan failed — ${criticalIssues.length} critical item(s): ${criticalIssues.map((i) => i.label || i.id).join(", ")}`;
   }

@@ -12,6 +12,7 @@ import {
   resolveMusicVideoDurationSec,
   syncDirectorSettingsToSong,
 } from "../lib/audio-visual-music-video";
+import { scrollToDirectorPanelAfterApply } from "../lib/music-video-workflows";
 import {
   loadDirectorSettingsFromStorage,
   saveDirectorSettingsToStorage,
@@ -45,7 +46,7 @@ import { measureIntegratedLoudness } from "../lib/lufs-meter";
 import { exportEnhancedInWorker } from "../lib/studio-export-client";
 import { normalizeStudioExportFormat } from "../lib/audio-export-formats";
 import { resolvePolishStepIndex } from "../lib/suno-guided-workflow";
-import { scrollToDirectorPanelAfterApply } from "../lib/music-video-workflows";
+import { refineAudioAnalysisWithBeatSync } from "../lib/music-video-sync-client";
 
 export function useAnalyzers({
   promptEngine,
@@ -348,18 +349,29 @@ export function useAnalyzers({
     setGuidedStep(resolvePolishStepIndex());
   }, [setGuidedStep]);
 
-  const applyAudioToMusicVideo = useCallback(() => {
+  const applyAudioToMusicVideo = useCallback(async () => {
     if (!audioAnalysis) {
       setStatusWithTime("No audio analysis yet");
       return;
     }
-    applyAnalyzerPatch(buildMusicVideoPatchFromAudio(audioAnalysis, formatTime));
-    setStatusWithTime("Suno track mapped to music video — Director ready");
+    setStatusWithTime("Mapping track to music video (librosa beat sync)...");
+    const refined = await refineAudioAnalysisWithBeatSync(audioAnalysis);
+    if (refined !== audioAnalysis) {
+      setAudioAnalysis(refined);
+    }
+    const patch = buildMusicVideoPatchFromAudio(refined, formatTime);
+    const { directorSettingsPatch, ...projectPatch } = patch;
+    applyAnalyzerPatch(projectPatch);
+    if (directorSettingsPatch) {
+      saveDirectorSettingsToStorage(directorSettingsPatch);
+    }
+    const syncSource = refined?.beatSync?.source ? ` (${refined.beatSync.source})` : "";
+    setStatusWithTime(`Suno track mapped to music video${syncSource} — Director ready`);
     scrollToDirectorPanelAfterApply();
-  }, [audioAnalysis, applyAnalyzerPatch, setStatusWithTime]);
+  }, [audioAnalysis, applyAnalyzerPatch, setAudioAnalysis, setStatusWithTime]);
 
   const applyAudioVisualMusicVideo = useCallback(
-    (durationMode = MV_DURATION_MODES.FULL) => {
+    async (durationMode = MV_DURATION_MODES.FULL) => {
       if (!audioAnalysis || !imageAnalysis) {
         setStatusWithTime("Analyze both an audio track and reference image first");
         return;
@@ -368,8 +380,13 @@ export function useAnalyzers({
         durationMode === MV_DURATION_MODES.HIGHLIGHT
           ? MV_DURATION_MODES.HIGHLIGHT
           : MV_DURATION_MODES.FULL;
+      setStatusWithTime("Building beat-sync MV (librosa)...");
+      const refined = await refineAudioAnalysisWithBeatSync(audioAnalysis, null, { durationMode: mode });
+      if (refined !== audioAnalysis) {
+        setAudioAnalysis(refined);
+      }
       const patch = buildMusicVideoPatchFromAudioAndImage(
-        audioAnalysis,
+        refined,
         imageAnalysis,
         formatTime,
         { durationMode: mode },
@@ -387,12 +404,13 @@ export function useAnalyzers({
         directorSettingsPatch?.durationSeconds ||
         String(resolveMusicVideoDurationSec(audioAnalysis, mode));
       const targetLabel = mode === MV_DURATION_MODES.HIGHLIGHT ? "highlight" : "full track";
+      const syncSource = refined?.beatSync?.source ? `, ${refined.beatSync.source}` : "";
       setStatusWithTime(
-        `Audio + picture → beat-sync MV (${targetLabel} ${durationLabel}s) — Director ready`,
+        `Audio + picture → beat-sync MV (${targetLabel} ${durationLabel}s${syncSource}) — Director ready`,
       );
       scrollToDirectorPanelAfterApply();
     },
-    [audioAnalysis, applyAnalyzerPatch, imageAnalysis, setStatusWithTime],
+    [audioAnalysis, applyAnalyzerPatch, imageAnalysis, setAudioAnalysis, setStatusWithTime],
   );
 
   const applyAudioToSunoStyle = useCallback(() => {

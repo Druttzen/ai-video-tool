@@ -755,6 +755,33 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
     managed: true,
   });
 
+  const mvSyncCfg = manifest.addons["music-video-sync"];
+  if (mvSyncCfg) {
+    const { resolveMusicVideoSyncScript } = require("./music-video-sync.cjs");
+    const mvModule = mvSyncCfg.probeModule || "librosa";
+    const mvScript = resolveMusicVideoSyncScript();
+    const mvDepsOk = depsOk && venvProbe.ok;
+    const mvLibrosaOk = mvDepsOk && probePy ? await probePythonModule(probePy, mvModule) : false;
+    const mvScriptOk = Boolean(mvScript && fileExists(mvScript));
+    items.push({
+      id: "music-video-sync",
+      label: mvSyncCfg.label || "Music video sync",
+      installed: mvLibrosaOk && mvScriptOk,
+      currentVersion: mvLibrosaOk ? mvModule : null,
+      latestVersion: mvModule,
+      updateAvailable: !mvDepsOk || !mvLibrosaOk || !mvScriptOk,
+      message: !mvDepsOk
+        ? "Install pip-deps first"
+        : mvLibrosaOk && mvScriptOk
+          ? "Librosa beat sync ready for music video paths"
+          : !mvScriptOk
+            ? "Music video sync script missing from app bundle"
+            : `${mvModule} missing — run Install Addons`,
+      path: mvScript || probePy || null,
+      managed: true,
+    });
+  }
+
   const ffManifest = manifest.addons.ffmpeg.builds?.[platformKey];
   const managedFf =
     ffManifest && managed.ffmpegPath ? managed.ffmpegPath : null;
@@ -1056,6 +1083,11 @@ async function updateGit({ manifest }) {
   };
 }
 
+async function updateMusicVideoSync({ userDataPath }) {
+  const { probeMusicVideoSyncReady } = require("./music-video-sync.cjs");
+  return probeMusicVideoSyncReady(userDataPath);
+}
+
 async function updateWsl({ userDataPath, manifest }) {
   if (process.platform !== "win32") {
     return { ok: true, skipped: true, message: "WSL addon only applies on Windows host" };
@@ -1229,6 +1261,9 @@ async function updateAddon({ addonId, userDataPath, scan, openSoraPath, pythonPa
   if (id === "pip-deps") {
     return updatePipDeps({ userDataPath, pipViaPython });
   }
+  if (id === "music-video-sync") {
+    return updateMusicVideoSync({ userDataPath });
+  }
   if (id === "ffmpeg") {
     return updateFfmpeg({ userDataPath, manifest });
   }
@@ -1252,6 +1287,7 @@ async function updateAllAddons(params) {
     "open-sora",
     "requirements",
     "pip-deps",
+    "music-video-sync",
     "ffmpeg",
     "models",
     "wsl",

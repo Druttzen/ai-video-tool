@@ -16,6 +16,7 @@ import {
   mapAudioAnalysisToMusicVideo,
   mapSunoPasteToMusicVideo,
 } from "./suno-to-video-mapper";
+import { syncDirectorSettingsToSong } from "./audio-visual-music-video";
 
 export { buildMusicVideoPatchFromAudioAndImage } from "./audio-visual-music-video";
 
@@ -56,6 +57,7 @@ export function buildMusicVideoPatchFromAudio(audioAnalysis, formatTime) {
       audioAnalysis.moodSuggestion ? applyMoodPatch(prev, audioAnalysis.moodSuggestion) : prev,
     promptEngine: "Director",
     lyricMode: "Multi-beat scene",
+    directorSettingsPatch: syncDirectorSettingsToSong(audioAnalysis),
   };
 }
 

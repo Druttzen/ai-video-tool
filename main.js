@@ -610,6 +610,44 @@ function setupAddonUpdaterIpc() {
   });
 }
 
+function setupMusicVideoSyncIpc() {
+  const { analyzeMusicVideoBeats } = require("./scripts/lib/music-video-sync.cjs");
+
+  ipcMain.handle("music-video:analyze-beats", async (_event, payload) => {
+    try {
+      const audioBuffer = payload?.audioBuffer;
+      const fileName = String(payload?.fileName || "track.wav").replace(/[^\w.\-()+ ]/g, "_");
+      if (!audioBuffer || !audioBuffer.byteLength) {
+        return { ok: false, error: "Audio buffer required for beat analysis" };
+      }
+
+      const userDataPath = app.getPath("userData");
+      const tmpPath = path.join(
+        os.tmpdir(),
+        `mv-sync-${Date.now()}-${fileName || "track.wav"}`,
+      );
+      fs.writeFileSync(tmpPath, Buffer.from(audioBuffer));
+
+      try {
+        return await analyzeMusicVideoBeats({
+          audioPath: tmpPath,
+          userDataPath,
+          rangeStart: Number(payload?.rangeStart) || 0,
+          rangeEnd: Number(payload?.rangeEnd ?? -1),
+        });
+      } finally {
+        try {
+          fs.unlinkSync(tmpPath);
+        } catch {
+          /* ignore */
+        }
+      }
+    } catch (e) {
+      return { ok: false, error: e?.message || "music video beat analysis failed" };
+    }
+  });
+}
+
 function setupSetupHubIpc() {
   ipcMain.handle("setup:scan-environment", async (_event, payload) => {
     try {
@@ -1012,6 +1050,7 @@ function openReadmeOnce() {
 app.whenReady().then(() => {
   setupAppIpc();
   setupSystemIpc();
+  setupMusicVideoSyncIpc();
   setupSetupHubIpc();
   setupAddonUpdaterIpc();
   setupBuildProgressIpc();

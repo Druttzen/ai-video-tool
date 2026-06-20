@@ -76,6 +76,24 @@ describe("audio-visual-music-video", () => {
     expect(beatSync.beatInterval).toBeCloseTo(0.5, 2);
     expect(beatSync.beatCount).toBeGreaterThan(100);
     expect(beatSync.markers[0]).toBe(0);
+    expect(beatSync.source).toBe("grid");
+  });
+
+  it("uses librosa beat times when beatSync map is present", () => {
+    const audio = {
+      ...sampleAudio,
+      duration: 90,
+      bpm: 128,
+      beatSync: {
+        source: "librosa",
+        beatTimes: [0, 0.47, 1.0, 62.0, 62.47, 63.0],
+        clipPlan: [{ start: 0, end: 4.2, duration: 4.2 }],
+      },
+    };
+    const beatSync = buildBeatSyncMarkers(audio, MV_DURATION_MODES.HIGHLIGHT);
+    expect(beatSync.source).toBe("librosa");
+    expect(beatSync.markers.some((t) => t >= 62)).toBe(true);
+    expect(beatSync.clipPlan.length).toBeGreaterThan(0);
   });
 
   it("builds timestamped beat-sync structure", () => {

@@ -172,7 +172,7 @@ export async function runMusicVideoWorkflow(workflowId, actions) {
       return { ok: false, message: hint };
     }
     actions.captureSnapshot("before workflow 1");
-    actions.applyAudioToMusicVideo();
+    await actions.applyAudioToMusicVideo();
     await maybeRunGpuWorkflow(actions, { hasImageRef: Boolean(actions.hasImageRef) });
     if (wf.directorAfter) scrollToPanel("director-panel");
     return { ok: true, message: "Path 1 applied — track mapped to music video" };
@@ -215,7 +215,7 @@ export async function runMusicVideoWorkflow(workflowId, actions) {
       return { ok: false, message: hint };
     }
     actions.captureSnapshot("before workflow 5");
-    actions.applyAudioVisualMusicVideo?.(actions.pathEDurationMode);
+    await actions.applyAudioVisualMusicVideo?.(actions.pathEDurationMode);
     await maybeRunGpuWorkflow(actions, { hasImageRef: Boolean(actions.hasImageRef) });
     if (wf.directorAfter) scrollToPanel("director-panel");
     return { ok: true, message: "Path 5 applied — audio + picture beat-sync music video" };

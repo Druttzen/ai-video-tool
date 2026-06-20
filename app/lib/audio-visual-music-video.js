@@ -27,6 +27,10 @@ import {
   MAX_MEDIA_DURATION_SEC,
   mediaNumFramesForDuration,
 } from "./media-duration-limits";
+import {
+  buildClipPlanFromBeatTimes,
+  resolveBeatTimesForRange,
+} from "./music-video-sync-engine";
 
 export { MAX_MEDIA_DURATION_SEC, MAX_MEDIA_DURATION_SEC as MAX_SONG_DURATION_SEC } from "./media-duration-limits";
 
@@ -127,11 +131,44 @@ export function buildBeatSyncMarkers(audioAnalysis, mode = MV_DURATION_MODES.FUL
   const ctx = resolveMusicVideoDurationContext(audioAnalysis, mode);
   const bpm = parseBpmFromAnalysis(audioAnalysis);
   const beatInterval = 60 / bpm;
+
+  const librosaBeats = resolveBeatTimesForRange(audioAnalysis, ctx.rangeStart, ctx.rangeEnd);
+  if (librosaBeats?.length) {
+    const clipPlan =
+      audioAnalysis?.beatSync?.clipPlan?.length > 0
+        ? audioAnalysis.beatSync.clipPlan
+        : buildClipPlanFromBeatTimes(librosaBeats, ctx.rangeStart, ctx.rangeEnd);
+    const intervals = librosaBeats.slice(1).map((t, i) => t - librosaBeats[i]);
+    const avgInterval =
+      intervals.length > 0
+        ? intervals.reduce((sum, value) => sum + value, 0) / intervals.length
+        : beatInterval;
+    return {
+      bpm,
+      duration: ctx.durationSec,
+      beatInterval: Math.round(avgInterval * 1000) / 1000,
+      markers: librosaBeats.map((t) => Math.round(t * 100) / 100),
+      beatCount: librosaBeats.length,
+      clipPlan,
+      source: audioAnalysis?.beatSync?.source || "librosa",
+      ctx,
+    };
+  }
+
   const markers = [];
-  for (let t = 0; t <= ctx.durationSec + 0.001; t += beatInterval) {
+  for (let t = ctx.rangeStart; t <= ctx.rangeEnd + 0.001; t += beatInterval) {
     markers.push(Math.round(t * 100) / 100);
   }
-  return { bpm, duration: ctx.durationSec, beatInterval, markers, beatCount: markers.length, ctx };
+  return {
+    bpm,
+    duration: ctx.durationSec,
+    beatInterval,
+    markers,
+    beatCount: markers.length,
+    clipPlan: buildClipPlanFromBeatTimes(markers, ctx.rangeStart, ctx.rangeEnd),
+    source: "grid",
+    ctx,
+  };
 }
 
 /**
@@ -375,7 +412,7 @@ export function buildMusicVideoPatchFromAudioAndImage(
   if (!mergedGenres.includes("Music video")) mergedGenres.unshift("Music video");
 
   const ruleLine = compactAudioVisualRule(audioAnalysis, imageAnalysis, plan);
-  const beatRule = `BEAT-SYNC: ${plan.bpm} BPM, ${plan.beatSync.beatCount} downbeats over ${plan.durationSec}s — cut on beat`;
+  const beatRule = `BEAT-SYNC: ${plan.bpm} BPM, ${plan.beatSync.beatCount} beats (${plan.beatSync.source || "grid"}) over ${plan.durationSec}s — cut on beat`;
   const lipRule = hasVocalsLikely(audioAnalysis)
     ? "LIP-SYNC: lock mouth to vocal phrases in chorus and verse performance shots"
     : "LIP-SYNC: off — instrumental bed, music-driven visuals only";
@@ -420,7 +457,11 @@ export function buildMusicVideoPatchFromAudioAndImage(
         : "";
       const targetLabel =
         plan.durationMode === MV_DURATION_MODES.HIGHLIGHT ? "highlight section" : "full track";
-      const syncNote = `Video length synced to ${targetLabel}: ${plan.durationSec}s (${plan.beatSync.beatCount} beats @ ${plan.bpm} BPM).`;
+      const clipNote =
+        plan.beatSync.clipPlan?.length > 0
+          ? `Clip plan: ${plan.beatSync.clipPlan.length} segments (${plan.beatSync.clipPlan[0].duration}s–${plan.beatSync.clipPlan[plan.beatSync.clipPlan.length - 1].duration}s each).`
+          : "";
+      const syncNote = `Video length synced to ${targetLabel}: ${plan.durationSec}s (${plan.beatSync.beatCount} beats @ ${plan.bpm} BPM, ${plan.beatSync.source || "grid"}). ${clipNote}`.trim();
       return [audioNotes, imageNote, syncNote].filter(Boolean).join("\n\n") || prev;
     },
     mood: (prev) => {

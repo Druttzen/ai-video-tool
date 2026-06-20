@@ -110,3 +110,11 @@ export async function syncOpenSoraCatalog(installPath) {
   }
   return window.electronAPI.syncOpenSoraCatalog(installPath);
 }
+
+/** @returns {Promise<{ ok: boolean, bpm?: number, beatTimes?: number[], clipPlan?: object[], error?: string }>} */
+export async function analyzeMusicVideoBeatsFromHost(payload) {
+  if (!isElectronApp() || !window.electronAPI?.analyzeMusicVideoBeats) {
+    return { ok: false, error: "Music video sync requires the desktop app" };
+  }
+  return window.electronAPI.analyzeMusicVideoBeats(payload);
+}

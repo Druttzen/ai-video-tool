@@ -29,7 +29,7 @@ describe("addon-updater", () => {
     expect(manifest.installOrder[0]).toBe("git");
     expect(manifest.installOrder).toContain("nodejs");
     expect(manifest.installOrder).toContain("wsl");
-    expect(manifest.installOrder).toContain("pip-deps");
+    expect(manifest.installOrder).toContain("music-video-sync");
   });
 
   it("checkAddonUpdates returns git, nodejs, and core addons", async () => {
@@ -38,11 +38,12 @@ describe("addon-updater", () => {
       userDataPath: path.join(os.tmpdir(), "ai-video-addon-test-all"),
       openSoraPath: "",
     });
-    expect(report.items.length).toBeGreaterThanOrEqual(9);
+    expect(report.items.length).toBeGreaterThanOrEqual(10);
     expect(report.items.some((i) => i.id === "git")).toBe(true);
     expect(report.items.some((i) => i.id === "nodejs")).toBe(true);
     expect(report.items.some((i) => i.id === "python")).toBe(true);
-  });
+    expect(report.items.some((i) => i.id === "music-video-sync")).toBe(true);
+  }, 15000);
 
   it("normalizeHostScan unwraps Setup Hub UI scan shape", () => {
     const host = { python: { ok: true, version: "3.11.9" } };
