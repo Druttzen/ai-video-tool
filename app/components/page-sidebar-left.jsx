@@ -6,6 +6,8 @@ import { PanelActions } from "./panel-actions";
 import { stylePresets } from "../lib/video-config";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 import { confirmProjectReset } from "../lib/project-reset";
+import { scrollToSetupTarget } from "../lib/setup-hub";
+import { isElectronApp } from "../lib/electron-bridge";
 
 export const PageSidebarLeft = memo(function PageSidebarLeft() {
   const {
@@ -35,6 +37,26 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
 
   return (
     <aside className="space-y-4">
+      {isElectronApp() ? (
+        <Panel
+          title="Setup Hub"
+          hint="Scan, install managed tools, and configure local MP4 render."
+          actions={<PanelActions topic="setup-hub" clearDisabled />}
+        >
+          <button
+            type="button"
+            onClick={() => scrollToSetupTarget("setup-hub-panel")}
+            className="w-full rounded-2xl border border-cyan-400/35 bg-cyan-500/15 px-4 py-3 text-left text-sm font-bold text-cyan-100 hover:bg-cyan-500/25"
+            data-testid="sidebar-setup-hub-jump"
+          >
+            Open Setup Hub ↓
+          </button>
+          <p className="mt-2 text-xs text-white/50">
+            Git · Node.js · Python · venv · Open-Sora · torch · FFmpeg · WSL
+          </p>
+        </Panel>
+      ) : null}
+
       <Panel
         title="Style Presets"
         hint="Load factory or custom styles."

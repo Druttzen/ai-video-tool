@@ -2,9 +2,17 @@
  * Shared host environment scan for Setup Hub (Electron main + CLI smoke scripts).
  */
 const fs = require("fs");
-const os = require("os");
 const path = require("path");
 const { defaultOpenSoraPath } = require("./open-sora-paths.cjs");
+const {
+  fileExists,
+  getManagedModelsDir,
+  getManagedRequirementsPath,
+  getManagedVenvDir,
+  getVenvPythonPath,
+  getWslVenvPythonPath,
+} = require("./addon-paths.cjs");
+const { gitAvailable, wslAvailable } = require("./addon-platform.cjs");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 
@@ -15,6 +23,7 @@ function isPipelineFolder(dir) {
   if (!target || !fs.existsSync(target)) return false;
   return (
     fs.existsSync(path.join(target, "inference.py")) ||
+    fs.existsSync(path.join(target, "scripts", "diffusion", "inference.py")) ||
     fs.existsSync(path.join(target, "app_pro.py")) ||
     fs.existsSync(path.join(target, "configs"))
   );
@@ -45,6 +54,19 @@ async function probePythonExecutable(pythonPath) {
   }
 }
 
+async function probePythonModule(pythonPath, moduleName) {
+  try {
+    await execFileAsync(
+      pythonPath,
+      ["-c", `import ${moduleName}`],
+      { timeout: 15000, shell: process.platform === "win32" },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function probeFfmpegExecutable(ffmpegPath) {
   const target = String(ffmpegPath || "").trim() || "ffmpeg";
   try {
@@ -55,6 +77,16 @@ async function probeFfmpegExecutable(ffmpegPath) {
     return { ok: true, path: target, bundled: false };
   } catch (e) {
     return { ok: false, path: target, error: e?.message || "ffmpeg not found" };
+  }
+}
+
+function loadForceManaged(userDataPath) {
+  if (!userDataPath) return false;
+  try {
+    const { loadAddonManifest } = require("./addon-updater.cjs");
+    return Boolean(loadAddonManifest().forceManaged);
+  } catch {
+    return false;
   }
 }
 
@@ -74,14 +106,12 @@ async function scanSetupEnvironment({
   packaged = false,
   gatherGpu = async () => null,
 } = {}) {
-  let managedPython = null;
-  let managedFfmpeg = null;
+  const forceManaged = loadForceManaged(userDataPath);
+  let managed = {};
   if (userDataPath) {
     try {
       const { getManagedAddonPaths } = require("./addon-updater.cjs");
-      const managed = getManagedAddonPaths(userDataPath);
-      managedPython = managed.pythonPath || null;
-      managedFfmpeg = managed.ffmpegPath || null;
+      managed = getManagedAddonPaths(userDataPath);
     } catch {
       /* optional */
     }
@@ -98,23 +128,34 @@ async function scanSetupEnvironment({
       ? resolveBundledResource(resourcesPath, path.join("tools", "ffmpeg", "ffmpeg.exe"))
       : resolveBundledResource(resourcesPath, path.join("tools", "ffmpeg", "ffmpeg"));
 
-  const pythonCandidates = [
-    String(directorSettings.localPythonPath || "").trim(),
-    managedPython,
-    bundledPython,
-    process.platform === "win32" ? "py" : "python3",
-    "python",
-  ].filter(Boolean);
+  const pythonCandidates = forceManaged
+    ? [managed.venvPythonPath, managed.pythonPath].filter(Boolean)
+    : [
+        String(directorSettings.localPythonPath || "").trim(),
+        managed.venvPythonPath,
+        managed.pythonPath,
+        bundledPython,
+        process.platform === "win32" ? "py" : "python3",
+        "python",
+      ].filter(Boolean);
 
-  let python = { ok: false, error: "Python not found — install 3.10+ or bundle under resources/python" };
+  let python = {
+    ok: false,
+    error: forceManaged
+      ? "Managed Python not installed — run Setup Hub → Update all addons"
+      : "Python not found — install 3.10+ or bundle under resources/python",
+  };
   for (const candidate of [...new Set(pythonCandidates)]) {
     const probe = await probePythonExecutable(candidate);
     if (probe.ok) {
       python = {
         ...probe,
+        managed: Boolean(
+          candidate === managed.venvPythonPath || candidate === managed.pythonPath,
+        ),
         bundled: Boolean(
           (bundledPython && candidate === bundledPython) ||
-            (managedPython && candidate === managedPython),
+            (managed.pythonPath && candidate === managed.pythonPath && !managed.venvPythonPath),
         ),
       };
       break;
@@ -122,50 +163,61 @@ async function scanSetupEnvironment({
     python = probe;
   }
 
-  const pipelinePath = String(directorSettings.localPipelinePath || "").trim();
+  const managedOpenSora = defaultOpenSoraPath(userDataPath || undefined);
+  const pipelinePath = forceManaged
+    ? managedOpenSora
+    : String(directorSettings.localPipelinePath || "").trim();
+
   let pipeline =
     pipelinePath && isPipelineFolder(pipelinePath)
-      ? { ok: true, path: pipelinePath }
+      ? { ok: true, path: pipelinePath, managed: forceManaged }
       : {
           ok: false,
           path: pipelinePath,
-          error: pipelinePath
-            ? `Pipeline folder missing inference.py — ${pipelinePath}`
-            : "Set Director → Advanced → local pipeline folder",
+          managed: forceManaged,
+          error: forceManaged
+            ? "Managed Open-Sora not installed — run Setup Hub → Update all addons"
+            : pipelinePath
+              ? `Pipeline folder missing inference.py — ${pipelinePath}`
+              : "Set Director → Advanced → local pipeline folder",
         };
 
-  const openSoraCandidates = [
-    openSoraInstallPath,
-    pipelinePath,
-    defaultOpenSoraPath(),
-    process.env.OPEN_SORA_ROOT,
-  ].filter(Boolean);
+  const openSoraCandidates = forceManaged
+    ? [managedOpenSora]
+    : [openSoraInstallPath, pipelinePath, managedOpenSora, process.env.OPEN_SORA_ROOT].filter(Boolean);
 
   let openSora = {
     ok: false,
-    error: "Optional — clone Open-Sora or set install path in Open-Sora panel",
+    managed: forceManaged,
+    error: forceManaged
+      ? "Managed Open-Sora not installed — run Setup Hub → Update all addons"
+      : "Optional — clone Open-Sora or set install path in Open-Sora panel",
   };
   for (const candidate of [...new Set(openSoraCandidates.map(String))]) {
     if (isPipelineFolder(candidate)) {
-      openSora = { ok: true, path: candidate };
+      openSora = { ok: true, path: candidate, managed: forceManaged || candidate === managedOpenSora };
       break;
     }
   }
 
   if (!pipeline.ok && openSora.ok) {
-    pipeline = { ok: true, path: openSora.path, linkedFromOpenSora: true };
+    pipeline = { ok: true, path: openSora.path, linkedFromOpenSora: true, managed: openSora.managed };
   }
 
-  const ffmpegCandidates = [managedFfmpeg, bundledFfmpeg, "ffmpeg"].filter(Boolean);
+  const ffmpegCandidates = forceManaged
+    ? [managed.ffmpegPath].filter(Boolean)
+    : [managed.ffmpegPath, bundledFfmpeg, "ffmpeg"].filter(Boolean);
+
   let ffmpeg = { ok: false, error: "Optional — not required for prompt studio" };
   for (const candidate of [...new Set(ffmpegCandidates)]) {
     const probe = await probeFfmpegExecutable(candidate);
     if (probe.ok) {
       ffmpeg = {
         ...probe,
+        managed: Boolean(managed.ffmpegPath && candidate === managed.ffmpegPath),
         bundled: Boolean(
           (bundledFfmpeg && candidate === bundledFfmpeg) ||
-            (managedFfmpeg && candidate === managedFfmpeg),
+            (managed.ffmpegPath && candidate === managed.ffmpegPath),
         ),
       };
       break;
@@ -173,16 +225,78 @@ async function scanSetupEnvironment({
     ffmpeg = probe;
   }
 
+  const venvPy = userDataPath ? getVenvPythonPath(userDataPath) : null;
+  const venv = {
+    ok: fileExists(venvPy),
+    path: venvPy,
+    managed: true,
+  };
+
+  const reqPath = userDataPath ? getManagedRequirementsPath(userDataPath) : null;
+  const requirements = {
+    ok: fileExists(reqPath),
+    path: reqPath,
+    managed: true,
+  };
+
+  const renderPython = python.ok ? python.path : venvPy;
+  const pipDeps = {
+    ok: renderPython ? await probePythonModule(renderPython, "torch") : false,
+    probeModule: "torch",
+    managed: true,
+  };
+
+  const modelsPath = userDataPath ? getManagedModelsDir(userDataPath) : null;
+  const models = {
+    ok: fileExists(modelsPath) && fs.readdirSync(modelsPath).some((n) => !n.startsWith(".")),
+    path: modelsPath,
+    managed: true,
+  };
+
   const gpu = (await gatherGpu()) || null;
+
+  const hasGit = await gitAvailable();
+  const git = {
+    ok: hasGit,
+    error: hasGit ? null : "Git not on PATH — install before Open-Sora clone",
+  };
+
+  let nodejs = { ok: false, managed: true };
+  if (managed.nodePath && fileExists(managed.nodePath)) {
+    const probe = await probePythonExecutable(managed.nodePath);
+    nodejs = { ...probe, ok: probe.ok, managed: true, path: managed.nodePath };
+  }
+
+  let wsl = { ok: false, available: false, managed: true };
+  if (process.platform === "win32") {
+    const wslOk = await wslAvailable();
+    wsl.available = wslOk;
+    const wslPy = getWslVenvPythonPath(userDataPath || "");
+    if (wslOk && fileExists(wslPy)) {
+      const torchOk = await probePythonModule(wslPy, "torch");
+      wsl = { ok: torchOk, available: true, path: wslPy, managed: true };
+    } else {
+      wsl = { ok: false, available: wslOk, path: wslPy, managed: true };
+    }
+  }
 
   return {
     scannedAt: new Date().toISOString(),
     platform: process.platform,
     electron: { packaged, dev: !packaged },
+    forceManaged,
+    addonsRoot: managed.addonsRoot || null,
+    git,
+    nodejs,
     python,
+    venv,
     pipeline,
     openSora,
     ffmpeg,
+    requirements,
+    pipDeps,
+    models,
+    wsl,
     gpu,
   };
 }

@@ -530,6 +530,38 @@ function setupAddonUpdaterIpc() {
       return { ok: false, error: e?.message || "addon batch update failed" };
     }
   });
+
+  const { getInstallProtocol, scanMissingAddons, installTools } = require("./scripts/lib/tool-installer.cjs");
+
+  ipcMain.handle("setup:scan-missing-tools", async () => {
+    try {
+      const report = await scanMissingAddons({ userDataPath: app.getPath("userData") });
+      return { ok: true, ...report };
+    } catch (e) {
+      return { ok: false, error: e?.message || "tool scan failed" };
+    }
+  });
+
+  ipcMain.handle("setup:install-tools", async (_event, payload) => {
+    try {
+      const result = await installTools({
+        userDataPath: app.getPath("userData"),
+        addonId: payload?.addonId || null,
+        skipScan: Boolean(payload?.skipScan),
+      });
+      return result;
+    } catch (e) {
+      return { ok: false, error: e?.message || "tool install failed" };
+    }
+  });
+
+  ipcMain.handle("setup:tool-install-protocol", async () => {
+    try {
+      return { ok: true, protocol: getInstallProtocol() };
+    } catch (e) {
+      return { ok: false, error: e?.message || "protocol read failed" };
+    }
+  });
 }
 
 function setupSetupHubIpc() {

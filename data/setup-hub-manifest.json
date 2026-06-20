@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "2.0.0",
   "title": "All-in-One Setup Hub",
   "modules": [
     {
@@ -23,13 +23,39 @@
       "scrollTarget": "analyzers-panel"
     },
     {
+      "id": "git",
+      "label": "Git",
+      "description": "Required to clone/update Open-Sora",
+      "requiresElectron": true,
+      "requiredForLocalMp4": true,
+      "scrollTarget": "setup-hub-panel",
+      "fixHint": "Install Git for Windows — tool installer checks PATH before Open-Sora clone."
+    },
+    {
+      "id": "nodejs",
+      "label": "Node.js",
+      "description": "Managed Node runtime under userData/addons/nodejs",
+      "requiresElectron": true,
+      "scrollTarget": "setup-hub-panel",
+      "fixHint": "Setup Hub → Update all addons installs managed Node.js LTS."
+    },
+    {
       "id": "python",
       "label": "Python runtime",
       "description": "Required for local GPU diffusion render",
       "requiresElectron": true,
       "requiredForLocalMp4": true,
       "scrollTarget": "director-panel",
-      "fixHint": "Install Python 3.10+ (python.org). Set path in Director → Advanced → Python, or run: npm run smoke:desktop"
+      "fixHint": "Setup Hub → Update all addons installs managed Python 3.11 embed under AppData."
+    },
+    {
+      "id": "venv",
+      "label": "Python venv",
+      "description": "Isolated venv under userData/addons/venv",
+      "requiresElectron": true,
+      "requiredForLocalMp4": true,
+      "scrollTarget": "setup-hub-panel",
+      "fixHint": "Setup Hub → Update all addons creates managed venv after Python embed."
     },
     {
       "id": "pipeline",
@@ -38,15 +64,32 @@
       "requiresElectron": true,
       "requiredForLocalMp4": true,
       "scrollTarget": "director-panel",
-      "fixHint": "Clone Open-Sora into ~/Open-Sora (macOS/Linux) or E:\\Open-Sora (Windows). Link in Setup Hub or Director → Advanced → pipeline folder."
+      "fixHint": "Setup Hub → Update all addons clones Open-Sora into managed addons folder."
+    },
+    {
+      "id": "requirements",
+      "label": "Requirements sync",
+      "description": "Auto-synced requirements.txt under userData/addons",
+      "requiresElectron": true,
+      "scrollTarget": "setup-hub-panel",
+      "fixHint": "Updated automatically when addons change — merges bundled + Open-Sora deps."
+    },
+    {
+      "id": "pip-deps",
+      "label": "Pip dependencies",
+      "description": "torch, diffusers, transformers in managed venv",
+      "requiresElectron": true,
+      "requiredForLocalMp4": true,
+      "scrollTarget": "setup-hub-panel",
+      "fixHint": "Setup Hub → Update all addons runs pip install -r managed requirements.txt."
     },
     {
       "id": "open-sora",
       "label": "Open-Sora install",
-      "description": "Optional legacy pipeline path — can link to Director",
+      "description": "Managed git clone under userData/addons/open-sora",
       "requiresElectron": true,
-      "scrollTarget": "open-sora-panel",
-      "fixHint": "Set install path below or use Link Open-Sora → Director in Setup Hub."
+      "scrollTarget": "setup-hub-panel",
+      "fixHint": "Setup Hub → Update all addons — installs under AppData, not E:\\Open-Sora."
     },
     {
       "id": "gpu",
@@ -79,7 +122,23 @@
       "label": "FFmpeg",
       "description": "Optional bundled or PATH ffmpeg for future transcode hooks",
       "requiresElectron": true,
-      "fixHint": "Optional — install ffmpeg on PATH or bundle under resources/tools/ffmpeg."
+      "fixHint": "Setup Hub → Update all addons installs managed FFmpeg static build."
+    },
+    {
+      "id": "models",
+      "label": "Model weights",
+      "description": "Checkpoint cache under userData/addons/models",
+      "requiresElectron": true,
+      "scrollTarget": "setup-hub-panel",
+      "fixHint": "Place Open-Sora checkpoints in managed models folder or configure manifest downloads."
+    },
+    {
+      "id": "wsl",
+      "label": "WSL2 Linux stack",
+      "description": "Optional Linux venv + torch inside WSL (shared addons folder)",
+      "requiresElectron": true,
+      "scrollTarget": "setup-hub-panel",
+      "fixHint": "Enable WSL2 then Update all addons — bootstraps wsl-venv with pip deps."
     },
     {
       "id": "export-cloud",

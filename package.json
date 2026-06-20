@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -19,6 +19,9 @@
     "smoke:desktop": "node scripts/smoke-desktop-setup.cjs",
     "smoke:local-mp4": "node scripts/smoke-local-mp4.cjs --check-only",
     "addons:check": "node scripts/check-addon-updates.cjs",
+    "tools:scan": "node scripts/tool-installer.cjs scan",
+    "tools:install": "node scripts/tool-installer.cjs install",
+    "tools:protocol": "node scripts/tool-installer.cjs protocol",
     "sync:open-sora-terms": "node scripts/sync-open-sora-terms.cjs",
     "sync:open-sora-catalog": "node scripts/sync-open-sora-catalog.cjs",
     "check": "npm run test && npm run lint && npm run build",
@@ -64,8 +67,15 @@
       "scripts/sync-open-sora-catalog.cjs",
       "scripts/lib/environment-scan.cjs",
       "scripts/lib/open-sora-paths.cjs",
+      "scripts/lib/addon-paths.cjs",
+      "scripts/lib/addon-platform.cjs",
+      "scripts/lib/tool-installer.cjs",
       "scripts/lib/addon-updater.cjs",
-      "data/addon-updates-manifest.json"
+      "scripts/tool-installer.cjs",
+      "scripts/wsl-addon-bootstrap.sh",
+      "data/addon-updates-manifest.json",
+      "data/addon-requirements.txt",
+      "data/setup-hub-manifest.json"
     ],
     "asarUnpack": [
       "scripts/**/*.py"

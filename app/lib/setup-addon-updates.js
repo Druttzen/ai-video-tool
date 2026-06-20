@@ -36,7 +36,28 @@ export async function updateAllAddonsFromHost(payload) {
   return window.electronAPI.updateAllAddons(payload);
 }
 
-/** @param {{ items?: { id: string, updateAvailable?: boolean }[] }|null} report */
+export async function getToolInstallProtocolFromHost() {
+  if (!isElectronApp() || !window.electronAPI?.getToolInstallProtocol) {
+    return { ok: false, error: "Tool installer requires the desktop app" };
+  }
+  return window.electronAPI.getToolInstallProtocol();
+}
+
+export async function scanMissingToolsFromHost() {
+  if (!isElectronApp() || !window.electronAPI?.scanMissingTools) {
+    return { ok: false, error: "Tool scan requires the desktop app" };
+  }
+  return window.electronAPI.scanMissingTools();
+}
+
+export async function installToolsFromHost(payload) {
+  if (!isElectronApp() || !window.electronAPI?.installTools) {
+    return { ok: false, error: "Tool install requires the desktop app" };
+  }
+  return window.electronAPI.installTools(payload);
+}
+
+/** @param {{ items?: { id: string, updateAvailable?: boolean, label?: string }[] }|null} report */
 export function summarizeAddonUpdateReport(report) {
   if (!report?.items?.length) return "No addon update data";
   const pending = report.items.filter((i) => i.updateAvailable);

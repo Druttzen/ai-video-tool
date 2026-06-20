@@ -1,11 +1,60 @@
 {
-  "version": "1.0.0",
+  "version": "3.0.0",
+  "forceManaged": true,
+  "protocol": {
+    "version": "1.0.0",
+    "forceVenvForPip": true,
+    "scanBeforeInstall": true,
+    "stopOnFirstFailure": true,
+    "platforms": ["win32", "linux", "darwin", "wsl"]
+  },
+  "installOrder": [
+    "git",
+    "nodejs",
+    "python",
+    "venv",
+    "open-sora",
+    "requirements",
+    "pip-deps",
+    "ffmpeg",
+    "models",
+    "wsl"
+  ],
   "addons": {
-    "open-sora": {
-      "label": "Open-Sora",
-      "repo": "https://github.com/hpcaitech/Open-Sora.git",
-      "branch": "main",
-      "requirementsFile": "requirements.txt"
+    "git": {
+      "label": "Git",
+      "description": "Required to clone/update Open-Sora",
+      "required": true,
+      "installUrl": {
+        "win32": "https://git-scm.com/download/win",
+        "linux": "https://git-scm.com/download/linux",
+        "darwin": "https://git-scm.com/download/mac"
+      }
+    },
+    "nodejs": {
+      "label": "Node.js",
+      "description": "Managed Node runtime for scripts and tooling",
+      "recommendedVersion": "20.18.0",
+      "builds": {
+        "win32": {
+          "version": "20.18.0",
+          "url": "https://nodejs.org/dist/v20.18.0/node-v20.18.0-win-x64.zip",
+          "executable": "node.exe",
+          "npmExecutable": "npm.cmd"
+        },
+        "linux": {
+          "version": "20.18.0",
+          "url": "https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-x64.tar.xz",
+          "executable": "bin/node",
+          "npmExecutable": "bin/npm"
+        },
+        "darwin": {
+          "version": "20.18.0",
+          "url": "https://nodejs.org/dist/v20.18.0/node-v20.18.0-darwin-x64.tar.xz",
+          "executable": "bin/node",
+          "npmExecutable": "bin/npm"
+        }
+      }
     },
     "python": {
       "label": "Python",
@@ -15,18 +64,45 @@
         "win32": {
           "version": "3.11.9",
           "url": "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip",
-          "executable": "python.exe"
+          "executable": "python.exe",
+          "getPipUrl": "https://bootstrap.pypa.io/get-pip.py",
+          "archive": "zip"
         },
         "linux": {
           "version": "3.11.9",
-          "url": "https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tgz",
-          "note": "Use system package manager on Linux — embed auto-install is Windows-only"
+          "url": "https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-x86_64-unknown-linux-gnu-install_only.tar.gz",
+          "executable": "python/bin/python3",
+          "archive": "tar.gz"
         },
         "darwin": {
           "version": "3.11.9",
-          "note": "Use brew install python@3.11 on macOS — embed auto-install is Windows-only"
+          "url": "https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-x86_64-apple-darwin-install_only.tar.gz",
+          "executable": "python/bin/python3",
+          "archive": "tar.gz"
         }
       }
+    },
+    "venv": {
+      "label": "Python venv",
+      "description": "Isolated venv under userData/addons/venv — required for all pip installs"
+    },
+    "open-sora": {
+      "label": "Open-Sora",
+      "repo": "https://github.com/hpcaitech/Open-Sora.git",
+      "branch": "main",
+      "requirementsFile": "requirements.txt",
+      "managedSubdir": "open-sora"
+    },
+    "requirements": {
+      "label": "Requirements sync",
+      "description": "Merges data/addon-requirements.txt + Open-Sora into userData/addons/requirements.txt",
+      "bundledTemplate": "data/addon-requirements.txt"
+    },
+    "pip-deps": {
+      "label": "Pip dependencies",
+      "description": "Installs merged requirements.txt into managed venv only",
+      "probeModule": "torch",
+      "probeModules": ["torch", "gradio", "diffusers"]
     },
     "ffmpeg": {
       "label": "FFmpeg",
@@ -34,9 +110,34 @@
         "win32": {
           "version": "latest",
           "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
-          "zipExecutable": "ffmpeg.exe"
+          "zipExecutable": "ffmpeg.exe",
+          "archive": "zip"
+        },
+        "linux": {
+          "version": "latest",
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz",
+          "zipExecutable": "ffmpeg",
+          "archive": "tar.xz"
+        },
+        "darwin": {
+          "version": "latest",
+          "note": "Install ffmpeg via brew on macOS or use linux build in WSL"
         }
       }
+    },
+    "models": {
+      "label": "Model weights",
+      "description": "Cached under userData/addons/models",
+      "minimumArtifacts": 1,
+      "downloads": []
+    },
+    "wsl": {
+      "label": "WSL2 Linux stack",
+      "description": "Linux venv + pip deps inside WSL using shared addons folder",
+      "enabledOn": ["win32"],
+      "venvSubdir": "wsl-venv",
+      "bootstrapScript": "scripts/wsl-addon-bootstrap.sh",
+      "probeModule": "torch"
     }
   }
 }

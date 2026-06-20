@@ -6,6 +6,7 @@ import { PanelActions } from "./panel-actions";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 import { loadDirectorSettingsFromStorage, saveDirectorSettingsToStorage } from "../lib/director-settings";
 import { loadOpenSoraSettingsFromStorage } from "../lib/open-sora-settings";
+import { getDefaultOpenSoraInstallPath } from "../lib/open-sora-paths";
 import {
   applyMaxedStandaloneProfile,
   clearPersistedSetupScan,
@@ -27,6 +28,8 @@ import {
   summarizeAddonUpdateReport,
   updateAddonFromHost,
   updateAllAddonsFromHost,
+  scanMissingToolsFromHost,
+  installToolsFromHost,
 } from "../lib/setup-addon-updates";
 
 const STATUS_STYLES = {
@@ -60,17 +63,24 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
 
   const applyAddonUpdatePaths = useCallback((results) => {
     if (!Array.isArray(results)) return;
+    const director = { ...loadDirectorSettingsFromStorage() };
+    let changedDirector = false;
+
     for (const row of results) {
       if (!row?.ok || row.skipped) continue;
       if (row.id === "open-sora" && row.path) {
         linkOpenSoraToDirector(row.path);
         setLinkPath(row.path);
       }
-      if (row.id === "python" && row.path) {
-        const director = { ...loadDirectorSettingsFromStorage(), localPythonPath: row.path };
-        saveDirectorSettingsToStorage(director);
-        window.dispatchEvent(new CustomEvent("director-settings-updated", { detail: director }));
+      if ((row.id === "python" || row.id === "venv" || row.id === "pip-deps") && row.path) {
+        director.localPythonPath = row.path;
+        changedDirector = true;
       }
+    }
+
+    if (changedDirector) {
+      saveDirectorSettingsToStorage(director);
+      window.dispatchEvent(new CustomEvent("director-settings-updated", { detail: director }));
     }
   }, []);
 
@@ -143,7 +153,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
     setAutoUpdateAddons(loadAddonAutoUpdateSetting());
     const cached = loadPersistedSetupScan();
     if (cached) setScan(cached);
-    setLinkPath(loadOpenSoraSettingsFromStorage().installPath || "");
+    setLinkPath(loadOpenSoraSettingsFromStorage().installPath || getDefaultOpenSoraInstallPath());
   }, []);
 
   useEffect(() => {
@@ -204,6 +214,30 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
     }
   };
 
+  const onScanMissingTools = async () => {
+    setAddonBusy(true);
+    try {
+      const report = await scanMissingToolsFromHost();
+      if (report?.items) setAddonReport({ ok: report.ok, checkedAt: report.scannedAt, items: report.items });
+      ws.setStatusWithTime(report?.summary || "Tool scan complete", report?.ok ? "info" : "warning");
+    } finally {
+      setAddonBusy(false);
+    }
+  };
+
+  const onInstallAllTools = async () => {
+    setAddonBusy(true);
+    try {
+      const batch = await installToolsFromHost({});
+      if (batch?.postScan?.items) setAddonReport({ ok: batch.postScan.ok, checkedAt: batch.postScan.scannedAt, items: batch.postScan.items });
+      if (batch?.results) applyAddonUpdatePaths(batch.results);
+      await runScan();
+      ws.setStatusWithTime(batch?.ok ? "Tool install finished" : "Some tools failed to install", batch?.ok ? "info" : "warning");
+    } finally {
+      setAddonBusy(false);
+    }
+  };
+
   const onUpdateAllAddons = async () => {
     setAddonBusy(true);
     try {
@@ -249,7 +283,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
   return (
     <Panel
       title="All-in-One Setup Hub"
-      hint="Scan Python, pipeline, GPU, ffmpeg, and optional Open-Sora — then apply the maxed standalone profile for local MP4 render."
+      hint="Scan managed addons under AppData — Python, venv, Open-Sora, pip deps, FFmpeg, models — then apply the maxed standalone profile."
       data-testid="setup-hub-panel"
       actions={
         <PanelActions
@@ -308,6 +342,24 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
         <button
           type="button"
           disabled={busy || addonBusy || !isElectronApp()}
+          onClick={onScanMissingTools}
+          className="rounded-xl border border-amber-400/35 bg-amber-500/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-amber-100 hover:bg-amber-500/25 disabled:opacity-40"
+          data-testid="setup-hub-scan-missing-tools"
+        >
+          Scan missing tools
+        </button>
+        <button
+          type="button"
+          disabled={busy || addonBusy || !isElectronApp()}
+          onClick={onInstallAllTools}
+          className="rounded-xl border border-violet-400/35 bg-violet-500/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-violet-100 hover:bg-violet-500/25 disabled:opacity-40"
+          data-testid="setup-hub-install-all-tools"
+        >
+          Install all tools
+        </button>
+        <button
+          type="button"
+          disabled={busy || addonBusy || !isElectronApp()}
           onClick={onUpdateAllAddons}
           className="rounded-xl border border-violet-400/35 bg-violet-500/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-violet-100 hover:bg-violet-500/25 disabled:opacity-40"
           data-testid="setup-hub-update-all-addons"
@@ -327,7 +379,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
             }}
             data-testid="setup-hub-auto-update-addons"
           />
-          Auto-update Open-Sora, Python embed, and FFmpeg after each environment scan
+          Auto-update all managed tools (Git check, Node.js, Python, venv, Open-Sora, requirements, pip/torch, FFmpeg, models, WSL) after each scan
         </label>
       ) : null}
 
@@ -434,12 +486,12 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
       </div>
 
       <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
-        <div className="text-xs font-bold uppercase tracking-wider text-white/45">Link Open-Sora → Director</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-white/45">Managed Open-Sora path (read-only default)</div>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <input
             value={linkPath}
             onChange={(e) => setLinkPath(e.target.value)}
-            placeholder="E:\\Open-Sora or clone path"
+            placeholder={getDefaultOpenSoraInstallPath()}
             className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/30 p-3 text-sm text-white outline-none focus:border-cyan-300"
             data-testid="setup-hub-link-path"
           />

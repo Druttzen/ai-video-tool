@@ -4,7 +4,7 @@ import { getIndexHelpBody, INDEX_SOURCES } from "./video-creator-index";
 export const PANEL_HELP = {
   "setup-hub": {
     title: "All-in-one setup hub",
-    body: "Scan the desktop environment for Python, diffusion pipeline folder, GPU, optional ffmpeg, and Open-Sora install. Apply maxed profile links Open-Sora to Director, enables GPU auto-run, and sets local-python render when paths are found. Check or auto-update Open-Sora (git), Python embed, and FFmpeg addons. Browser mode shows export-only status.",
+    body: "Scan the desktop environment for Git, Node.js, managed Python/venv, Open-Sora, GPU, ffmpeg, pip/torch deps, models, and optional WSL. Use Scan missing tools or Install all tools to run the built-in protocol (everything under AppData/addons). Apply maxed profile links paths to Director and enables GPU auto-run. Auto-update runs after each scan. Browser mode shows export-only status.",
   },
   global: {
     title: "Project actions",

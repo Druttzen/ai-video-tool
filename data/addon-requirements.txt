@@ -1,0 +1,67 @@
+# AI Video Creator — managed addon pip requirements (auto-synced to userData/addons/requirements.txt)
+# All pip installs run ONLY inside the managed venv (forceVenvForPip in manifest protocol).
+# Updated when addons change via Setup Hub → Update all addons / tool-installer.
+
+# --- PyTorch stack (Open-Sora / diffusion) ---
+torch>=2.1.0
+torchvision>=0.16.0
+torchaudio>=2.1.0
+einops
+accelerate>=0.25.0
+transformers>=4.40.0
+diffusers>=0.25.0
+safetensors
+huggingface-hub>=0.20.0
+open-clip-torch
+xformers; platform_system == "Windows"
+triton; platform_system == "Linux"
+flash-attn; platform_system == "Linux"
+
+# --- Open-Sora / ColossalAI (best-effort; may skip on some platforms) ---
+colossalai; platform_system == "Linux"
+opensora
+
+# --- Video / image / audio ---
+opencv-python
+imageio
+imageio-ffmpeg
+pillow
+decord; platform_system != "Windows"
+moviepy
+ffmpeg-python
+av
+librosa
+soundfile
+
+# --- WebUI / Gradio (Open-Sora gradio app) ---
+gradio>=4.0.0
+fastapi
+uvicorn
+python-multipart
+aiofiles
+
+# --- ML utilities ---
+tqdm
+numpy
+scipy
+pyyaml
+regex
+packaging
+requests
+matplotlib
+psutil
+pandas
+scikit-learn
+sentencepiece
+protobuf
+ftfy
+tiktoken
+
+# --- Config / tooling inside venv ---
+pip>=24.0
+setuptools>=69.0
+wheel
+virtualenv
+
+# --- Optional CUDA helpers (pip may resolve CPU wheels on unsupported GPUs) ---
+nvidia-ml-py; platform_system != "Darwin"

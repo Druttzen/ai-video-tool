@@ -19,12 +19,12 @@ describe("vocal-mode", () => {
 });
 
 describe("open-sora-paths", () => {
-  it("browser default is platform-aware or home-relative", () => {
-    const path = getDefaultOpenSoraInstallPath();
-    expect(path).toMatch(/Open-Sora$/);
+  it("browser default points at managed addons folder", () => {
+    const installPath = getDefaultOpenSoraInstallPath();
+    expect(installPath).toMatch(/addons[\\/]open-sora$/);
   });
 
-  it("node default matches environment-scan helper", () => {
-    expect(defaultOpenSoraPath()).toMatch(/Open-Sora$/);
+  it("node default points at managed addons under AppData", () => {
+    expect(defaultOpenSoraPath()).toMatch(/addons[\\/]open-sora$/);
   });
 });

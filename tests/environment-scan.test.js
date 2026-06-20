@@ -6,12 +6,8 @@ import {
 } from "../scripts/lib/environment-scan.cjs";
 
 describe("environment-scan CLI module", () => {
-  it("defaultOpenSoraPath uses home folder on non-Windows", () => {
-    if (process.platform === "win32") {
-      expect(defaultOpenSoraPath()).toMatch(/Open-Sora/i);
-    } else {
-      expect(defaultOpenSoraPath()).toContain("Open-Sora");
-    }
+  it("defaultOpenSoraPath points at managed addons folder", () => {
+    expect(defaultOpenSoraPath()).toMatch(/addons[\\/]open-sora$/);
   });
 
   it("isPipelineFolder rejects empty paths", () => {

@@ -22,4 +22,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   checkAddonUpdates: (payload) => ipcRenderer.invoke("setup:check-addon-updates", payload),
   updateAddon: (payload) => ipcRenderer.invoke("setup:update-addon", payload),
   updateAllAddons: (payload) => ipcRenderer.invoke("setup:update-all-addons", payload),
+  scanMissingTools: (payload) => ipcRenderer.invoke("setup:scan-missing-tools", payload),
+  installTools: (payload) => ipcRenderer.invoke("setup:install-tools", payload),
+  getToolInstallProtocol: () => ipcRenderer.invoke("setup:tool-install-protocol"),
 });
