@@ -1,10 +1,11 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Panel } from "./ui-blocks";
 import { PanelActions } from "./panel-actions";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 import { promptSymbolOverview } from "../lib/suno-language-index";
+import { MV_DURATION_MODES } from "../lib/audio-visual-music-video";
 
 export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
   const ws = useProjectWorkspace();
@@ -13,6 +14,7 @@ export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
   const hasPaste = Boolean(ws.sunoPasteStyle?.trim() || ws.sunoPasteLyrics?.trim());
   const canBoth = hasTrack && hasPaste;
   const canAudioVisual = hasTrack && hasImage;
+  const [durationMode, setDurationMode] = useState(MV_DURATION_MODES.FULL);
 
   return (
     <Panel
@@ -103,13 +105,30 @@ export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
           disabled={!canAudioVisual}
           onClick={() => {
             ws.captureSnapshot("before audio + picture → music video");
-            ws.applyAudioVisualMusicVideo();
+            ws.applyAudioVisualMusicVideo(durationMode);
           }}
           className="rounded-2xl bg-gradient-to-r from-emerald-300 to-cyan-300 px-4 py-2 text-sm font-bold text-black hover:from-emerald-200 hover:to-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
         >
           E · Audio + picture → MV
         </button>
       </div>
+
+      {canAudioVisual ? (
+        <label className="mb-3 block max-w-md">
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-white/45">
+            Path E duration
+          </span>
+          <select
+            data-testid="audio-visual-duration-mode-studio"
+            value={durationMode}
+            onChange={(e) => setDurationMode(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-black/30 p-2 text-sm text-white outline-none focus:border-cyan-300/40"
+          >
+            <option value={MV_DURATION_MODES.FULL}>Full track (max 480s)</option>
+            <option value={MV_DURATION_MODES.HIGHLIGHT}>Highlight section only</option>
+          </select>
+        </label>
+      ) : null}
 
       <div className="mt-3 flex flex-wrap gap-3 text-[11px]">
         <span
@@ -131,6 +150,7 @@ export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
           Suno paste {hasPaste ? "✓" : "—"}
         </span>
         <span
+          data-testid="mv-badge-both-ready"
           className={
             canBoth
               ? "rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-emerald-100"
@@ -140,6 +160,7 @@ export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
           BOTH ready {canBoth ? "✓" : "—"}
         </span>
         <span
+          data-testid="mv-badge-audio-visual-ready"
           className={
             canAudioVisual
               ? "rounded-full border border-cyan-400/40 bg-cyan-500/15 px-2 py-0.5 text-cyan-100"

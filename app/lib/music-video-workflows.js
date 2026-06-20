@@ -142,6 +142,12 @@ export function scrollToPanel(testId) {
   });
 }
 
+/** Scroll to Director after a music-video path applies project fields. */
+export function scrollToDirectorPanelAfterApply() {
+  if (typeof window === "undefined") return;
+  window.requestAnimationFrame(() => scrollToPanel("director-panel"));
+}
+
 /**
  * @param {number} workflowId
  * @param {Record<string, Function>} actions — workspace handlers

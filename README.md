@@ -48,7 +48,7 @@ What Path E applies:
 
 - **Beat sync** — BPM grid, timestamped shot structure, `Beat grid` scene scaffold in generated lyrics
 - **Lip sync** — lip-sync rules and vocal performance beats when the track analysis suggests vocals (prompt-level; not frame-accurate mouth sync)
-- **Duration sync** — project `tempo` and Director `durationSeconds` match song length (**capped at 120s** for hardware comfort)
+- **Duration sync** — project `tempo` and Director `durationSeconds` match song length (**full track capped at 480s**, or **highlight section only** via the Path E duration selector)
 - **Auto i2v** — enables `useI2vWhenImage`; exported Director jobs attach the analyzed image as `ref_image_name` when you render/export
 
 After Path E runs, the app **scrolls to Director** so you can export or render immediately.

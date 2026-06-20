@@ -6,9 +6,13 @@ import {
   buildLipSyncRules,
   buildMusicVideoPatchFromAudioAndImage,
   hasVocalsLikely,
+  highlightDurationSec,
+  MV_DURATION_MODES,
+  resolveMusicVideoDurationSec,
   songDurationSec,
   syncDirectorSettingsToSong,
 } from "../app/lib/audio-visual-music-video.js";
+import { mediaNumFramesForDuration } from "../app/lib/media-duration-limits.js";
 import { buildDirectorJobPayload } from "../app/lib/director-prompt-builder.js";
 import { DEFAULT_DIRECTOR_SETTINGS } from "../app/lib/director-settings.js";
 
@@ -43,8 +47,26 @@ const sampleImage = {
 };
 
 describe("audio-visual-music-video", () => {
-  it("caps song duration at 120 seconds for director sync", () => {
-    expect(songDurationSec(sampleAudio)).toBe(120);
+  it("caps song duration at 480 seconds for director sync", () => {
+    expect(songDurationSec(sampleAudio)).toBe(185.4);
+    expect(songDurationSec({ ...sampleAudio, duration: 500 })).toBe(480);
+  });
+
+  it("highlight mode uses peak window duration instead of full track", () => {
+    expect(highlightDurationSec(sampleAudio)).toBe(32);
+    expect(resolveMusicVideoDurationSec(sampleAudio, MV_DURATION_MODES.HIGHLIGHT)).toBe(32);
+    expect(resolveMusicVideoDurationSec(sampleAudio, MV_DURATION_MODES.FULL)).toBe(185.4);
+
+    const plan = buildAudioVisualMusicVideoPlan(
+      sampleAudio,
+      sampleImage,
+      formatTime,
+      MV_DURATION_MODES.HIGHLIGHT,
+    );
+    expect(plan.durationSec).toBe(32);
+    expect(plan.durationMode).toBe(MV_DURATION_MODES.HIGHLIGHT);
+    expect(String(plan.generatedLyrics)).toContain("highlight window");
+    expect(plan.directorSettings.durationSeconds).toBe("32");
   });
 
   it("builds beat markers from BPM and duration", () => {
@@ -81,7 +103,7 @@ describe("audio-visual-music-video", () => {
 
     const synced = syncDirectorSettingsToSong(audio, DEFAULT_DIRECTOR_SETTINGS, { enableI2v: true });
     expect(synced.durationSeconds).toBe("45.5");
-    expect(synced.numFrames).toBe(Math.max(17, Math.min(513, Math.round(45.5 * 24))));
+    expect(synced.numFrames).toBe(mediaNumFramesForDuration(45.5, 24));
     expect(synced.useI2vWhenImage).toBe(true);
   });
 

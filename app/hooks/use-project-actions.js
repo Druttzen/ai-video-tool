@@ -62,6 +62,7 @@ import {
 import { saveGpuWorkflowSettings } from "../lib/gpu-workflow-functions";
 import { extractLyricsBodyFromPaste } from "../lib/suno-reimport";
 import { buildMusicVideoPatchFromBoth, buildMusicVideoPatchFromSunoPaste } from "../lib/music-video-bridge";
+import { scrollToDirectorPanelAfterApply } from "../lib/music-video-workflows";
 import { collectGenreAnchors } from "../lib/suno-language-index";
 import { buildStyleDnaPatch } from "../lib/track-style-dna";
 import { resolvePolishStepIndex } from "../lib/suno-guided-workflow";
@@ -906,7 +907,8 @@ Variation ${i + 1}: keep the core identity, change texture and movement without 
     }
     captureSnapshot("before Suno → music video merge");
     patch(buildMusicVideoPatchFromSunoPaste(sunoPasteStyle, sunoPasteLyrics));
-    setStatusWithTime("Suno paste applied to music video project — open Director tab");
+    setStatusWithTime("Suno paste applied to music video — Director ready");
+    scrollToDirectorPanelAfterApply();
   }, [captureSnapshot, patch, setStatusWithTime, sunoPasteLyrics, sunoPasteStyle]);
 
   const applyMusicVideoFromBoth = useCallback(() => {
@@ -930,7 +932,8 @@ Variation ${i + 1}: keep the core identity, change texture and movement without 
         formatTime,
       ),
     );
-    setStatusWithTime("Track + Suno paste merged into music video — open Director tab");
+    setStatusWithTime("Track + Suno paste merged into music video — Director ready");
+    scrollToDirectorPanelAfterApply();
   }, [
     audioAnalysis,
     captureSnapshot,

@@ -22,8 +22,80 @@ import {
   mapSunoSoundsToLighting,
 } from "./suno-to-video-mapper";
 import { loadDirectorSettingsFromStorage } from "./director-settings";
+import {
+  clampMediaDurationSec,
+  MAX_MEDIA_DURATION_SEC,
+  mediaNumFramesForDuration,
+} from "./media-duration-limits";
 
-const MAX_SONG_DURATION_SEC = 120;
+export { MAX_MEDIA_DURATION_SEC, MAX_MEDIA_DURATION_SEC as MAX_SONG_DURATION_SEC } from "./media-duration-limits";
+
+/** @typedef {"full"|"highlight"} MusicVideoDurationMode */
+
+export const MV_DURATION_MODES = {
+  FULL: "full",
+  HIGHLIGHT: "highlight",
+};
+
+/** @param {object|null} audioAnalysis */
+export function rawSongDurationSec(audioAnalysis) {
+  const d = Number(audioAnalysis?.duration);
+  if (!Number.isFinite(d) || d <= 0) return 180;
+  return Math.round(d * 10) / 10;
+}
+
+/**
+ * @param {object|null} audioAnalysis
+ * @returns {number}
+ */
+export function highlightDurationSec(audioAnalysis) {
+  const raw = rawSongDurationSec(audioAnalysis);
+  const start = Math.max(0, Number(audioAnalysis?.highlightStart) || 0);
+  const end = Math.min(raw, Number(audioAnalysis?.highlightEnd) || raw);
+  const span = Math.max(6, end - start);
+  return Math.min(MAX_MEDIA_DURATION_SEC, Math.round(span * 10) / 10);
+}
+
+/**
+ * @param {object|null} audioAnalysis
+ * @param {MusicVideoDurationMode} [mode]
+ */
+export function resolveMusicVideoDurationSec(audioAnalysis, mode = MV_DURATION_MODES.FULL) {
+  if (mode === MV_DURATION_MODES.HIGHLIGHT) {
+    return highlightDurationSec(audioAnalysis);
+  }
+  return Math.min(MAX_MEDIA_DURATION_SEC, rawSongDurationSec(audioAnalysis));
+}
+
+/**
+ * @param {object|null} audioAnalysis
+ * @param {MusicVideoDurationMode} [mode]
+ */
+export function resolveMusicVideoDurationContext(audioAnalysis, mode = MV_DURATION_MODES.FULL) {
+  const rawDurationSec = rawSongDurationSec(audioAnalysis);
+  const highlightStart = Math.max(0, Number(audioAnalysis?.highlightStart) || 0);
+  const highlightEnd = Math.min(rawDurationSec, Number(audioAnalysis?.highlightEnd) || rawDurationSec);
+
+  if (mode === MV_DURATION_MODES.HIGHLIGHT) {
+    const durationSec = highlightDurationSec(audioAnalysis);
+    return {
+      mode,
+      durationSec,
+      rangeStart: highlightStart,
+      rangeEnd: Math.min(rawDurationSec, highlightStart + durationSec),
+      rawDurationSec,
+    };
+  }
+
+  const durationSec = Math.min(MAX_MEDIA_DURATION_SEC, rawDurationSec);
+  return {
+    mode,
+    durationSec,
+    rangeStart: 0,
+    rangeEnd: durationSec,
+    rawDurationSec,
+  };
+}
 
 /** @param {object|null} audioAnalysis */
 export function parseBpmFromAnalysis(audioAnalysis) {
@@ -36,9 +108,7 @@ export function parseBpmFromAnalysis(audioAnalysis) {
 
 /** @param {object|null} audioAnalysis */
 export function songDurationSec(audioAnalysis) {
-  const d = Number(audioAnalysis?.duration);
-  if (!Number.isFinite(d) || d <= 0) return 180;
-  return Math.min(MAX_SONG_DURATION_SEC, Math.round(d * 10) / 10);
+  return resolveMusicVideoDurationSec(audioAnalysis, MV_DURATION_MODES.FULL);
 }
 
 /** @param {object|null} audioAnalysis */
@@ -53,15 +123,15 @@ export function hasVocalsLikely(audioAnalysis) {
  * @param {object|null} audioAnalysis
  * @returns {{ bpm: number, duration: number, beatInterval: number, markers: number[], beatCount: number }}
  */
-export function buildBeatSyncMarkers(audioAnalysis) {
-  const duration = songDurationSec(audioAnalysis);
+export function buildBeatSyncMarkers(audioAnalysis, mode = MV_DURATION_MODES.FULL) {
+  const ctx = resolveMusicVideoDurationContext(audioAnalysis, mode);
   const bpm = parseBpmFromAnalysis(audioAnalysis);
   const beatInterval = 60 / bpm;
   const markers = [];
-  for (let t = 0; t <= duration + 0.001; t += beatInterval) {
+  for (let t = 0; t <= ctx.durationSec + 0.001; t += beatInterval) {
     markers.push(Math.round(t * 100) / 100);
   }
-  return { bpm, duration, beatInterval, markers, beatCount: markers.length };
+  return { bpm, duration: ctx.durationSec, beatInterval, markers, beatCount: markers.length, ctx };
 }
 
 /**
@@ -69,25 +139,42 @@ export function buildBeatSyncMarkers(audioAnalysis) {
  * @param {object|null} audioAnalysis
  * @param {(n: number) => string} [formatTimeFn]
  */
-export function buildBeatSyncStructure(audioAnalysis, formatTimeFn = formatTime) {
-  const duration = songDurationSec(audioAnalysis);
-  const hiStart = Math.max(0, Number(audioAnalysis?.highlightStart) || duration * 0.38);
-  const hiEnd = Math.min(duration, Number(audioAnalysis?.highlightEnd) || hiStart + 24);
-  const introEnd = Math.min(12, duration * 0.08);
-  const verseEnd = Math.min(duration * 0.35, hiStart - 4);
-  const bridgeStart = Math.min(duration * 0.72, hiEnd + 8);
+export function buildBeatSyncStructure(
+  audioAnalysis,
+  formatTimeFn = formatTime,
+  mode = MV_DURATION_MODES.FULL,
+) {
+  const ctx = resolveMusicVideoDurationContext(audioAnalysis, mode);
+  const duration = ctx.durationSec;
+  const base = ctx.rangeStart;
+  const rangeEnd = ctx.rangeEnd;
+  const hiStart =
+    mode === MV_DURATION_MODES.HIGHLIGHT
+      ? base + Math.min(6, duration * 0.12)
+      : Math.max(base, Number(audioAnalysis?.highlightStart) || base + duration * 0.38);
+  const hiEnd =
+    mode === MV_DURATION_MODES.HIGHLIGHT
+      ? Math.min(rangeEnd, hiStart + Math.max(12, duration * 0.45))
+      : Math.min(rangeEnd, Number(audioAnalysis?.highlightEnd) || hiStart + 24);
+  const introEnd = base + Math.min(12, duration * 0.08);
+  const verseEnd = base + Math.min(duration * 0.35, Math.max(introEnd + 8, hiStart - 4));
+  const bridgeStart = base + Math.min(duration * 0.72, duration - 18);
 
   const sections = [
-    { start: 0, end: introEnd, label: "establishing wide" },
+    { start: base, end: introEnd, label: "establishing wide" },
     { start: introEnd, end: Math.max(introEnd + 8, verseEnd), label: "verse performance medium" },
     { start: hiStart, end: hiEnd, label: "chorus lift on downbeat" },
   ];
 
-  if (duration > 75 && bridgeStart < duration - 10) {
-    sections.push({ start: bridgeStart, end: Math.min(duration - 6, bridgeStart + 16), label: "visual break" });
+  if (duration > 75 && bridgeStart < rangeEnd - 10) {
+    sections.push({
+      start: bridgeStart,
+      end: Math.min(rangeEnd - 6, bridgeStart + 16),
+      label: "visual break",
+    });
   }
 
-  sections.push({ start: Math.max(0, duration - 8), end: duration, label: "outro hold" });
+  sections.push({ start: Math.max(base, rangeEnd - 8), end: rangeEnd, label: "outro hold" });
 
   return sections
     .filter((s) => s.end > s.start)
@@ -100,23 +187,39 @@ export function buildBeatSyncStructure(audioAnalysis, formatTimeFn = formatTime)
  * @param {object|null} imageAnalysis
  * @param {(n: number) => string} [formatTimeFn]
  */
-export function buildBeatSyncLyricsScaffold(audioAnalysis, imageAnalysis, formatTimeFn = formatTime) {
-  const duration = songDurationSec(audioAnalysis);
+export function buildBeatSyncLyricsScaffold(
+  audioAnalysis,
+  imageAnalysis,
+  formatTimeFn = formatTime,
+  mode = MV_DURATION_MODES.FULL,
+) {
+  const ctx = resolveMusicVideoDurationContext(audioAnalysis, mode);
+  const duration = ctx.durationSec;
   const bpm = parseBpmFromAnalysis(audioAnalysis);
-  const { beatInterval } = buildBeatSyncMarkers(audioAnalysis);
+  const { beatInterval } = buildBeatSyncMarkers(audioAnalysis, mode);
   const fileName = audioAnalysis?.fileName || "track";
   const mood = imageAnalysis?.visualMood || (audioAnalysis?.suggestedMoods || []).slice(0, 2).join(", ");
-  const hiStart = Math.max(0, Number(audioAnalysis?.highlightStart) || duration * 0.4);
-  const hiEnd = Math.min(duration, Number(audioAnalysis?.highlightEnd) || hiStart + 28);
+  const hiStart =
+    mode === MV_DURATION_MODES.HIGHLIGHT
+      ? ctx.rangeStart + Math.min(6, duration * 0.12)
+      : Math.max(ctx.rangeStart, Number(audioAnalysis?.highlightStart) || ctx.rangeStart + duration * 0.4);
+  const hiEnd =
+    mode === MV_DURATION_MODES.HIGHLIGHT
+      ? Math.min(ctx.rangeEnd, hiStart + Math.max(12, duration * 0.45))
+      : Math.min(ctx.rangeEnd, Number(audioAnalysis?.highlightEnd) || hiStart + 28);
+  const rangeLabel =
+    mode === MV_DURATION_MODES.HIGHLIGHT
+      ? `highlight ${formatTimeFn(ctx.rangeStart)}–${formatTimeFn(ctx.rangeEnd)}`
+      : `full track ${formatTimeFn(duration)}`;
 
   const lines = [
-    `[Meta: Beat-sync MV "${fileName}" — ${formatTimeFn(duration)} @ ${bpm} BPM | cut every ${beatInterval.toFixed(2)}s]`,
-    `[Beat grid: ${bpm} BPM across full track — hard cut on downbeat]`,
+    `[Meta: Beat-sync MV "${fileName}" — ${rangeLabel} @ ${bpm} BPM | cut every ${beatInterval.toFixed(2)}s]`,
+    `[Beat grid: ${bpm} BPM — hard cut on downbeat${mode === MV_DURATION_MODES.HIGHLIGHT ? " (highlight window)" : ""}]`,
     "",
-    `[Intro — ${formatTimeFn(0)}–${formatTimeFn(Math.min(12, duration * 0.08))} | B-roll on beat]`,
+    `[Intro — ${formatTimeFn(ctx.rangeStart)}–${formatTimeFn(ctx.rangeStart + Math.min(12, duration * 0.08))} | B-roll on beat]`,
     mood ? `(visual mood: ${mood})` : "(match reference image palette and wardrobe)",
     "",
-    `[Verse — ${formatTimeFn(Math.min(12, duration * 0.08))}–${formatTimeFn(hiStart)} | performance medium]`,
+    `[Verse — ${formatTimeFn(ctx.rangeStart + Math.min(12, duration * 0.08))}–${formatTimeFn(hiStart)} | performance medium]`,
     "(camera moves on bar changes — sync motion to kick)",
     "",
     `[Chorus — ${formatTimeFn(hiStart)}–${formatTimeFn(hiEnd)} | energy lift on downbeat]`,
@@ -128,16 +231,19 @@ export function buildBeatSyncLyricsScaffold(audioAnalysis, imageAnalysis, format
       "",
       `[Vocal performance — ${formatTimeFn(hiStart)}–${formatTimeFn(hiEnd)} | lip-sync locked to bed]`,
       "(mouth movement on syllables — hold eye-line in close-ups)",
-      `[Bridge lip-sync — ${formatTimeFn(Math.min(duration * 0.72, duration - 20))}–${formatTimeFn(Math.min(duration - 6, duration * 0.88))}]`,
+      `[Bridge lip-sync — ${formatTimeFn(Math.min(ctx.rangeStart + duration * 0.72, ctx.rangeEnd - 20))}–${formatTimeFn(Math.min(ctx.rangeEnd - 6, ctx.rangeStart + duration * 0.88))}]`,
       "(phrase-level sync — no mumbled filler)",
     );
   } else {
-    lines.push("", `[Instrumental bed — ${formatTimeFn(0)}–${formatTimeFn(duration)} | no lip-sync]`);
+    lines.push(
+      "",
+      `[Instrumental bed — ${formatTimeFn(ctx.rangeStart)}–${formatTimeFn(ctx.rangeEnd)} | no lip-sync]`,
+    );
   }
 
   lines.push(
     "",
-    `[Outro — ${formatTimeFn(Math.max(0, duration - 8))}–${formatTimeFn(duration)} | fade hold on final bar]`,
+    `[Outro — ${formatTimeFn(Math.max(ctx.rangeStart, ctx.rangeEnd - 8))}–${formatTimeFn(ctx.rangeEnd)} | fade hold on final bar]`,
   );
 
   return lines.join("\n");
@@ -165,9 +271,11 @@ export function buildLipSyncRules(audioAnalysis) {
  */
 export function syncDirectorSettingsToSong(audioAnalysis, baseSettings = null, opts = {}) {
   const settings = baseSettings || loadDirectorSettingsFromStorage();
-  const durationSec = songDurationSec(audioAnalysis);
+  const durationSec = clampMediaDurationSec(
+    resolveMusicVideoDurationSec(audioAnalysis, opts.durationMode || MV_DURATION_MODES.FULL),
+  );
   const fps = Number(settings.fps) || 24;
-  const numFrames = Math.max(17, Math.min(513, Math.round(durationSec * fps)));
+  const numFrames = mediaNumFramesForDuration(durationSec, fps);
 
   return {
     ...settings,
@@ -182,17 +290,30 @@ export function syncDirectorSettingsToSong(audioAnalysis, baseSettings = null, o
  * @param {object|null} imageAnalysis
  * @param {(n: number) => string} formatTimeFn
  */
-export function buildAudioVisualMusicVideoPlan(audioAnalysis, imageAnalysis, formatTimeFn = formatTime) {
-  const durationSec = songDurationSec(audioAnalysis);
+export function buildAudioVisualMusicVideoPlan(
+  audioAnalysis,
+  imageAnalysis,
+  formatTimeFn = formatTime,
+  durationMode = MV_DURATION_MODES.FULL,
+) {
+  const ctx = resolveMusicVideoDurationContext(audioAnalysis, durationMode);
+  const durationSec = ctx.durationSec;
   const bpm = parseBpmFromAnalysis(audioAnalysis);
-  const beatSync = buildBeatSyncMarkers(audioAnalysis);
-  const structure = buildBeatSyncStructure(audioAnalysis, formatTimeFn);
-  const generatedLyrics = buildBeatSyncLyricsScaffold(audioAnalysis, imageAnalysis, formatTimeFn);
+  const beatSync = buildBeatSyncMarkers(audioAnalysis, durationMode);
+  const structure = buildBeatSyncStructure(audioAnalysis, formatTimeFn, durationMode);
+  const generatedLyrics = buildBeatSyncLyricsScaffold(
+    audioAnalysis,
+    imageAnalysis,
+    formatTimeFn,
+    durationMode,
+  );
   const lipSyncRules = buildLipSyncRules(audioAnalysis);
   const vocal = hasVocalsLikely(audioAnalysis) ? "Voiceover" : "Music-driven";
 
   return {
     durationSec,
+    durationMode,
+    durationContext: ctx,
     bpm,
     beatSync,
     structure,
@@ -209,6 +330,7 @@ export function buildAudioVisualMusicVideoPlan(audioAnalysis, imageAnalysis, for
         .join(", ") || "beat-sync music video",
     directorSettings: syncDirectorSettingsToSong(audioAnalysis, null, {
       enableI2v: Boolean(imageAnalysis),
+      durationMode,
     }),
   };
 }
@@ -225,8 +347,19 @@ function compactAudioVisualRule(audioAnalysis, imageAnalysis, plan) {
  * @param {object} imageAnalysis
  * @param {(n: number) => string} formatTimeFn
  */
-export function buildMusicVideoPatchFromAudioAndImage(audioAnalysis, imageAnalysis, formatTimeFn) {
-  const plan = buildAudioVisualMusicVideoPlan(audioAnalysis, imageAnalysis, formatTimeFn);
+export function buildMusicVideoPatchFromAudioAndImage(
+  audioAnalysis,
+  imageAnalysis,
+  formatTimeFn,
+  opts = {},
+) {
+  const durationMode = opts.durationMode || MV_DURATION_MODES.FULL;
+  const plan = buildAudioVisualMusicVideoPlan(
+    audioAnalysis,
+    imageAnalysis,
+    formatTimeFn,
+    durationMode,
+  );
   const fromAudio = mapAudioAnalysisToMusicVideo(audioAnalysis);
   const imageGenres = mapSunoGenresToVisual([
     ...(imageAnalysis?.suggestedGenres || []),
@@ -274,14 +407,20 @@ export function buildMusicVideoPatchFromAudioAndImage(audioAnalysis, imageAnalys
           structure: plan.structure,
         }) || mergeAudioHighlightIntoIdea(prev, audioAnalysis, formatTimeFn);
       const withImage = mergeImageMoodIntoIdea(base, imageAnalysis?.visualMood);
-      return `${withImage}. Full track ${formatTimeFn(plan.durationSec)} @ ${plan.bpm} BPM — beat-sync cuts${hasVocalsLikely(audioAnalysis) ? ", lip-sync on vocals" : ""}. Reference image palette drives wardrobe and grade.`;
+      const rangeLabel =
+        plan.durationMode === MV_DURATION_MODES.HIGHLIGHT
+          ? `Highlight ${formatTimeFn(plan.durationContext.rangeStart)}–${formatTimeFn(plan.durationContext.rangeEnd)} (${plan.durationSec}s)`
+          : `Full track ${formatTimeFn(plan.durationSec)}`;
+      return `${withImage}. ${rangeLabel} @ ${plan.bpm} BPM — beat-sync cuts${hasVocalsLikely(audioAnalysis) ? ", lip-sync on vocals" : ""}. Reference image palette drives wardrobe and grade.`;
     },
     notes: (prev) => {
       const audioNotes = mergeAudioHighlightIntoNotes(prev, audioAnalysis, formatTimeFn);
       const imageNote = imageAnalysis?.summary
         ? `Reference image:\n${imageAnalysis.summary}`
         : "";
-      const syncNote = `Video length synced to song: ${plan.durationSec}s (${plan.beatSync.beatCount} beats @ ${plan.bpm} BPM).`;
+      const targetLabel =
+        plan.durationMode === MV_DURATION_MODES.HIGHLIGHT ? "highlight section" : "full track";
+      const syncNote = `Video length synced to ${targetLabel}: ${plan.durationSec}s (${plan.beatSync.beatCount} beats @ ${plan.bpm} BPM).`;
       return [audioNotes, imageNote, syncNote].filter(Boolean).join("\n\n") || prev;
     },
     mood: (prev) => {

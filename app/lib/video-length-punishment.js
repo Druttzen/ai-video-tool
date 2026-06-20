@@ -2,6 +2,7 @@
  * Video length punishment — how output duration stresses hardware vs tier comfort limits.
  */
 import { classifyHardwareTier, getHardwareTierLimits } from "./director-hardware-optimize";
+import { clampMediaDurationSec } from "./media-duration-limits";
 import { loadCachedSystemStats } from "./system-stats";
 
 /** Per-tier comfortable vs max output duration (seconds). */
@@ -11,14 +12,14 @@ export const TIER_DURATION_LIMITS = {
   medium: { comfortSec: 10, idealSec: 10, maxSec: 20, pointWeight: 3 },
   high: { comfortSec: 15, idealSec: 12, maxSec: 30, pointWeight: 2.5 },
   enthusiast: { comfortSec: 20, idealSec: 15, maxSec: 45, pointWeight: 2 },
-  unlimited: { comfortSec: 30, idealSec: 20, maxSec: 60, pointWeight: 1.5 },
+  unlimited: { comfortSec: 30, idealSec: 20, maxSec: 480, pointWeight: 1.5 },
 };
 
 export function parseDurationSeconds(settings) {
   const raw = settings?.durationSeconds ?? settings?.duration ?? "10";
   const n = Number(String(raw).replace(/[^\d.]/g, ""));
   if (!Number.isFinite(n) || n <= 0) return 10;
-  return Math.min(120, Math.round(n * 10) / 10);
+  return clampMediaDurationSec(n);
 }
 
 function loadStatus(percent, overLimit) {

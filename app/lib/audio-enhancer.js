@@ -33,7 +33,7 @@ export const STUDIO_EXPORT_PRESETS = [
   },
 ];
 
-const MAX_EXPORT_DURATION_SEC = 600;
+import { MAX_MEDIA_DURATION_SEC } from "./media-duration-limits";
 
 /**
  * @param {AudioBuffer} buffer
@@ -44,9 +44,9 @@ export async function renderEnhancedAudioBuffer(buffer, presetId) {
   const preset = STUDIO_EXPORT_PRESETS.find((p) => p.id === presetId);
   if (!preset) throw new Error("Unknown preset");
 
-  if (buffer.duration > MAX_EXPORT_DURATION_SEC) {
+  if (buffer.duration > MAX_MEDIA_DURATION_SEC) {
     throw new Error(
-      `Track is longer than ${MAX_EXPORT_DURATION_SEC / 60} minutes — shorten before export`,
+      `Track is longer than ${MAX_MEDIA_DURATION_SEC / 60} minutes — shorten before export`,
     );
   }
 

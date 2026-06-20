@@ -8,7 +8,8 @@ import {
 import { buildMusicVideoPatchFromAudio } from "../lib/music-video-bridge";
 import {
   buildMusicVideoPatchFromAudioAndImage,
-  songDurationSec,
+  MV_DURATION_MODES,
+  resolveMusicVideoDurationSec,
   syncDirectorSettingsToSong,
 } from "../lib/audio-visual-music-video";
 import {
@@ -44,7 +45,7 @@ import { measureIntegratedLoudness } from "../lib/lufs-meter";
 import { exportEnhancedInWorker } from "../lib/studio-export-client";
 import { normalizeStudioExportFormat } from "../lib/audio-export-formats";
 import { resolvePolishStepIndex } from "../lib/suno-guided-workflow";
-import { scrollToPanel } from "../lib/music-video-workflows";
+import { scrollToDirectorPanelAfterApply } from "../lib/music-video-workflows";
 
 export function useAnalyzers({
   promptEngine,
@@ -353,32 +354,46 @@ export function useAnalyzers({
       return;
     }
     applyAnalyzerPatch(buildMusicVideoPatchFromAudio(audioAnalysis, formatTime));
-    setStatusWithTime("Suno track mapped to music video fields — open Director to render");
+    setStatusWithTime("Suno track mapped to music video — Director ready");
+    scrollToDirectorPanelAfterApply();
   }, [audioAnalysis, applyAnalyzerPatch, setStatusWithTime]);
 
-  const applyAudioVisualMusicVideo = useCallback(() => {
-    if (!audioAnalysis || !imageAnalysis) {
-      setStatusWithTime("Analyze both an audio track and reference image first");
-      return;
-    }
-    const patch = buildMusicVideoPatchFromAudioAndImage(
-      audioAnalysis,
-      imageAnalysis,
-      formatTime,
-    );
-    const { directorSettingsPatch, ...projectPatch } = patch;
-    applyAnalyzerPatch(projectPatch);
-    saveDirectorSettingsToStorage(
-      directorSettingsPatch || syncDirectorSettingsToSong(audioAnalysis, loadDirectorSettingsFromStorage()),
-    );
-    const durationLabel = directorSettingsPatch?.durationSeconds || String(songDurationSec(audioAnalysis));
-    setStatusWithTime(
-      `Audio + picture → beat-sync MV (${durationLabel}s) — Director ready`,
-    );
-    if (typeof window !== "undefined") {
-      window.requestAnimationFrame(() => scrollToPanel("director-panel"));
-    }
-  }, [audioAnalysis, applyAnalyzerPatch, imageAnalysis, setStatusWithTime]);
+  const applyAudioVisualMusicVideo = useCallback(
+    (durationMode = MV_DURATION_MODES.FULL) => {
+      if (!audioAnalysis || !imageAnalysis) {
+        setStatusWithTime("Analyze both an audio track and reference image first");
+        return;
+      }
+      const mode =
+        durationMode === MV_DURATION_MODES.HIGHLIGHT
+          ? MV_DURATION_MODES.HIGHLIGHT
+          : MV_DURATION_MODES.FULL;
+      const patch = buildMusicVideoPatchFromAudioAndImage(
+        audioAnalysis,
+        imageAnalysis,
+        formatTime,
+        { durationMode: mode },
+      );
+      const { directorSettingsPatch, ...projectPatch } = patch;
+      applyAnalyzerPatch(projectPatch);
+      saveDirectorSettingsToStorage(
+        directorSettingsPatch ||
+          syncDirectorSettingsToSong(audioAnalysis, loadDirectorSettingsFromStorage(), {
+            enableI2v: true,
+            durationMode: mode,
+          }),
+      );
+      const durationLabel =
+        directorSettingsPatch?.durationSeconds ||
+        String(resolveMusicVideoDurationSec(audioAnalysis, mode));
+      const targetLabel = mode === MV_DURATION_MODES.HIGHLIGHT ? "highlight" : "full track";
+      setStatusWithTime(
+        `Audio + picture → beat-sync MV (${targetLabel} ${durationLabel}s) — Director ready`,
+      );
+      scrollToDirectorPanelAfterApply();
+    },
+    [audioAnalysis, applyAnalyzerPatch, imageAnalysis, setStatusWithTime],
+  );
 
   const applyAudioToSunoStyle = useCallback(() => {
     if (!audioAnalysis) {

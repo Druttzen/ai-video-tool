@@ -1,10 +1,11 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { AudioTrackEditor } from "./audio-track-editor";
 import { DropBox, Panel } from "./ui-blocks";
 import { PanelActions } from "./panel-actions";
 import { IMAGE_ANALYZER_DISCLAIMER } from "../lib/analyzer-disclaimer";
+import { MV_DURATION_MODES } from "../lib/audio-visual-music-video";
 import {
   SUPPORTED_AUDIO_ACCEPT,
   SUPPORTED_AUDIO_LABEL,
@@ -21,6 +22,7 @@ import { useProjectWorkspace } from "../context/project-workspace-context";
 
 export const CenterAnalyzersPanel = memo(function CenterAnalyzersPanel() {
   const ws = useProjectWorkspace();
+  const [durationMode, setDurationMode] = useState(MV_DURATION_MODES.FULL);
 
   return (
     <>
@@ -139,17 +141,33 @@ export const CenterAnalyzersPanel = memo(function CenterAnalyzersPanel() {
         </div>
 
         {ws.audioAnalysis && ws.imageAnalysis ? (
-          <button
-            type="button"
-            data-testid="apply-audio-visual-music-video-analyzers"
-            onClick={() => {
-              ws.captureSnapshot("before audio + picture → music video");
-              ws.applyAudioVisualMusicVideo();
-            }}
-            className="mt-3 w-full rounded-2xl border border-emerald-400/40 bg-gradient-to-r from-emerald-500/25 to-cyan-500/20 py-3 text-sm font-bold text-emerald-50 hover:from-emerald-500/35 hover:to-cyan-500/30"
-          >
-            Build music video from audio + picture — beat sync, lip sync, full song length
-          </button>
+          <div className="mt-3 space-y-2">
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-white/45">
+                Path E duration
+              </span>
+              <select
+                data-testid="audio-visual-duration-mode"
+                value={durationMode}
+                onChange={(e) => setDurationMode(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/30 p-2 text-sm text-white outline-none focus:border-emerald-300/40"
+              >
+                <option value={MV_DURATION_MODES.FULL}>Full track (max 480s)</option>
+                <option value={MV_DURATION_MODES.HIGHLIGHT}>Highlight section only</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              data-testid="apply-audio-visual-music-video-analyzers"
+              onClick={() => {
+                ws.captureSnapshot("before audio + picture → music video");
+                ws.applyAudioVisualMusicVideo(durationMode);
+              }}
+              className="w-full rounded-2xl border border-emerald-400/40 bg-gradient-to-r from-emerald-500/25 to-cyan-500/20 py-3 text-sm font-bold text-emerald-50 hover:from-emerald-500/35 hover:to-cyan-500/30"
+            >
+              Build music video from audio + picture — beat sync, lip sync
+            </button>
+          </div>
         ) : null}
       </Panel>
 

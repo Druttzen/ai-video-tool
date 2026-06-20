@@ -12,15 +12,18 @@ import {
 const ANALYZER_FIXTURE = "tests/fixtures/e2e-analyzer-tone.wav";
 const IMAGE_FIXTURE = "tests/fixtures/e2e-analyzer-palette.png";
 
-async function dropAudioAndImage(page) {
+async function dropAudio(page) {
   const panel = analyzerPanel(page);
   await panel.scrollIntoViewIfNeeded();
-
   await panel.locator('input[type="file"][accept*="audio/wav"]').setInputFiles(ANALYZER_FIXTURE);
   await expect(panel.getByText("e2e-analyzer-tone.wav", { exact: true })).toBeVisible({
     timeout: 30000,
   });
+}
 
+async function dropAudioAndImage(page) {
+  await dropAudio(page);
+  const panel = analyzerPanel(page);
   await panel.locator('input[type="file"][accept*="image/png"]').setInputFiles(IMAGE_FIXTURE);
   await expect(panel.getByRole("img", { name: "Image preview" })).toBeVisible({ timeout: 30000 });
 }
@@ -29,7 +32,7 @@ async function expectBeatSyncMusicVideoState(page) {
   const directorSettings = await readDirectorSettings(page);
   expect(directorSettings?.useI2vWhenImage).toBe(true);
   expect(Number(directorSettings?.durationSeconds)).toBeGreaterThan(0);
-  expect(Number(directorSettings?.durationSeconds)).toBeLessThanOrEqual(120);
+  expect(Number(directorSettings?.durationSeconds)).toBeLessThanOrEqual(480);
 
   const lyricsPanel = lyricStylePanel(page);
   await lyricsPanel.scrollIntoViewIfNeeded();
@@ -71,6 +74,20 @@ test.describe("Audio + picture music video e2e", () => {
     await expectDirectorI2vExport(page);
   });
 
+  test("Path E highlight mode syncs shorter duration", async ({ page }) => {
+    await dismissSplash(page);
+    await dropAudioAndImage(page);
+
+    await analyzerPanel(page).getByTestId("audio-visual-duration-mode").selectOption("highlight");
+    await analyzerPanel(page).getByTestId("apply-audio-visual-music-video-analyzers").click();
+    await expect(page.getByTestId("action-toast")).toContainText(/highlight/i);
+
+    const directorSettings = await readDirectorSettings(page);
+    expect(directorSettings?.useI2vWhenImage).toBe(true);
+    expect(Number(directorSettings?.durationSeconds)).toBeGreaterThan(0);
+    expect(Number(directorSettings?.durationSeconds)).toBeLessThanOrEqual(480);
+  });
+
   test("Music Video Studio Path E button applies the same beat-sync plan", async ({ page }) => {
     await dismissSplash(page);
     await dropAudioAndImage(page);
@@ -81,6 +98,30 @@ test.describe("Audio + picture music video e2e", () => {
     await expect(page.getByTestId("action-toast")).toContainText(/beat-sync MV/i);
     await expect(directorPanel(page)).toBeInViewport({ timeout: 15000 });
     await expectBeatSyncMusicVideoState(page);
+  });
+
+  test("Music Video Studio shows BOTH and Audio + picture badges when ready", async ({ page }) => {
+    await dismissSplash(page);
+    await dropAudioAndImage(page);
+
+    const studio = musicVideoPanel(page);
+    await studio.scrollIntoViewIfNeeded();
+    await studio.getByTestId("music-video-suno-style").fill("Techno, 128 BPM");
+    await studio.getByTestId("music-video-suno-lyrics").fill("[Chorus]\nLift");
+
+    await expect(studio.getByTestId("mv-badge-both-ready")).toContainText("✓");
+    await expect(studio.getByTestId("mv-badge-audio-visual-ready")).toContainText("✓");
+  });
+
+  test("Path A scrolls to Director after track → video", async ({ page }) => {
+    await dismissSplash(page);
+    await dropAudio(page);
+
+    const studio = musicVideoPanel(page);
+    await studio.scrollIntoViewIfNeeded();
+    await studio.getByTestId("apply-track-to-music-video").click();
+    await expect(page.getByTestId("action-toast")).toContainText(/Director ready/i);
+    await expect(directorPanel(page)).toBeInViewport({ timeout: 15000 });
   });
 
   test("Workflow 5 run applies beat-sync plan and scrolls to Director", async ({ page }) => {
