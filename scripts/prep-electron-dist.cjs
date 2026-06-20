@@ -10,7 +10,7 @@ const path = require("path");
 const { setTimeout: delay } = require("timers/promises");
 
 const ROOT = path.join(__dirname, "..");
-const PRODUCT_EXE = "AI Video Creator.exe";
+const PRODUCT_EXE = "ai-video-tool.exe";
 const MARKER_PATH = path.join(ROOT, "build", ".electron-dist-output");
 
 function readPkg() {
