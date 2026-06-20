@@ -58,8 +58,8 @@ describe("addon-updater", () => {
     const result = syncAddonRequirements(userData);
     expect(result.ok).toBe(true);
     const lines = readRequirementsLines(result.path);
-    expect(lines.some((l) => l.startsWith("torch"))).toBe(true);
     expect(lines.some((l) => l.startsWith("gradio"))).toBe(true);
+    expect(lines.some((l) => l.startsWith("opensora"))).toBe(false);
     expect(fs.existsSync(getBundledRequirementsTemplatePath())).toBe(true);
   });
 

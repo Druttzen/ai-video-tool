@@ -57,6 +57,14 @@ export async function installToolsFromHost(payload) {
   return window.electronAPI.installTools(payload);
 }
 
+export async function openExternalUrlFromHost(url) {
+  if (!isElectronApp() || !window.electronAPI?.openExternal) {
+    if (typeof window !== "undefined" && url) window.open(url, "_blank", "noopener,noreferrer");
+    return { ok: false, error: "openExternal requires the desktop app" };
+  }
+  return window.electronAPI.openExternal(url);
+}
+
 /** @param {{ items?: { id: string, updateAvailable?: boolean, label?: string }[] }|null} report */
 export function summarizeAddonUpdateReport(report) {
   if (!report?.items?.length) return "No addon update data";

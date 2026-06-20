@@ -5,6 +5,7 @@ set -euo pipefail
 ADDONS_ROOT="${ADDONS_ROOT:-$HOME/.ai-video-creator/addons}"
 VENV_DIR="${VENV_DIR:-$ADDONS_ROOT/wsl-venv}"
 REQ_FILE="${REQ_FILE:-$ADDONS_ROOT/requirements.txt}"
+OPEN_SORA_DIR="${OPEN_SORA_DIR:-$ADDONS_ROOT/open-sora}"
 
 echo "[wsl-bootstrap] addons root: $ADDONS_ROOT"
 mkdir -p "$ADDONS_ROOT"
@@ -21,14 +22,27 @@ fi
 
 # shellcheck disable=SC1091
 source "$VENV_DIR/bin/activate"
-python -m pip install --upgrade pip wheel setuptools
+python -m pip install --upgrade pip wheel setuptools virtualenv
+
+echo "[wsl-bootstrap] installing torch (CUDA index when available)"
+if ! pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121; then
+  pip install torch torchvision torchaudio || echo "[wsl-bootstrap] WARN: torch install failed"
+fi
+
+if [ -d "$OPEN_SORA_DIR" ] && { [ -f "$OPEN_SORA_DIR/setup.py" ] || [ -f "$OPEN_SORA_DIR/pyproject.toml" ] || [ -d "$OPEN_SORA_DIR/opensora" ]; }; then
+  echo "[wsl-bootstrap] pip install -e $OPEN_SORA_DIR"
+  pip install -e "$OPEN_SORA_DIR" || echo "[wsl-bootstrap] WARN: editable Open-Sora install failed"
+fi
 
 if [ -f "$REQ_FILE" ]; then
   echo "[wsl-bootstrap] pip install -r $REQ_FILE"
-  pip install -r "$REQ_FILE"
+  pip install -r "$REQ_FILE" || echo "[wsl-bootstrap] WARN: requirements install had failures"
 else
   echo "[wsl-bootstrap] WARN: requirements.txt missing at $REQ_FILE — sync requirements addon first"
 fi
 
-python -c "import torch; print('torch', torch.__version__)"
-echo "[wsl-bootstrap] OK"
+if python -c "import torch; print('torch', torch.__version__)" 2>/dev/null; then
+  echo "[wsl-bootstrap] OK"
+else
+  echo "[wsl-bootstrap] WARN: torch import failed — WSL venv created but deps incomplete"
+fi

@@ -81,9 +81,7 @@ async function installTools({ userDataPath, addonId = null, skipScan = false } =
   }
 
   if (addonId) {
-    const scan = preScan?.items
-      ? { python: {}, ffmpeg: {}, openSora: {} }
-      : (await scanSetupEnvironment({ userDataPath: base }));
+    const scan = await scanSetupEnvironment({ userDataPath: base });
     const result = await updateAddon({ addonId, userDataPath: base, scan });
     const postScan = await scanMissingAddons({ userDataPath: base });
     return {

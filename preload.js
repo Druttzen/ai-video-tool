@@ -25,4 +25,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   scanMissingTools: (payload) => ipcRenderer.invoke("setup:scan-missing-tools", payload),
   installTools: (payload) => ipcRenderer.invoke("setup:install-tools", payload),
   getToolInstallProtocol: () => ipcRenderer.invoke("setup:tool-install-protocol"),
+  openExternal: (url) => ipcRenderer.invoke("app:open-external", url),
 });

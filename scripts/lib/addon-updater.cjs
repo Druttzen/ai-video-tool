@@ -15,7 +15,9 @@ const {
   fileExists,
   getAddonsCacheDir,
   getAddonsRoot,
+  getBundledOptionalRequirementsPath,
   getBundledRequirementsTemplatePath,
+  getManagedWslBootstrapCopyPath,
   getManagedFfmpegDir,
   getManagedModelsDir,
   getManagedNodeDir,
@@ -62,6 +64,9 @@ function compareSemver(a, b) {
   return va.patch - vb.patch;
 }
 
+const DOWNLOAD_TIMEOUT_MS = 600000;
+const PIP_Package_BLOCKLIST = new Set(["opensora", "open-sora"]);
+
 function downloadFile(url, destPath, redirectLimit = 5) {
   return new Promise((resolve, reject) => {
     if (redirectLimit <= 0) {
@@ -85,8 +90,31 @@ function downloadFile(url, destPath, redirectLimit = 5) {
       file.on("finish", () => file.close(() => resolve(destPath)));
       file.on("error", reject);
     });
+    req.setTimeout(DOWNLOAD_TIMEOUT_MS, () => {
+      req.destroy(new Error(`Download timeout after ${DOWNLOAD_TIMEOUT_MS}ms: ${url}`));
+    });
     req.on("error", reject);
   });
+}
+
+function shellQuoteBash(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function venvEnv(userDataPath) {
+  return { ...process.env, VIRTUAL_ENV: getManagedVenvDir(userDataPath) };
+}
+
+async function runPython(pythonPath, args, { timeout = 900000, userDataPath = null } = {}) {
+  await execFileAsync(pythonPath, args, {
+    timeout,
+    shell: false,
+    env: userDataPath ? venvEnv(userDataPath) : process.env,
+  });
+}
+
+function filterPipRequirementLines(lines) {
+  return lines.filter((line) => !PIP_Package_BLOCKLIST.has(packageKey(line)));
 }
 
 async function runGit(args, cwd) {
@@ -195,8 +223,8 @@ function syncAddonRequirements(userDataPath, { openSoraPath } = {}) {
     ? path.join(openSoraPath, "requirements.txt")
     : path.join(getManagedOpenSoraDir(userDataPath), "requirements.txt");
 
-  const templateLines = readRequirementsLines(templatePath);
-  const openSoraLines = readRequirementsLines(openSoraReq);
+  const templateLines = filterPipRequirementLines(readRequirementsLines(templatePath));
+  const openSoraLines = filterPipRequirementLines(readRequirementsLines(openSoraReq));
   const merged = mergeRequirementLines(templateLines, openSoraLines);
   const dest = getManagedRequirementsPath(userDataPath);
   const metaPath = getManagedRequirementsMetaPath(userDataPath);
@@ -317,8 +345,85 @@ function configureEmbedPythonPath(pythonDir) {
   let content = fs.readFileSync(pthPath, "utf8");
   if (!/^import site/m.test(content)) {
     content = content.replace(/\r?\n?$/, "\nimport site\n");
-    fs.writeFileSync(pthPath, content, "utf8");
   }
+  if (!/\.\/Lib\/site-packages/m.test(content)) {
+    content = content.replace(/\r?\n?$/, "\n./Lib/site-packages\n");
+  }
+  fs.writeFileSync(pthPath, content, "utf8");
+}
+
+function materializeWslBootstrapScript(userDataPath) {
+  const dest = getManagedWslBootstrapCopyPath(userDataPath);
+  if (fileExists(dest)) return dest;
+
+  const candidates = [
+    getWslBootstrapScriptPath(),
+    path.join(process.resourcesPath || "", "app.asar.unpacked", "scripts", "wsl-addon-bootstrap.sh"),
+    path.join(__dirname, "..", "wsl-addon-bootstrap.sh"),
+  ].filter(Boolean);
+
+  for (const src of candidates) {
+    if (fileExists(src)) {
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.copyFileSync(src, dest);
+      return dest;
+    }
+  }
+  throw new Error("wsl-addon-bootstrap.sh not found in app bundle");
+}
+
+async function installTorchInVenv(userDataPath) {
+  const venvPy = requireManagedVenvPython(userDataPath, true);
+  const args = ["-m", "pip", "install", "torch", "torchvision", "torchaudio"];
+  if (process.platform === "win32") {
+    try {
+      await runPython(
+        venvPy,
+        [...args, "--index-url", "https://download.pytorch.org/whl/cu121"],
+        { userDataPath },
+      );
+      return { ok: true, message: "torch (CUDA cu121 index)" };
+    } catch {
+      /* CPU fallback */
+    }
+  }
+  await runPython(venvPy, args, { userDataPath });
+  return { ok: true, message: "torch (default index)" };
+}
+
+async function pipInstallOpenSoraEditable(userDataPath) {
+  const venvPy = requireManagedVenvPython(userDataPath, true);
+  const target = getManagedOpenSoraDir(userDataPath);
+  if (!fileExists(target)) {
+    return { ok: true, skipped: true, message: "Open-Sora clone missing — skip editable install" };
+  }
+  const hasProject =
+    fileExists(path.join(target, "setup.py")) ||
+    fileExists(path.join(target, "pyproject.toml")) ||
+    fileExists(path.join(target, "opensora"));
+  if (!hasProject) {
+    return { ok: true, skipped: true, message: "Open-Sora project files not found — skip editable install" };
+  }
+  await runPython(venvPy, ["-m", "pip", "install", "-e", target], { userDataPath, timeout: 900000 });
+  return { ok: true, message: `pip install -e ${target}` };
+}
+
+async function pipInstallOptionalPackages(userDataPath) {
+  const optionalPath = getBundledOptionalRequirementsPath();
+  if (!fileExists(optionalPath)) return { ok: true, skipped: true };
+  const venvPy = requireManagedVenvPython(userDataPath, true);
+  const lines = filterPipRequirementLines(readRequirementsLines(optionalPath));
+  const installed = [];
+  const failed = [];
+  for (const line of lines) {
+    try {
+      await runPython(venvPy, ["-m", "pip", "install", line], { userDataPath, timeout: 900000 });
+      installed.push(packageKey(line));
+    } catch {
+      failed.push(packageKey(line));
+    }
+  }
+  return { ok: true, installed, failed, message: `Optional pip: ${installed.length} ok, ${failed.length} skipped` };
 }
 
 async function bootstrapEmbedPip(pythonExe, userDataPath, manifest) {
@@ -357,10 +462,10 @@ async function pipInstallRequirements(userDataPath, requirementsPath, { forceVen
   if (!fileExists(requirementsPath)) {
     return { ok: true, skipped: true, message: "No requirements file" };
   }
-  await execFileAsync(
+  await runPython(
     pythonPath,
     ["-m", "pip", "install", "-r", requirementsPath],
-    { timeout: 900000, shell: process.platform === "win32", env: { ...process.env, VIRTUAL_ENV: getManagedVenvDir(userDataPath) } },
+    { userDataPath, timeout: 900000 },
   );
   return { ok: true, message: `pip install -r ${path.basename(requirementsPath)} (managed venv)`, pythonPath };
 }
@@ -451,6 +556,7 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
     currentVersion: hasGit ? "installed" : null,
     latestVersion: "required",
     updateAvailable: !hasGit,
+    needsManualInstall: !hasGit,
     message: hasGit ? "Git available on PATH" : "Install Git — required for Open-Sora clone",
     installUrl: gitCfg.installUrl?.[platformKey] || gitCfg.installUrl?.win32 || null,
     managed: false,
@@ -713,19 +819,37 @@ async function updateVenv({ userDataPath, pythonPath, manifest }) {
   }
   fs.mkdirSync(path.dirname(venvDir), { recursive: true });
 
-  await execFileAsync(basePython, ["-m", "venv", venvDir], {
-    timeout: 120000,
-    shell: process.platform === "win32",
-  });
+  try {
+    await execFileAsync(basePython, ["-m", "venv", venvDir], {
+      timeout: 120000,
+      shell: false,
+    });
+  } catch (venvErr) {
+    try {
+      await execFileAsync(basePython, ["-m", "pip", "install", "virtualenv"], {
+        timeout: 180000,
+        shell: false,
+      });
+      await execFileAsync(basePython, ["-m", "virtualenv", venvDir], {
+        timeout: 120000,
+        shell: false,
+      });
+    } catch (fallbackErr) {
+      return {
+        ok: false,
+        error: fallbackErr?.message || venvErr?.message || "Failed to create venv (venv + virtualenv)",
+      };
+    }
+  }
 
   const venvPy = getVenvPythonPath(userDataPath);
   if (!fileExists(venvPy)) {
     return { ok: false, error: `venv python not found at ${venvPy}` };
   }
 
-  await execFileAsync(venvPy, ["-m", "pip", "install", "--upgrade", "pip"], {
+  await runPython(venvPy, ["-m", "pip", "install", "--upgrade", "pip", "wheel", "setuptools"], {
+    userDataPath,
     timeout: 180000,
-    shell: process.platform === "win32",
   });
 
   return {
@@ -779,12 +903,18 @@ async function updatePipDeps({ userDataPath }) {
   const reqPath = getManagedRequirementsPath(userDataPath);
 
   try {
+    const torchResult = await installTorchInVenv(userDataPath);
+    const editableResult = await pipInstallOpenSoraEditable(userDataPath);
     const pipResult = await pipInstallRequirements(userDataPath, reqPath, { forceVenv: true });
+    const optionalResult = await pipInstallOptionalPackages(userDataPath);
     return {
       ok: true,
       path: pipResult.pythonPath,
-      message: pipResult.message,
+      message: [torchResult.message, editableResult.message, pipResult.message, optionalResult.message]
+        .filter(Boolean)
+        .join(" · "),
       requirementsPath: reqPath,
+      steps: { torch: torchResult, editable: editableResult, requirements: pipResult, optional: optionalResult },
     };
   } catch (e) {
     return { ok: false, error: e?.message || "pip install failed", requirementsPath: reqPath };
@@ -829,8 +959,10 @@ async function updateGit({ manifest }) {
   }
   const url = manifest.addons.git?.installUrl?.[platformKey];
   return {
-    ok: false,
-    error: "Git must be installed manually — required before Open-Sora clone",
+    ok: true,
+    skipped: true,
+    needsManualInstall: true,
+    message: "Git must be installed manually — required before Open-Sora clone",
     installUrl: url,
   };
 }
@@ -843,7 +975,6 @@ function windowsPathToWsl(mixedPath) {
 }
 
 async function updateWsl({ userDataPath, manifest }) {
-  const wslCfg = manifest.addons.wsl;
   if (process.platform !== "win32") {
     return { ok: true, skipped: true, message: "WSL addon only applies on Windows host" };
   }
@@ -855,18 +986,17 @@ async function updateWsl({ userDataPath, manifest }) {
 
   const addonsRoot = getAddonsRoot(userDataPath);
   const wslAddons = windowsPathToWsl(addonsRoot);
-  const scriptHost = getWslBootstrapScriptPath();
+  const scriptHost = materializeWslBootstrapScript(userDataPath);
   const wslScript = windowsPathToWsl(scriptHost);
 
-  await execFileAsync(
-    "wsl",
-    [
-      "bash",
-      "-lc",
-      `ADDONS_ROOT='${wslAddons}' VENV_DIR='${wslAddons}/wsl-venv' REQ_FILE='${wslAddons}/requirements.txt' bash '${wslScript}'`,
-    ],
-    { timeout: 900000, shell: true },
-  );
+  const bashCmd = [
+    `ADDONS_ROOT=${shellQuoteBash(wslAddons)}`,
+    `VENV_DIR=${shellQuoteBash(`${wslAddons}/wsl-venv`)}`,
+    `REQ_FILE=${shellQuoteBash(`${wslAddons}/requirements.txt`)}`,
+    `bash ${shellQuoteBash(wslScript)}`,
+  ].join(" ");
+
+  await execFileAsync("wsl", ["bash", "-lc", bashCmd], { timeout: 900000, shell: false });
 
   const wslPy = getWslVenvPythonPath(userDataPath);
   return {
@@ -953,7 +1083,7 @@ async function updateModels({ userDataPath, manifest }) {
   const min = manifest.addons.models?.minimumArtifacts ?? 1;
 
   return {
-    ok: count >= min || downloads.length === 0,
+    ok: count >= min,
     path: modelsDir,
     count,
     message:
@@ -1040,7 +1170,16 @@ async function updateAllAddons(params) {
     if (addonId === "git" && !(await gitAvailable())) {
       const gitResult = await updateGit({ manifest });
       results.push({ id: addonId, ...gitResult });
-      if (manifest.protocol?.stopOnFirstFailure !== false) break;
+      continue;
+    }
+
+    if (addonId === "open-sora" && !(await gitAvailable())) {
+      results.push({
+        id: addonId,
+        ok: true,
+        skipped: true,
+        message: "Install Git first — Open-Sora clone requires git on PATH",
+      });
       continue;
     }
 

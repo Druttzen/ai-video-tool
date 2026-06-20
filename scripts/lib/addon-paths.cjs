@@ -44,8 +44,12 @@ function getManagedRequirementsMetaPath(userDataPath) {
   return path.join(getAddonsRoot(userDataPath), "requirements.meta.json");
 }
 
-function getBundledRequirementsTemplatePath() {
-  return path.join(__dirname, "..", "..", "data", "addon-requirements.txt");
+function getBundledOptionalRequirementsPath() {
+  return path.join(__dirname, "..", "..", "data", "addon-requirements-optional.txt");
+}
+
+function getManagedWslBootstrapCopyPath(userDataPath) {
+  return path.join(getAddonsCacheDir(userDataPath), "wsl-addon-bootstrap.sh");
 }
 
 function getBundledManifestPath() {
@@ -92,11 +96,22 @@ function fileExists(target) {
   return Boolean(target && fs.existsSync(target));
 }
 
+function getBundledRequirementsTemplatePath() {
+  return path.join(__dirname, "..", "..", "data", "addon-requirements.txt");
+}
+
+function isModelArtifactName(name) {
+  const lower = String(name || "").toLowerCase();
+  if (!lower || lower.startsWith(".")) return false;
+  if (lower === "readme.txt" || lower === "readme.md" || lower === ".gitkeep") return false;
+  return true;
+}
+
 function countModelArtifacts(modelsDir) {
   if (!fileExists(modelsDir)) return 0;
   let count = 0;
   for (const entry of fs.readdirSync(modelsDir, { withFileTypes: true })) {
-    if (entry.name.startsWith(".")) continue;
+    if (!isModelArtifactName(entry.name)) continue;
     count += 1;
   }
   return count;
@@ -122,7 +137,10 @@ module.exports = {
   getAddonsCacheDir,
   getAddonsRoot,
   getBundledManifestPath,
+  getBundledOptionalRequirementsPath,
   getBundledRequirementsTemplatePath,
+  getManagedWslBootstrapCopyPath,
+  isModelArtifactName,
   getManagedFfmpegDir,
   getManagedModelsDir,
   getManagedNodeDir,

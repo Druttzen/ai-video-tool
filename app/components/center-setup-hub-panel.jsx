@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel } from "./ui-blocks";
 import { PanelActions } from "./panel-actions";
 import { useProjectWorkspace } from "../context/project-workspace-context";
@@ -24,6 +24,7 @@ import { isElectronApp } from "../lib/electron-bridge";
 import {
   checkAddonUpdatesFromHost,
   loadAddonAutoUpdateSetting,
+  openExternalUrlFromHost,
   saveAddonAutoUpdateSetting,
   summarizeAddonUpdateReport,
   updateAddonFromHost,
@@ -56,6 +57,8 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
   const [addonReport, setAddonReport] = useState(null);
   const [autoUpdateAddons, setAutoUpdateAddons] = useState(true);
   const [addonBusy, setAddonBusy] = useState(false);
+  const skipAutoUpdateRef = useRef(false);
+  const forceManaged = Boolean(scan?.forceManaged);
 
   const modules = getSetupHubModules();
   const summary = useMemo(() => summarizeSetupScan(scan), [scan]);
@@ -126,7 +129,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
     [applyAddonUpdatePaths, checkAddons, ws],
   );
 
-  const runScan = useCallback(async () => {
+  const runScan = useCallback(async ({ skipAutoUpdate = false } = {}) => {
     setBusy(true);
     try {
       const directorSettings = loadDirectorSettingsFromStorage();
@@ -138,13 +141,16 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
       });
       if (result?.scan) {
         setScan(result.scan);
-        if (isElectronApp()) await runAddonAutoUpdate(result.scan);
+        if (isElectronApp() && !skipAutoUpdate && !skipAutoUpdateRef.current) {
+          await runAddonAutoUpdate(result.scan);
+        }
       }
       ws.setStatusWithTime(
         result?.ok ? `Setup scan — ${summarizeSetupScan(result.scan).label}` : result?.error || "Scan failed",
         result?.ok ? "info" : "warning",
       );
     } finally {
+      skipAutoUpdateRef.current = false;
       setBusy(false);
     }
   }, [ws, runAddonAutoUpdate]);
@@ -228,10 +234,11 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
   const onInstallAllTools = async () => {
     setAddonBusy(true);
     try {
+      skipAutoUpdateRef.current = true;
       const batch = await installToolsFromHost({});
       if (batch?.postScan?.items) setAddonReport({ ok: batch.postScan.ok, checkedAt: batch.postScan.scannedAt, items: batch.postScan.items });
       if (batch?.results) applyAddonUpdatePaths(batch.results);
-      await runScan();
+      await runScan({ skipAutoUpdate: true });
       ws.setStatusWithTime(batch?.ok ? "Tool install finished" : "Some tools failed to install", batch?.ok ? "info" : "warning");
     } finally {
       setAddonBusy(false);
@@ -241,21 +248,28 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
   const onUpdateAllAddons = async () => {
     setAddonBusy(true);
     try {
+      skipAutoUpdateRef.current = true;
       const batch = await updateAllAddonsFromHost({
         openSoraInstallPath: linkPath || loadOpenSoraSettingsFromStorage().installPath,
         directorSettings: loadDirectorSettingsFromStorage(),
       });
       if (batch?.results) applyAddonUpdatePaths(batch.results);
-      await runScan();
+      await runScan({ skipAutoUpdate: true });
       ws.setStatusWithTime(batch?.ok ? "Addon updates finished — rescan complete" : "Some addon updates failed", batch?.ok ? "info" : "warning");
     } finally {
       setAddonBusy(false);
     }
   };
 
-  const onUpdateOneAddon = async (addonId) => {
+  const onUpdateOneAddon = async (addonId, item) => {
+    if (item?.needsManualInstall && item?.installUrl) {
+      await openExternalUrlFromHost(item.installUrl);
+      ws.setStatusWithTime("Opened Git installer — install Git then run Update all addons", "info");
+      return;
+    }
     setAddonBusy(true);
     try {
+      skipAutoUpdateRef.current = true;
       const result = await updateAddonFromHost({
         addonId,
         scan,
@@ -263,7 +277,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
         directorSettings: loadDirectorSettingsFromStorage(),
       });
       applyAddonUpdatePaths([{ id: addonId, ...result }]);
-      await runScan();
+      await runScan({ skipAutoUpdate: true });
       ws.setStatusWithTime(result?.message || result?.error || "Addon update", result?.ok ? "info" : "warning");
     } finally {
       setAddonBusy(false);
@@ -315,7 +329,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
         <button
           type="button"
           disabled={busy}
-          onClick={runScan}
+          onClick={() => runScan()}
           className="rounded-xl border border-cyan-400/35 bg-cyan-500/15 px-4 py-2 text-xs font-bold uppercase tracking-wide text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-40"
           data-testid="setup-hub-scan"
         >
@@ -401,15 +415,27 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
                   <div className="text-xs text-white/45">{item.message}</div>
                 </div>
                 {item.updateAvailable ? (
-                  <button
-                    type="button"
-                    disabled={addonBusy}
-                    onClick={() => onUpdateOneAddon(item.id)}
-                    className="rounded-lg border border-violet-400/30 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-violet-100 hover:bg-violet-500/20 disabled:opacity-40"
-                    data-testid={`setup-hub-update-addon-${item.id}`}
-                  >
-                    Update
-                  </button>
+                  item.needsManualInstall && item.installUrl ? (
+                    <button
+                      type="button"
+                      disabled={addonBusy}
+                      onClick={() => onUpdateOneAddon(item.id, item)}
+                      className="rounded-lg border border-amber-400/30 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-100 hover:bg-amber-500/20 disabled:opacity-40"
+                      data-testid={`setup-hub-install-addon-${item.id}`}
+                    >
+                      Install
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={addonBusy}
+                      onClick={() => onUpdateOneAddon(item.id, item)}
+                      className="rounded-lg border border-violet-400/30 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-violet-100 hover:bg-violet-500/20 disabled:opacity-40"
+                      data-testid={`setup-hub-update-addon-${item.id}`}
+                    >
+                      Update
+                    </button>
+                  )
                 ) : (
                   <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-200/80">OK</span>
                 )}
@@ -486,25 +512,35 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
       </div>
 
       <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
-        <div className="text-xs font-bold uppercase tracking-wider text-white/45">Managed Open-Sora path (read-only default)</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-white/45">
+          {forceManaged ? "Managed Open-Sora path (AppData)" : "Open-Sora install path"}
+        </div>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <input
             value={linkPath}
             onChange={(e) => setLinkPath(e.target.value)}
+            readOnly={forceManaged}
             placeholder={getDefaultOpenSoraInstallPath()}
-            className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/30 p-3 text-sm text-white outline-none focus:border-cyan-300"
+            className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/30 p-3 text-sm text-white outline-none focus:border-cyan-300 read-only:opacity-70"
             data-testid="setup-hub-link-path"
           />
-          <button
-            type="button"
-            disabled={!linkPath.trim()}
-            onClick={onLinkOpenSora}
-            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white/80 hover:bg-white/10 disabled:opacity-40"
-            data-testid="setup-hub-link-open-sora"
-          >
-            Link path
-          </button>
+          {!forceManaged ? (
+            <button
+              type="button"
+              disabled={!linkPath.trim()}
+              onClick={onLinkOpenSora}
+              className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white/80 hover:bg-white/10 disabled:opacity-40"
+              data-testid="setup-hub-link-open-sora"
+            >
+              Link path
+            </button>
+          ) : null}
         </div>
+        {forceManaged ? (
+          <div className="mt-2 text-xs text-white/45">
+            Managed mode — Open-Sora is installed under AppData via Setup Hub. Custom paths are ignored.
+          </div>
+        ) : null}
       </div>
     </Panel>
   );

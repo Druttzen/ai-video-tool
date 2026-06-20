@@ -857,6 +857,17 @@ function setupOpenSoraIpc() {
 }
 
 function setupAppIpc() {
+  ipcMain.handle("app:open-external", async (_event, url) => {
+    try {
+      const target = String(url || "").trim();
+      if (!target) return { ok: false, error: "URL required" };
+      await shell.openExternal(target);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e?.message || "openExternal failed" };
+    }
+  });
+
   ipcMain.handle("app:confirm-action", async (_event, payload) => {
     try {
       const message = String(payload?.message || "Are you sure?");

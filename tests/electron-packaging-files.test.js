@@ -17,6 +17,7 @@ const SETUP_HUB_MAIN_SCRIPTS = [
 const SETUP_HUB_DATA_FILES = [
   "data/addon-updates-manifest.json",
   "data/addon-requirements.txt",
+  "data/addon-requirements-optional.txt",
   "data/setup-hub-manifest.json",
 ];
 
@@ -45,10 +46,11 @@ describe("electron packaging files", () => {
     }
   });
 
-  it("ships version 1.0.11 with Setup Hub manifest v2", () => {
+  it("ships version 1.0.12 with Setup Hub manifest v2 and WSL script unpack", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-    expect(pkg.version).toBe("1.0.11");
+    expect(pkg.version).toBe("1.0.12");
+    expect((pkg.build?.asarUnpack || []).some((entry) => entry.includes("wsl-addon-bootstrap"))).toBe(true);
     const hub = JSON.parse(fs.readFileSync(path.join(root, "data/setup-hub-manifest.json"), "utf8"));
     expect(hub.version).toBe("2.0.0");
     expect(hub.modules.some((m) => m.id === "git")).toBe(true);
