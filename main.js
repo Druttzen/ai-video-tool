@@ -543,17 +543,42 @@ function setupAddonUpdaterIpc() {
   });
 
   ipcMain.handle("setup:install-tools", async (_event, payload) => {
+    const userDataPath = app.getPath("userData");
+    const bulkInstall = !payload?.addonId;
+    const useProgressConsole = bulkInstall || Boolean(payload?.forcePipeline);
+    let progressConsole = null;
+
     try {
+      if (useProgressConsole) {
+        const { createProgressReporter } = require("./scripts/lib/setup-hub-console.cjs");
+        progressConsole = createProgressReporter(userDataPath, { version: pkg.version, openConsole: true });
+      }
+
       const result = await installTools({
-        userDataPath: app.getPath("userData"),
+        userDataPath,
         addonId: payload?.addonId || null,
         skipScan: Boolean(payload?.skipScan),
-        forcePipeline: payload?.forcePipeline ?? !payload?.addonId,
+        forcePipeline: payload?.forcePipeline ?? bulkInstall,
         forceReinstall: Boolean(payload?.forceReinstall),
+        onProgress: progressConsole ? (progress) => progressConsole.report(progress) : undefined,
       });
+
+      if (progressConsole) {
+        const summary = result?.postScan?.summary || result?.safe?.summary;
+        progressConsole.finish({
+          ok: Boolean(result?.ok),
+          message: summary || (result?.ok ? "Tool install finished." : "Tool install finished with errors."),
+        });
+      }
+
       return result;
     } catch (e) {
-      return { ok: false, error: e?.message || "tool install failed" };
+      const message = e?.message || "tool install failed";
+      if (progressConsole) {
+        progressConsole.report({ phase: "error", message, ok: false });
+        progressConsole.finish({ ok: false, message });
+      }
+      return { ok: false, error: message };
     }
   });
 

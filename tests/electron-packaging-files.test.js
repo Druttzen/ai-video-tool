@@ -70,10 +70,17 @@ describe("electron packaging files", () => {
     expect(pkg.build?.nsis?.runAfterFinish).toBe(false);
   });
 
-  it("ships version 1.0.15 with Setup Hub manifest v2 and WSL script unpack", () => {
+  it("release workflow builds setup-hub exe before electron-builder", () => {
+    const root = path.join(import.meta.dirname, "..");
+    const releaseYml = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
+    expect(releaseYml).toMatch(/build:setup-hub-exe/);
+    expect(releaseYml).toMatch(/prepare:electron-dist/);
+  });
+
+  it("ships version 1.0.16 with Setup Hub manifest v2 and WSL script unpack", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-    expect(pkg.version).toBe("1.0.15");
+    expect(pkg.version).toBe("1.0.16");
     expect((pkg.build?.asarUnpack || []).some((entry) => entry.includes("wsl-addon-bootstrap"))).toBe(true);
     const hub = JSON.parse(fs.readFileSync(path.join(root, "data/setup-hub-manifest.json"), "utf8"));
     expect(hub.version).toBe("2.0.0");

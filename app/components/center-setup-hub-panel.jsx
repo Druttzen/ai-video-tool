@@ -249,13 +249,20 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
     setAddonBusy(true);
     try {
       skipAutoUpdateRef.current = true;
-      const batch = await updateAllAddonsFromHost({
-        openSoraInstallPath: linkPath || loadOpenSoraSettingsFromStorage().installPath,
-        directorSettings: loadDirectorSettingsFromStorage(),
-      });
+      const batch = await installToolsFromHost({ forcePipeline: false });
+      if (batch?.postScan?.items) {
+        setAddonReport({
+          ok: batch.postScan.ok,
+          checkedAt: batch.postScan.scannedAt,
+          items: batch.postScan.items,
+        });
+      }
       if (batch?.results) applyAddonUpdatePaths(batch.results);
       await runScan({ skipAutoUpdate: true });
-      ws.setStatusWithTime(batch?.ok ? "Addon updates finished — rescan complete" : "Some addon updates failed", batch?.ok ? "info" : "warning");
+      ws.setStatusWithTime(
+        batch?.ok ? "Addon updates finished — rescan complete" : "Some addon updates failed",
+        batch?.ok ? "info" : "warning",
+      );
     } finally {
       setAddonBusy(false);
     }
