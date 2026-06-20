@@ -7,14 +7,16 @@ const { defaultOpenSoraPath } = require("./open-sora-paths.cjs");
 const {
   fileExists,
   getManagedModelsDir,
+  countModelArtifacts,
   getManagedRequirementsPath,
   getManagedVenvDir,
   getVenvPythonPath,
   getWslVenvPythonPath,
 } = require("./addon-paths.cjs");
-const { gitAvailable, wslAvailable } = require("./addon-platform.cjs");
+const { gitAvailable, probeWslPythonModule, wslAvailable, wslVenvExists } = require("./addon-platform.cjs");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
+const { execLocal } = require("./process-exec.cjs");
 
 const execFileAsync = promisify(execFile);
 
@@ -38,9 +40,8 @@ function resolveBundledResource(resourcesPath, relativePath) {
 async function probePythonExecutable(pythonPath) {
   const target = String(pythonPath || "").trim() || "python";
   try {
-    const { stdout } = await execFileAsync(target, ["--version"], {
+    const { stdout } = await execLocal(target, ["--version"], {
       timeout: 8000,
-      shell: process.platform === "win32",
     });
     const raw = String(stdout || "").trim();
     return {
@@ -56,11 +57,7 @@ async function probePythonExecutable(pythonPath) {
 
 async function probePythonModule(pythonPath, moduleName) {
   try {
-    await execFileAsync(
-      pythonPath,
-      ["-c", `import ${moduleName}`],
-      { timeout: 15000, shell: process.platform === "win32" },
-    );
+    await execLocal(pythonPath, ["-c", `import ${moduleName}`], { timeout: 15000 });
     return true;
   } catch {
     return false;
@@ -70,10 +67,7 @@ async function probePythonModule(pythonPath, moduleName) {
 async function probeFfmpegExecutable(ffmpegPath) {
   const target = String(ffmpegPath || "").trim() || "ffmpeg";
   try {
-    await execFileAsync(target, ["-version"], {
-      timeout: 5000,
-      shell: process.platform === "win32",
-    });
+    await execLocal(target, ["-version"], { timeout: 5000 });
     return { ok: true, path: target, bundled: false };
   } catch (e) {
     return { ok: false, path: target, error: e?.message || "ffmpeg not found" };
@@ -247,8 +241,12 @@ async function scanSetupEnvironment({
   };
 
   const modelsPath = userDataPath ? getManagedModelsDir(userDataPath) : null;
+  const modelCount = modelsPath && fileExists(modelsPath) ? countModelArtifacts(modelsPath) : 0;
+  const modelsReady =
+    Boolean(modelsPath && fileExists(modelsPath)) &&
+    (modelCount > 0 || fileExists(path.join(modelsPath, "README.txt")));
   const models = {
-    ok: fileExists(modelsPath) && fs.readdirSync(modelsPath).some((n) => !n.startsWith(".")),
+    ok: modelsReady,
     path: modelsPath,
     managed: true,
   };
@@ -272,11 +270,16 @@ async function scanSetupEnvironment({
     const wslOk = await wslAvailable();
     wsl.available = wslOk;
     const wslPy = getWslVenvPythonPath(userDataPath || "");
-    if (wslOk && fileExists(wslPy)) {
-      const torchOk = await probePythonModule(wslPy, "torch");
-      wsl = { ok: torchOk, available: true, path: wslPy, managed: true };
+    if (wslOk) {
+      const wslProbe = await wslVenvExists(userDataPath || "");
+      if (wslProbe) {
+        const torchOk = await probeWslPythonModule(userDataPath || "", "torch");
+        wsl = { ok: torchOk, available: true, path: wslPy, managed: true };
+      } else {
+        wsl = { ok: false, available: true, path: wslPy, managed: true };
+      }
     } else {
-      wsl = { ok: false, available: wslOk, path: wslPy, managed: true };
+      wsl = { ok: false, available: false, path: wslPy, managed: true };
     }
   }
 

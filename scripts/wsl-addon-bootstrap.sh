@@ -22,11 +22,16 @@ fi
 
 # shellcheck disable=SC1091
 source "$VENV_DIR/bin/activate"
-python -m pip install --upgrade pip wheel setuptools virtualenv
 
-echo "[wsl-bootstrap] installing torch (CUDA index when available)"
-if ! pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121; then
-  pip install torch torchvision torchaudio || echo "[wsl-bootstrap] WARN: torch install failed"
+if python -c "import torch" 2>/dev/null; then
+  echo "[wsl-bootstrap] torch already present: $(python -c 'import torch; print(torch.__version__)')"
+else
+  python -m pip install --upgrade pip wheel setuptools virtualenv
+
+  echo "[wsl-bootstrap] installing torch (CUDA index when available)"
+  if ! pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121; then
+    pip install torch torchvision torchaudio || echo "[wsl-bootstrap] WARN: torch install failed"
+  fi
 fi
 
 if [ -d "$OPEN_SORA_DIR" ] && { [ -f "$OPEN_SORA_DIR/setup.py" ] || [ -f "$OPEN_SORA_DIR/pyproject.toml" ] || [ -d "$OPEN_SORA_DIR/opensora" ]; }; then

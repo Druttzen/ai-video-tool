@@ -10,6 +10,7 @@ import {
   normalizeHostScan,
   readRequirementsLines,
   syncAddonRequirements,
+  updateAddon,
 } from "../scripts/lib/addon-updater.cjs";
 import { getBundledRequirementsTemplatePath } from "../scripts/lib/addon-paths.cjs";
 import { getInstallProtocol, scanMissingAddons, runSafeScan } from "../scripts/lib/tool-installer.cjs";
@@ -67,6 +68,19 @@ describe("addon-updater", () => {
     const manifest = loadAddonManifest();
     expect(manifest.addons.ffmpeg.builds.win32.url).toContain("/releases/download/latest/");
     expect(manifest.addons.ffmpeg.builds.linux.url).toContain("linux64");
+  });
+
+  it("updateModels initializes placeholder folder when manifest has no downloads", async () => {
+    const userData = fs.mkdtempSync(path.join(os.tmpdir(), "ai-video-models-ph-"));
+    const result = await updateAddon({ addonId: "models", userDataPath: userData });
+    expect(result.ok).toBe(true);
+    const report = await checkAddonUpdates({
+      scan: {},
+      userDataPath: userData,
+      openSoraPath: "",
+    });
+    const models = report.items.find((i) => i.id === "models");
+    expect(models?.updateAvailable).toBe(false);
   });
 });
 

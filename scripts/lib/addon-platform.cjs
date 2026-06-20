@@ -1,20 +1,38 @@
 /**
  * Platform detection for managed addon installs (Windows, Linux, macOS, WSL).
  */
-const fs = require("fs");
-const { execFile } = require("child_process");
+const path = require("path");
+const { execFile, spawn } = require("child_process");
 const { promisify } = require("util");
+const { execLocal } = require("./process-exec.cjs");
+const { getAddonsRoot, getManagedWslVenvDir } = require("./addon-paths.cjs");
 
 const execFileAsync = promisify(execFile);
+const WSL_BOOTSTRAP_TIMEOUT_MS = 1800000;
+
+function normalizeUnixScript(content) {
+  return String(content || "").replace(/\r/g, "");
+}
+
+function shellQuoteBash(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function windowsPathToWsl(mixedPath) {
+  const normalized = path.resolve(mixedPath).replace(/\\/g, "/");
+  const match = normalized.match(/^([A-Za-z]):\/*(.*)/);
+  if (!match) return normalized;
+  return `/mnt/${match[1].toLowerCase()}/${match[2]}`;
+}
 
 async function wslAvailable() {
   if (process.platform !== "win32") return false;
   try {
-    await execFileAsync("wsl", ["--status"], { timeout: 8000, shell: true });
+    await execLocal("wsl", ["--status"], { timeout: 8000 });
     return true;
   } catch {
     try {
-      await execFileAsync("wsl", ["-l", "-v"], { timeout: 8000, shell: true });
+      await execLocal("wsl", ["-l", "-v"], { timeout: 8000 });
       return true;
     } catch {
       return false;
@@ -22,9 +40,105 @@ async function wslAvailable() {
   }
 }
 
+async function wslVenvExists(userDataPath) {
+  if (process.platform !== "win32") return false;
+  const wslVenv = windowsPathToWsl(getManagedWslVenvDir(userDataPath));
+  const cmd = [
+    `test -x ${shellQuoteBash(`${wslVenv}/bin/python`)}`,
+    `|| test -x ${shellQuoteBash(`${wslVenv}/bin/python3`)}`,
+  ].join(" ");
+  try {
+    await execLocal("wsl", ["bash", "-lc", cmd], { timeout: 15000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function probeWslPythonModule(userDataPath, moduleName = "torch") {
+  if (process.platform !== "win32") return false;
+  const wslVenv = windowsPathToWsl(getManagedWslVenvDir(userDataPath));
+  const activate = `${wslVenv}/bin/activate`;
+  const cmd = [
+    `test -f ${shellQuoteBash(activate)}`,
+    `&& . ${shellQuoteBash(activate)}`,
+    `&& python -c ${shellQuoteBash(`import ${moduleName}`)}`,
+  ].join(" ");
+  try {
+    await execLocal("wsl", ["bash", "-lc", cmd], { timeout: 90000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Run the WSL bootstrap script via stdin so CRLF on /mnt/c cached copies cannot break bash.
+ * @param {object} params
+ * @param {string} params.userDataPath
+ * @param {string} params.scriptContent
+ * @param {string} [params.openSoraPath]
+ * @param {number} [params.timeout]
+ */
+async function runWslBootstrap({
+  userDataPath,
+  scriptContent,
+  openSoraPath,
+  timeout = WSL_BOOTSTRAP_TIMEOUT_MS,
+}) {
+  if (process.platform !== "win32") {
+    throw new Error("WSL bootstrap only runs on Windows");
+  }
+
+  const normalized = normalizeUnixScript(scriptContent);
+  const addonsRoot = windowsPathToWsl(getAddonsRoot(userDataPath));
+  const wslVenv = `${addonsRoot}/wsl-venv`;
+  const reqFile = `${addonsRoot}/requirements.txt`;
+  const openSora = windowsPathToWsl(openSoraPath || path.join(getAddonsRoot(userDataPath), "open-sora"));
+  const prelude = [
+    `export ADDONS_ROOT=${shellQuoteBash(addonsRoot)}`,
+    `export VENV_DIR=${shellQuoteBash(wslVenv)}`,
+    `export REQ_FILE=${shellQuoteBash(reqFile)}`,
+    `export OPEN_SORA_DIR=${shellQuoteBash(openSora)}`,
+  ].join("; ");
+
+  return new Promise((resolve, reject) => {
+    const child = spawn("wsl", ["bash", "-lc", `${prelude}; exec bash -s`], {
+      shell: false,
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true,
+    });
+
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+    child.stdin.write(normalized, "utf8");
+    child.stdin.end();
+
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error(`WSL bootstrap timeout after ${timeout}ms`));
+    }, timeout);
+
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code === 0) {
+        resolve({ ok: true });
+        return;
+      }
+      reject(new Error(stderr.trim() || `WSL bootstrap exited with code ${code}`));
+    });
+  });
+}
+
 async function gitAvailable() {
   try {
-    await execFileAsync("git", ["--version"], { timeout: 5000, shell: process.platform === "win32" });
+    await execLocal("git", ["--version"], { timeout: 5000 });
     return true;
   } catch {
     return false;
@@ -63,11 +177,18 @@ function shellForPlatform(effectivePlatform) {
 }
 
 module.exports = {
+  WSL_BOOTSTRAP_TIMEOUT_MS,
   gitAvailable,
   manifestPlatformKey,
   nodeExecutableName,
+  normalizeUnixScript,
   npmExecutableName,
+  probeWslPythonModule,
   resolveEffectivePlatform,
+  runWslBootstrap,
   shellForPlatform,
+  shellQuoteBash,
+  windowsPathToWsl,
   wslAvailable,
+  wslVenvExists,
 };

@@ -10,6 +10,7 @@ const http = require("http");
 const crypto = require("crypto");
 const { execFile, spawn } = require("child_process");
 const { promisify } = require("util");
+const { execLocal } = require("./process-exec.cjs");
 const {
   countModelArtifacts,
   fileExists,
@@ -35,7 +36,11 @@ const {
 const {
   gitAvailable,
   manifestPlatformKey,
+  normalizeUnixScript,
+  probeWslPythonModule,
+  runWslBootstrap,
   wslAvailable,
+  wslVenvExists,
 } = require("./addon-platform.cjs");
 
 const execFileAsync = promisify(execFile);
@@ -97,10 +102,6 @@ function downloadFile(url, destPath, redirectLimit = 5) {
   });
 }
 
-function shellQuoteBash(value) {
-  return `'${String(value).replace(/'/g, `'\\''`)}'`;
-}
-
 function venvEnv(userDataPath) {
   return { ...process.env, VIRTUAL_ENV: getManagedVenvDir(userDataPath) };
 }
@@ -118,10 +119,9 @@ function filterPipRequirementLines(lines) {
 }
 
 async function runGit(args, cwd) {
-  return execFileAsync("git", args, {
+  return execLocal("git", args, {
     cwd,
     timeout: 120000,
-    shell: process.platform === "win32",
   });
 }
 
@@ -156,9 +156,8 @@ async function extractZip(zipPath, destDir) {
 
 async function extractTarArchive(archivePath, destDir, flags) {
   fs.mkdirSync(destDir, { recursive: true });
-  await execFileAsync("tar", [...flags, archivePath, "-C", destDir], {
+  await execLocal("tar", [...flags, archivePath, "-C", destDir], {
     timeout: 300000,
-    shell: process.platform === "win32",
   });
 }
 
@@ -277,11 +276,16 @@ function requirementsNeedsSync(userDataPath) {
 
 async function probePythonModule(pythonPath, moduleName) {
   try {
-    await execFileAsync(
-      pythonPath,
-      ["-c", `import ${moduleName}`],
-      { timeout: 15000, shell: process.platform === "win32" },
-    );
+    await execLocal(pythonPath, ["-c", `import ${moduleName}`], { timeout: 15000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function probePipAvailable(pythonPath) {
+  try {
+    await execLocal(pythonPath, ["-m", "pip", "--version"], { timeout: 60000 });
     return true;
   } catch {
     return false;
@@ -292,10 +296,7 @@ async function probePythonExecutable(pythonPath) {
   const target = String(pythonPath || "").trim();
   if (!target) return { ok: false, error: "Python path empty" };
   try {
-    const { stdout } = await execFileAsync(target, ["--version"], {
-      timeout: 8000,
-      shell: process.platform === "win32",
-    });
+    const { stdout } = await execLocal(target, ["--version"], { timeout: 8000 });
     const raw = String(stdout || "").trim();
     return {
       ok: true,
@@ -352,10 +353,7 @@ function configureEmbedPythonPath(pythonDir) {
   fs.writeFileSync(pthPath, content, "utf8");
 }
 
-function materializeWslBootstrapScript(userDataPath) {
-  const dest = getManagedWslBootstrapCopyPath(userDataPath);
-  if (fileExists(dest)) return dest;
-
+function readWslBootstrapScriptContent() {
   const candidates = [
     getWslBootstrapScriptPath(),
     path.join(process.resourcesPath || "", "app.asar.unpacked", "scripts", "wsl-addon-bootstrap.sh"),
@@ -364,12 +362,18 @@ function materializeWslBootstrapScript(userDataPath) {
 
   for (const src of candidates) {
     if (fileExists(src)) {
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
-      fs.copyFileSync(src, dest);
-      return dest;
+      return normalizeUnixScript(fs.readFileSync(src, "utf8"));
     }
   }
   throw new Error("wsl-addon-bootstrap.sh not found in app bundle");
+}
+
+function materializeWslBootstrapScript(userDataPath, scriptContent) {
+  const dest = getManagedWslBootstrapCopyPath(userDataPath);
+  const content = normalizeUnixScript(scriptContent ?? readWslBootstrapScriptContent());
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, content, "utf8");
+  return dest;
 }
 
 async function installTorchInVenv(userDataPath) {
@@ -479,11 +483,11 @@ async function bootstrapEmbedPip(pythonExe, userDataPath, manifest) {
   const embed = manifest.addons.python.embed?.[platformKey];
   if (!embed?.getPipUrl) {
     try {
-      await execFileAsync(pythonExe, ["-m", "ensurepip", "--upgrade"], {
-        timeout: 120000,
-        shell: process.platform === "win32",
-      });
-      return { ok: true, message: "ensurepip" };
+      await execLocal(pythonExe, ["-m", "ensurepip", "--upgrade"], { timeout: 120000 });
+      if (await probePipAvailable(pythonExe)) {
+        return { ok: true, message: "ensurepip" };
+      }
+      return { ok: false, error: "ensurepip finished but pip is still unavailable" };
     } catch (e) {
       return { ok: false, error: e?.message || "ensurepip failed" };
     }
@@ -493,11 +497,24 @@ async function bootstrapEmbedPip(pythonExe, userDataPath, manifest) {
   fs.mkdirSync(cacheDir, { recursive: true });
   const getPipPath = path.join(cacheDir, "get-pip.py");
   await downloadFile(embed.getPipUrl, getPipPath);
-  await execFileAsync(pythonExe, [getPipPath], {
-    timeout: 180000,
-    shell: process.platform === "win32",
-  });
+  await execLocal(pythonExe, [getPipPath], { timeout: 180000 });
+  if (platformKey === "win32") {
+    configureEmbedPythonPath(path.dirname(pythonExe));
+  }
+  if (!(await probePipAvailable(pythonExe))) {
+    return { ok: false, error: "get-pip.py finished but pip is still unavailable" };
+  }
   return { ok: true, message: "get-pip.py" };
+}
+
+async function ensureEmbedPip(pythonExe, userDataPath, manifest) {
+  if (await probePipAvailable(pythonExe)) {
+    return { ok: true, message: "pip already available" };
+  }
+  if (process.platform === "win32") {
+    configureEmbedPythonPath(path.dirname(pythonExe));
+  }
+  return bootstrapEmbedPip(pythonExe, userDataPath, manifest);
 }
 
 async function pipInstallRequirements(userDataPath, requirementsPath, { forceVenv = true } = {}) {
@@ -617,7 +634,7 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
   let nodeVersion = null;
   if (hasNode) {
     try {
-      const { stdout } = await execFileAsync(nodeExe, ["--version"], { timeout: 5000, shell: process.platform === "win32" });
+      const { stdout } = await execLocal(nodeExe, ["--version"], { timeout: 5000 });
       nodeVersion = String(stdout || "").trim().replace(/^v/, "");
     } catch {
       /* ignore */
@@ -646,19 +663,22 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
     managedPyDir && embed ? resolveEmbedExecutable(managedPyDir, { executable: embed.executable || "python.exe" }) : null;
   const hasManagedEmbed = Boolean(managedExe && fileExists(managedExe));
   const embedProbe = hasManagedEmbed ? await probePythonExecutable(managedExe) : { ok: false };
+  const embedPipOk = embedProbe.ok ? await probePipAvailable(managedExe) : false;
 
   items.push({
     id: "python",
     label: pyManifest.label,
-    installed: hasManagedEmbed && embedProbe.ok,
+    installed: hasManagedEmbed && embedProbe.ok && embedPipOk,
     currentVersion: embedProbe.ok ? embedProbe.version : null,
     latestVersion: embed?.version || pyManifest.recommendedVersion,
-    updateAvailable: !hasManagedEmbed || !embedProbe.ok,
+    updateAvailable: !hasManagedEmbed || !embedProbe.ok || !embedPipOk,
     message: !hasManagedEmbed
       ? "Managed Python embed not installed — use Update all addons"
-      : embedProbe.ok
-        ? `Managed embed ${embedProbe.version}`
-        : embedProbe.error || "Managed embed broken",
+      : !embedProbe.ok
+        ? embedProbe.error || "Managed embed broken"
+        : !embedPipOk
+          ? "Managed embed missing pip — run Install Addons to bootstrap get-pip"
+          : `Managed embed ${embedProbe.version}`,
     path: managedExe || null,
     managed: true,
   });
@@ -759,17 +779,22 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
   const modelCount = countModelArtifacts(modelsDir);
   const minModels = manifest.addons.models?.minimumArtifacts ?? 1;
   const modelDownloads = manifest.addons.models?.downloads || [];
+  const modelsPlaceholderOnly = modelDownloads.length === 0;
+  const modelsReady = modelsPlaceholderOnly
+    ? fileExists(modelsDir) && fileExists(path.join(modelsDir, "README.txt"))
+    : modelCount >= minModels;
   items.push({
     id: "models",
     label: manifest.addons.models.label,
-    installed: modelCount >= minModels,
-    currentVersion: modelCount ? `${modelCount} artifact(s)` : null,
-    latestVersion: modelDownloads.length ? `${modelDownloads.length} configured` : `${minModels}+ artifact(s)`,
-    updateAvailable: modelCount < minModels,
-    message:
-      modelCount >= minModels
+    installed: modelsReady,
+    currentVersion: modelCount ? `${modelCount} artifact(s)` : modelsReady ? "folder ready" : null,
+    latestVersion: modelDownloads.length ? `${modelDownloads.length} configured` : "placeholder folder",
+    updateAvailable: !modelsReady,
+    message: modelsReady
+      ? modelCount
         ? `Models cache ready (${modelCount} items)`
-        : "Models folder empty — add weights or configure downloads in manifest",
+        : "Models folder ready — add checkpoint weights when needed"
+      : "Models folder empty — run Install Addons to initialize",
     path: modelsDir,
     managed: true,
   });
@@ -778,8 +803,8 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
     const wslCfg = manifest.addons.wsl;
     const wslOk = await wslAvailable();
     const wslPy = getWslVenvPythonPath(userDataPath);
-    const wslProbe = fileExists(wslPy);
-    const wslTorch = wslProbe ? await probePythonModule(wslPy, wslCfg.probeModule || "torch") : false;
+    const wslProbe = wslOk ? await wslVenvExists(userDataPath) : false;
+    const wslTorch = wslProbe ? await probeWslPythonModule(userDataPath, wslCfg.probeModule || "torch") : false;
     items.push({
       id: "wsl",
       label: wslCfg.label || "WSL2 Linux stack",
@@ -839,6 +864,16 @@ async function updatePythonEmbed({ userDataPath, manifest }) {
     pipBootstrap = { ok: false, error: e?.message || "pip bootstrap failed" };
   }
 
+  if (!pipBootstrap.ok || !(await probePipAvailable(exePath))) {
+    return {
+      ok: false,
+      path: exePath,
+      version: embed.version,
+      error: pipBootstrap.error || "pip bootstrap failed — managed embed has no pip",
+      pipBootstrap,
+    };
+  }
+
   return {
     ok: true,
     path: exePath,
@@ -861,6 +896,11 @@ async function updateVenv({ userDataPath, pythonPath, manifest }) {
     return { ok: false, error: "Managed Python embed required before creating venv" };
   }
 
+  const pipReady = await ensureEmbedPip(basePython, userDataPath, manifest);
+  if (!pipReady.ok) {
+    return { ok: false, error: pipReady.error || "pip required before creating venv" };
+  }
+
   const venvDir = getManagedVenvDir(userDataPath);
   if (fileExists(venvDir)) {
     fs.rmSync(venvDir, { recursive: true, force: true });
@@ -868,19 +908,16 @@ async function updateVenv({ userDataPath, pythonPath, manifest }) {
   fs.mkdirSync(path.dirname(venvDir), { recursive: true });
 
   try {
-    await execFileAsync(basePython, ["-m", "venv", venvDir], {
+    await execLocal(basePython, ["-m", "venv", venvDir], {
       timeout: 120000,
-      shell: false,
     });
   } catch (venvErr) {
     try {
-      await execFileAsync(basePython, ["-m", "pip", "install", "virtualenv"], {
+      await execLocal(basePython, ["-m", "pip", "install", "virtualenv"], {
         timeout: 180000,
-        shell: false,
       });
-      await execFileAsync(basePython, ["-m", "virtualenv", venvDir], {
+      await execLocal(basePython, ["-m", "virtualenv", venvDir], {
         timeout: 120000,
-        shell: false,
       });
     } catch (fallbackErr) {
       return {
@@ -1019,13 +1056,6 @@ async function updateGit({ manifest }) {
   };
 }
 
-function windowsPathToWsl(mixedPath) {
-  const normalized = path.resolve(mixedPath).replace(/\\/g, "/");
-  const match = normalized.match(/^([A-Za-z]):\/*(.*)/);
-  if (!match) return normalized;
-  return `/mnt/${match[1].toLowerCase()}/${match[2]}`;
-}
-
 async function updateWsl({ userDataPath, manifest }) {
   if (process.platform !== "win32") {
     return { ok: true, skipped: true, message: "WSL addon only applies on Windows host" };
@@ -1034,27 +1064,44 @@ async function updateWsl({ userDataPath, manifest }) {
     return { ok: false, error: "WSL2 not available — enable WSL or skip this addon" };
   }
 
+  const probeModule = manifest.addons.wsl?.probeModule || "torch";
+  const wslPy = getWslVenvPythonPath(userDataPath);
+  if ((await wslVenvExists(userDataPath)) && (await probeWslPythonModule(userDataPath, probeModule))) {
+    return {
+      ok: true,
+      skipped: true,
+      path: wslPy,
+      message: "WSL Linux venv already ready",
+    };
+  }
+
   syncAddonRequirements(userDataPath, { openSoraPath: getManagedOpenSoraDir(userDataPath) });
 
-  const addonsRoot = getAddonsRoot(userDataPath);
-  const wslAddons = windowsPathToWsl(addonsRoot);
-  const scriptHost = materializeWslBootstrapScript(userDataPath);
-  const wslScript = windowsPathToWsl(scriptHost);
+  const scriptContent = readWslBootstrapScriptContent();
+  materializeWslBootstrapScript(userDataPath, scriptContent);
 
-  const bashCmd = [
-    `ADDONS_ROOT=${shellQuoteBash(wslAddons)}`,
-    `VENV_DIR=${shellQuoteBash(`${wslAddons}/wsl-venv`)}`,
-    `REQ_FILE=${shellQuoteBash(`${wslAddons}/requirements.txt`)}`,
-    `bash ${shellQuoteBash(wslScript)}`,
-  ].join(" ");
+  let bootstrapError = null;
+  try {
+    await runWslBootstrap({
+      userDataPath,
+      scriptContent,
+      openSoraPath: getManagedOpenSoraDir(userDataPath),
+    });
+  } catch (err) {
+    bootstrapError = err?.message || "WSL bootstrap failed";
+  }
 
-  await execFileAsync("wsl", ["bash", "-lc", bashCmd], { timeout: 900000, shell: false });
-
-  const wslPy = getWslVenvPythonPath(userDataPath);
+  const wslReady = await wslVenvExists(userDataPath);
+  const wslTorch = wslReady ? await probeWslPythonModule(userDataPath, probeModule) : false;
   return {
-    ok: fileExists(wslPy),
+    ok: wslReady && wslTorch,
     path: wslPy,
-    message: fileExists(wslPy) ? "WSL Linux venv + pip deps bootstrapped" : "WSL bootstrap finished but venv missing",
+    error: wslReady && wslTorch ? undefined : bootstrapError || undefined,
+    message: wslTorch
+      ? "WSL Linux venv + pip deps bootstrapped"
+      : wslReady
+        ? "WSL venv created but torch import failed"
+        : bootstrapError || "WSL bootstrap finished but venv missing",
   };
 }
 
@@ -1133,9 +1180,10 @@ async function updateModels({ userDataPath, manifest }) {
 
   const count = countModelArtifacts(modelsDir);
   const min = manifest.addons.models?.minimumArtifacts ?? 1;
+  const placeholderOnly = downloads.length === 0;
 
   return {
-    ok: count >= min,
+    ok: placeholderOnly ? true : count >= min,
     path: modelsDir,
     count,
     message:

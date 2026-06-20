@@ -1,2 +1,3 @@
 *.ico binary
 *.pdf binary
+scripts/wsl-addon-bootstrap.sh text eol=lf
