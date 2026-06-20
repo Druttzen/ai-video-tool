@@ -22,8 +22,8 @@ $dynamic = Get-ChildItem -LiteralPath $Root -Directory -ErrorAction SilentlyCont
 
 $targets = @($targets + $dynamic | Select-Object -Unique)
 
-Write-Host "Stopping AI Music Creator..."
-taskkill /F /IM "AI Music Creator.exe" 2>$null | Out-Null
+Write-Host "Stopping AI Video Creator..."
+taskkill /F /IM "ai-video-tool.exe" 2>$null | Out-Null
 Start-Sleep -Seconds 2
 
 $remaining = @()

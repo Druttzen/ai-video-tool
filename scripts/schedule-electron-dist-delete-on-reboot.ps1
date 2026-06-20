@@ -31,8 +31,8 @@ public static class WinMove {
 }
 "@
 
-Write-Host "Stopping AI Music Creator before scheduling..."
-taskkill /F /IM "AI Music Creator.exe" 2>$null | Out-Null
+Write-Host "Stopping AI Video Creator before scheduling..."
+taskkill /F /IM "ai-video-tool.exe" 2>$null | Out-Null
 Start-Sleep -Seconds 2
 
 $scheduled = 0

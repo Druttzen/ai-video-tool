@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -23,8 +23,9 @@
     "build": "next build",
     "electron": "electron .",
     "build:readme-pdf": "node scripts/generate-readme-pdf.cjs",
+    "build:installer-license": "node scripts/generate-installer-license.cjs",
     "prepare:electron-dist": "node scripts/prep-electron-dist.cjs",
-    "dist": "npm run build && npm run build:readme-pdf && npm run prepare:electron-dist && node scripts/run-electron-builder.cjs"
+    "dist": "npm run build && npm run build:readme-pdf && npm run build:installer-license && npm run prepare:electron-dist && node scripts/run-electron-builder.cjs"
   },
   "dependencies": {
     "electron-updater": "^6.8.3",
@@ -74,7 +75,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "license": "build/LICENSE.txt",
+      "shortcutName": "AI Video Creator",
+      "uninstallDisplayName": "AI Video Creator"
     },
     "publish": [
       {

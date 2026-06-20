@@ -22,7 +22,8 @@
 # production
 /build/*
 !/build/
-!/build/AI_Music_Creator_README.pdf
+!/build/AI_Video_Creator_README.pdf
+!/build/LICENSE.txt
 
 # Windows installer / local packaging output (rebuild with npm run dist)
 /dist/

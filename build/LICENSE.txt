@@ -1,0 +1,22 @@
+AI VIDEO CREATOR v1.0.2
+Created by DJ M@D
+
+FEATURES:
+- Video Prompt Studio
+- Director Engine (Create / Render / Advanced)
+- Visual craft controls (camera, lens, lighting, color grade)
+- Music video paths A–E (track, paste, BOTH, manuscript, audio + picture)
+- Path E beat-sync, lip-sync scaffold, full/highlight duration (max 480s)
+- Drag & Drop Audio + Image Analyzers
+- Director and Sora-like prompt engines
+- Presets, variations, and project history
+- Co-Producer AI and manuscript chat
+- Export prompts and jobs to any video AI
+- Save / Export / Import project JSON
+- Desktop auto-update (Windows)
+
+IMPORTANT:
+This tool creates prompts and job exports. Final video results depend on your AI video engine and optional local render pipeline.
+
+FRAME THE SCENE.
+DIRECT THE VISION.
