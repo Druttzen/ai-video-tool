@@ -101,6 +101,18 @@ install_linux_optional_deps() {
 
 install_linux_optional_deps
 
+setup_triton_ptxas_symlink() {
+  local tool_dir="${HOME}/.ai-video-creator/wsl-tools"
+  local ptxas_src="${VENV_DIR}/lib/python3.12/site-packages/triton/backends/nvidia/bin/ptxas"
+  if [ ! -f "$ptxas_src" ]; then
+    return 0
+  fi
+  mkdir -p "$tool_dir"
+  ln -sf "$ptxas_src" "$tool_dir/ptxas"
+  echo "[wsl-bootstrap] triton ptxas symlink: $tool_dir/ptxas"
+}
+setup_triton_ptxas_symlink || true
+
 if python -c "import torch; print('torch', torch.__version__)" 2>/dev/null; then
   export LD_LIBRARY_PATH="${HOME}/.tensornvme/lib:${LD_LIBRARY_PATH:-}"
   python -c "import colossalai" 2>/dev/null && echo "[wsl-bootstrap] colossalai OK" || echo "[wsl-bootstrap] WARN: colossalai import failed"

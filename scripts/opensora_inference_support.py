@@ -9,6 +9,23 @@ from pathlib import Path
 _STUB_ROOT = Path(__file__).resolve().parent / "opensora-stub-paths"
 
 
+def _is_wsl_env() -> bool:
+    try:
+        with open("/proc/version", encoding="utf-8") as f:
+            return "microsoft" in f.read().lower()
+    except OSError:
+        return False
+
+
+def opensora_wsl_inference_extras(python: str) -> list[str]:
+    """CLI overrides for WSL when spaced AppData paths break Triton/ptxas (liger-kernel)."""
+    if not _is_wsl_env():
+        return []
+    if " " not in str(python):
+        return []
+    return ["--model.use_liger_rope", "False"]
+
+
 def _python_can_import(python: str, module: str) -> bool:
     result = subprocess.run(
         [python, "-c", f"import {module}"],
@@ -49,9 +66,23 @@ def resolve_torchrun(python: str) -> str:
     return str(candidate)
 
 
+def _wsl_triton_ptxas_path() -> str | None:
+    candidate = Path.home() / ".ai-video-creator" / "wsl-tools" / "ptxas"
+    return str(candidate) if candidate.is_file() else None
+
+
 def opensora_subprocess_env(python: str, base: dict | None = None) -> dict:
     """Prepend only the stub paths needed for missing optional Open-Sora deps."""
     env = dict(base or os.environ)
+    if _is_wsl_env():
+        env.setdefault("NCCL_P2P_DISABLE", "1")
+        env.setdefault("NCCL_IB_DISABLE", "1")
+        env.setdefault("TORCHDYNAMO_DISABLE", "1")
+        env.setdefault("TORCH_COMPILE_DISABLE", "1")
+        env.setdefault("TRITON_CACHE_DIR", "/tmp/triton-cache")
+        ptxas = _wsl_triton_ptxas_path()
+        if ptxas:
+            env.setdefault("TRITON_PTXAS_PATH", ptxas)
     home = env.get("HOME") or str(Path.home())
     tensornvme_lib = f"{home}/.tensornvme/lib"
     if tensornvme_lib not in (env.get("LD_LIBRARY_PATH") or ""):

@@ -13,7 +13,11 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
-from opensora_inference_support import opensora_inference_argv, opensora_subprocess_env
+from opensora_inference_support import (
+    opensora_inference_argv,
+    opensora_subprocess_env,
+    opensora_wsl_inference_extras,
+)
 
 VIDEO_EXTS = {".mp4", ".mov", ".webm", ".mkv", ".gif"}
 
@@ -127,10 +131,13 @@ def main() -> int:
     if job.get("refinePrompt"):
         inference_args.append("--refine-prompt")
 
-    if job.get("offload", True):
-        inference_args.extend(["--offload", "True"])
-
     python = job.get("pythonPath") or sys.executable
+
+    if job.get("offload", True):
+        inference_args.extend(["--offload_model", "True"])
+
+    inference_args.extend(opensora_wsl_inference_extras(python))
+
     cmd = opensora_inference_argv(python, inference_args)
 
     print("=== AI Video Creator → Open-Sora 2.0 ===")
