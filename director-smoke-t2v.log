@@ -1,0 +1,374 @@
+=== GPU before ===
+memory.used [MiB], memory.free [MiB]
+607 MiB, 11391 MiB
+=== starting director smoke ===
+=== AI Video Creator · Director Engine · local render ===
+Resolution: 256px · Config: configs/diffusion/inference/256px.py
+Estimated build: ~120s
+[BUILD_PROGRESS] 5 Pipeline starting (optional GPU deps stubbed)
+[06/21/26 00:32:50] INFO     colossalai - colossalai - INFO:                    
+                             /mnt/c/Users/micke/AppData/Roaming/AI Video        
+                             Creator/addons/wsl-venv/lib/python3.12/site-package
+                             s/colossalai/initialize.py:75 launch               
+                    INFO     colossalai - colossalai - INFO: Distributed        
+                             environment is initialized, world size: 1          
+[[34m2026-06-21 00:32:50[0m] Inference configuration:
+ {'ae': {'from_pretrained': './ckpts/hunyuan_vae.safetensors',
+        'in_channels': 3,
+        'latent_channels': 16,
+        'layers_per_block': 2,
+        'out_channels': 3,
+        'type': 'hunyuan_vae',
+        'use_spatial_tiling': True,
+        'use_temporal_tiling': False},
+ 'aspect_ratio': '16:9',
+ 'batch_size': 1,
+ 'clip': {'from_pretrained': './ckpts/openai/clip-vit-large-patch14',
+          'max_length': 77,
+          'type': 'text_embedder'},
+ 'cond_type': 't2v',
+ 'config_path': 'configs/diffusion/inference/256px.py',
+ 'dataset': {'type': 'text'},
+ 'dtype': 'bf16',
+ 'fps_save': 24,
+ 'model': {'axes_dim': [16, 56, 56],
+           'cond_embed': True,
+           'context_in_dim': 4096,
+           'depth': 19,
+           'depth_single_blocks': 38,
+           'from_pretrained': './ckpts/Open_Sora_v2.safetensors',
+           'fused_qkv': False,
+           'guidance_embed': False,
+           'hidden_size': 3072,
+           'in_channels': 64,
+           'mlp_ratio': 4.0,
+           'num_heads': 24,
+           'qkv_bias': True,
+           'theta': 10000,
+           'type': 'flux',
+           'use_liger_rope': True,
+           'vec_in_dim': 768},
+ 'motion_score': '4',
+ 'offload_model': True,
+ 'prompt': 'Smoke test — neon alley courier at night, cinematic 10s clip',
+ 'resolution': '256px',
+ 'sampling_option': {'aspect_ratio': '16:9',
+                     'guidance': 7.5,
+                     'guidance_img': 3.0,
+                     'image_osci': True,
+                     'is_causal_vae': True,
+                     'method': 'i2v',
+                     'num_frames': 65,
+                     'num_steps': 40,
+                     'resolution': '256px',
+                     'scale_temporal_osci': True,
+                     'seed': None,
+                     'shift': True,
+                     'temporal_reduction': 4,
+                     'text_osci': True},
+ 'save_dir': 'outputs',
+ 'seed': 1994617,
+ 't5': {'from_pretrained': './ckpts/google/t5-v1_1-xxl',
+        'max_length': 512,
+        'shardformer': True,
+        'type': 'text_embedder'}}
+[[34m2026-06-21 00:32:50[0m] Building dataset...
+[[34m2026-06-21 00:32:51[0m] Dataset contains 1 samples.
+[[34m2026-06-21 00:32:51[0m] Building models...
+[[34m2026-06-21 00:32:52[0m] Loading checkpoint from ./ckpts/Open_Sora_v2.safetensors
+[[34m2026-06-21 00:35:30[0m] Model loaded successfully
+[[34m2026-06-21 00:35:36[0m] Loading checkpoint from ./ckpts/hunyuan_vae.safetensors
+[[34m2026-06-21 00:35:40[0m] Model loaded successfully
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:35<00:35, 35.28s/it]Loading checkpoint shards: 100%|██████████| 2/2 [01:12<00:00, 36.45s/it]Loading checkpoint shards: 100%|██████████| 2/2 [01:12<00:00, 36.27s/it]
+[[34m2026-06-21 00:36:55[0m] CUDA max memory max memory allocated at build model: 31.7 GB
+[[34m2026-06-21 00:36:55[0m] CUDA max memory max memory reserved at build model: 32.1 GB
+Inference progress:   0%|          | 0/1 [00:00<?, ?it/s][[34m2026-06-21 00:36:55[0m] Generating video...
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] Error in subprocess
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] concurrent.futures.process._RemoteTraceback: 
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] """
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] Traceback (most recent call last):
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/triton/backends/nvidia/compiler.py", line 292, in make_cubin
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     subprocess.run(cmd, shell=True, check=True)
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     raise CalledProcessError(retcode, process.args,
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] subprocess.CalledProcessError: Command '/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/triton/backends/nvidia/bin/ptxas -lineinfo -v --gpu-name=sm_89 /tmp/tmpc5wxiz_l.ptx -o /tmp/tmpc5wxiz_l.ptx.o 2> /tmp/tmpop2rpv6l.log' returned non-zero exit status 127.
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] 
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] During handling of the above exception, another exception occurred:
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] 
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] Traceback (most recent call last):
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/usr/lib/python3.12/concurrent/futures/process.py", line 263, in _process_worker
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     r = call_item.fn(*call_item.args, **call_item.kwargs)
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/compile_worker/subproc_pool.py", line 218, in do_job
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     result = job()
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]              ^^^^^
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/runtime/compile_tasks.py", line 69, in _worker_compile_triton
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     load_kernel().precompile(warm_cache_only=True)
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/runtime/triton_heuristics.py", line 232, in precompile
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     compiled_binary, launcher = self._precompile_config(
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/runtime/triton_heuristics.py", line 416, in _precompile_config
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     triton.compile(*compile_args, **compile_kwargs),
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/triton/compiler/compiler.py", line 282, in compile
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     next_module = compile_ir(module, metadata)
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/triton/backends/nvidia/compiler.py", line 320, in <lambda>
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     stages["cubin"] = lambda src, metadata: self.make_cubin(src, metadata, options, self.capability)
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/triton/backends/nvidia/compiler.py", line 302, in make_cubin
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     raise RuntimeError(f'`ptxas` failed with error code {e.returncode}: \n{log}')
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] RuntimeError: `ptxas` failed with error code 127: 
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] /bin/sh: 1: /mnt/c/Users/micke/AppData/Roaming/AI: not found
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] 
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] """
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] 
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] The above exception was the direct cause of the following exception:
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] 
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] Traceback (most recent call last):
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/compile_worker/subproc_pool.py", line 203, in callback
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     result = future.result()
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]              ^^^^^^^^^^^^^^^
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/usr/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     return self.__get_result()
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]            ^^^^^^^^^^^^^^^^^^^
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]   File "/usr/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205]     raise self._exception
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] RuntimeError: `ptxas` failed with error code 127: 
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] /bin/sh: 1: /mnt/c/Users/micke/AppData/Roaming/AI: not found
+E0621 00:37:47.110000 140336665892544 torch/_inductor/compile_worker/subproc_pool.py:205] 
+Inference progress:   0%|          | 0/1 [00:51<?, ?it/s]
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/scripts/diffusion/inference.py", line 245, in <module>
+[rank0]:     main()
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/scripts/diffusion/inference.py", line 226, in main
+[rank0]:     x = api_fn(
+[rank0]:         ^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/utils/sampling.py", line 684, in api_fn
+[rank0]:     x = denoiser.denoise(
+[rank0]:         ^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/utils/sampling.py", line 196, in denoise
+[rank0]:     pred = model(
+[rank0]:            ^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/models/mmdit/model.py", line 220, in forward_ckpt
+[rank0]:     img, txt, vec, pe = self.prepare_block_inputs(
+[rank0]:                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/models/mmdit/model.py", line 182, in prepare_block_inputs
+[rank0]:     vec = self.time_in(timestep_embedding(timesteps, 256))
+[rank0]:                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/eval_frame.py", line 433, in _fn
+[rank0]:     return fn(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 1116, in __call__
+[rank0]:     return self._torchdynamo_orig_callable(
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 948, in __call__
+[rank0]:     result = self._inner_convert(
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 472, in __call__
+[rank0]:     return _compile(
+[rank0]:            ^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_utils_internal.py", line 84, in wrapper_function
+[rank0]:     return StrobelightCompileTimeProfiler.profile_compile_time(
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_strobelight/compile_time_profiler.py", line 129, in profile_compile_time
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/usr/lib/python3.12/contextlib.py", line 81, in inner
+[rank0]:     return func(*args, **kwds)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 817, in _compile
+[rank0]:     guarded_code = compile_inner(code, one_graph, hooks, transform)
+[rank0]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 231, in time_wrapper
+[rank0]:     r = func(*args, **kwargs)
+[rank0]:         ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 636, in compile_inner
+[rank0]:     out_code = transform_code_object(code, transform)
+[rank0]:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/bytecode_transformation.py", line 1185, in transform_code_object
+[rank0]:     transformations(instructions, code_options)
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 178, in _fn
+[rank0]:     return fn(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py", line 582, in transform
+[rank0]:     tracer.run()
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 2451, in run
+[rank0]:     super().run()
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 893, in run
+[rank0]:     while self.step():
+[rank0]:           ^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 805, in step
+[rank0]:     self.dispatch_table[inst.opcode](self, inst)
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 497, in wrapper
+[rank0]:     return handle_graph_break(self, inst, speculation.reason)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/symbolic_convert.py", line 566, in handle_graph_break
+[rank0]:     self.output.compile_subgraph(self, reason=reason)
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/output_graph.py", line 1123, in compile_subgraph
+[rank0]:     self.compile_and_call_fx_graph(tx, pass2.graph_output_vars(), root)
+[rank0]:   File "/usr/lib/python3.12/contextlib.py", line 81, in inner
+[rank0]:     return func(*args, **kwds)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/output_graph.py", line 1318, in compile_and_call_fx_graph
+[rank0]:     compiled_fn = self.call_user_compiler(gm)
+[rank0]:                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 231, in time_wrapper
+[rank0]:     r = func(*args, **kwargs)
+[rank0]:         ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/output_graph.py", line 1409, in call_user_compiler
+[rank0]:     raise BackendCompilerFailed(self.compiler_fn, e).with_traceback(
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/output_graph.py", line 1390, in call_user_compiler
+[rank0]:     compiled_fn = compiler_fn(gm, self.example_inputs())
+[rank0]:                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/repro/after_dynamo.py", line 129, in __call__
+[rank0]:     compiled_gm = compiler_fn(gm, example_inputs)
+[rank0]:                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/__init__.py", line 1951, in __call__
+[rank0]:     return compile_fx(model_, inputs_, config_patches=self.config)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/usr/lib/python3.12/contextlib.py", line 81, in inner
+[rank0]:     return func(*args, **kwds)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/compile_fx.py", line 1261, in compile_fx
+[rank0]:     return compile_fx(
+[rank0]:            ^^^^^^^^^^^
+[rank0]:   File "/usr/lib/python3.12/contextlib.py", line 81, in inner
+[rank0]:     return func(*args, **kwds)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/compile_fx.py", line 1505, in compile_fx
+[rank0]:     return aot_autograd(
+[rank0]:            ^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/backends/common.py", line 69, in __call__
+[rank0]:     cg = aot_module_simplified(gm, example_inputs, **self.kwargs)
+[rank0]:          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_functorch/aot_autograd.py", line 954, in aot_module_simplified
+[rank0]:     compiled_fn, _ = create_aot_dispatcher_function(
+[rank0]:                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 231, in time_wrapper
+[rank0]:     r = func(*args, **kwargs)
+[rank0]:         ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_functorch/aot_autograd.py", line 687, in create_aot_dispatcher_function
+[rank0]:     compiled_fn, fw_metadata = compiler_fn(
+[rank0]:                                ^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_functorch/_aot_autograd/jit_compile_runtime_wrappers.py", line 168, in aot_dispatch_base
+[rank0]:     compiled_fw = compiler(fw_module, updated_flat_args)
+[rank0]:                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 231, in time_wrapper
+[rank0]:     r = func(*args, **kwargs)
+[rank0]:         ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/compile_fx.py", line 1410, in fw_compiler_base
+[rank0]:     return inner_compile(
+[rank0]:            ^^^^^^^^^^^^^^
+[rank0]:   File "/usr/lib/python3.12/contextlib.py", line 81, in inner
+[rank0]:     return func(*args, **kwds)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/repro/after_aot.py", line 84, in debug_wrapper
+[rank0]:     inner_compiled_fn = compiler_fn(gm, example_inputs)
+[rank0]:                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/debug.py", line 304, in inner
+[rank0]:     return fn(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/usr/lib/python3.12/contextlib.py", line 81, in inner
+[rank0]:     return func(*args, **kwds)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/usr/lib/python3.12/contextlib.py", line 81, in inner
+[rank0]:     return func(*args, **kwds)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 231, in time_wrapper
+[rank0]:     r = func(*args, **kwargs)
+[rank0]:         ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/compile_fx.py", line 527, in compile_fx_inner
+[rank0]:     compiled_graph = fx_codegen_and_compile(
+[rank0]:                      ^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/usr/lib/python3.12/contextlib.py", line 81, in inner
+[rank0]:     return func(*args, **kwds)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/compile_fx.py", line 831, in fx_codegen_and_compile
+[rank0]:     compiled_fn = graph.compile_to_fn()
+[rank0]:                   ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/graph.py", line 1749, in compile_to_fn
+[rank0]:     return self.compile_to_module().call
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_dynamo/utils.py", line 231, in time_wrapper
+[rank0]:     r = func(*args, **kwargs)
+[rank0]:         ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/graph.py", line 1699, in compile_to_module
+[rank0]:     mod = PyCodeCache.load_by_key_path(
+[rank0]:           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/codecache.py", line 3062, in load_by_key_path
+[rank0]:     mod = _reload_python_module(key, path)
+[rank0]:           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/runtime/compile_tasks.py", line 45, in _reload_python_module
+[rank0]:     exec(code, mod.__dict__, mod.__dict__)
+[rank0]:   File "/tmp/torchinductor_micke/xt/cxtajriza3vue7jsr5g62j6zgjz4kkqqbifgt6uyesahyvbvh5uz.py", line 67, in <module>
+[rank0]:     async_compile.wait(globals())
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/async_compile.py", line 247, in wait
+[rank0]:     scope[key] = result.result()
+[rank0]:                  ^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/_inductor/codecache.py", line 3421, in result
+[rank0]:     result = self.future.result()
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/usr/lib/python3.12/concurrent/futures/_base.py", line 456, in result
+[rank0]:     return self.__get_result()
+[rank0]:            ^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/usr/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+[rank0]:     raise self._exception
+[rank0]: torch._dynamo.exc.BackendCompilerFailed: backend='inductor' raised:
+[rank0]: RuntimeError: `ptxas` failed with error code 127: 
+[rank0]: /bin/sh: 1: /mnt/c/Users/micke/AppData/Roaming/AI: not found
+
+
+[rank0]: Set TORCH_LOGS="+dynamo" and TORCHDYNAMO_VERBOSE=1 for more information
+
+
+[rank0]: You can suppress this exception and fall back to eager by setting:
+[rank0]:     import torch._dynamo
+[rank0]:     torch._dynamo.config.suppress_errors = True
+
+E0621 00:37:51.509000 139729715392832 torch/distributed/elastic/multiprocessing/api.py:833] failed (exitcode: 1) local_rank: 0 (pid: 1395) of binary: /mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/bin/python3
+Traceback (most recent call last):
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/bin/torchrun", line 8, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 348, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/run.py", line 901, in main
+    run(args)
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/run.py", line 892, in run
+    elastic_launch(
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/launcher/api.py", line 133, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/launcher/api.py", line 264, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+scripts/diffusion/inference.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-06-21_00:37:51
+  host      : ComhemNetHub417895.localdomain
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 1395)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+[BUILD_PROGRESS] 99 Render failed (code 1)

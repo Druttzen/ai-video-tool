@@ -1,0 +1,177 @@
+=== GPU before ===
+memory.used [MiB], memory.free [MiB]
+471 MiB, 11527 MiB
+=== starting director smoke ===
+=== AI Video Creator · Director Engine · local render ===
+Resolution: 256px · Config: configs/diffusion/inference/t2i2v_256px.py
+Estimated build: ~120s
+[BUILD_PROGRESS] 5 Pipeline starting (optional GPU deps stubbed)
+[W621 00:20:04.981765988 CUDAAllocatorConfig.h:28] Warning: expandable_segments not supported on this platform (function operator())
+[06/21/26 00:20:16] INFO     colossalai - colossalai - INFO:                    
+                             /mnt/c/Users/micke/AppData/Roaming/AI Video        
+                             Creator/addons/wsl-venv/lib/python3.12/site-package
+                             s/colossalai/initialize.py:75 launch               
+                    INFO     colossalai - colossalai - INFO: Distributed        
+                             environment is initialized, world size: 1          
+[[34m2026-06-21 00:20:16[0m] Inference configuration:
+ {'ae': {'from_pretrained': './ckpts/hunyuan_vae.safetensors',
+        'in_channels': 3,
+        'latent_channels': 16,
+        'layers_per_block': 2,
+        'out_channels': 3,
+        'type': 'hunyuan_vae',
+        'use_spatial_tiling': True,
+        'use_temporal_tiling': False},
+ 'aspect_ratio': '16:9',
+ 'batch_size': 1,
+ 'clip': {'from_pretrained': './ckpts/openai/clip-vit-large-patch14',
+          'max_length': 77,
+          'type': 'text_embedder'},
+ 'cond_type': 't2v',
+ 'config_path': 'configs/diffusion/inference/t2i2v_256px.py',
+ 'dataset': {'type': 'text'},
+ 'dtype': 'bf16',
+ 'fps_save': 24,
+ 'img_flux': {'axes_dim': [16, 56, 56],
+              'cond_embed': False,
+              'context_in_dim': 4096,
+              'depth': 19,
+              'depth_single_blocks': 38,
+              'from_pretrained': './ckpts/flux1-dev.safetensors',
+              'guidance_embed': True,
+              'hidden_size': 3072,
+              'in_channels': 64,
+              'mlp_ratio': 4.0,
+              'num_heads': 24,
+              'qkv_bias': True,
+              'theta': 10000,
+              'type': 'flux',
+              'vec_in_dim': 768},
+ 'img_flux_ae': {'ch': 128,
+                 'ch_mult': [1, 2, 4, 4],
+                 'from_pretrained': './ckpts/flux1-dev-ae.safetensors',
+                 'in_channels': 3,
+                 'num_res_blocks': 2,
+                 'out_ch': 3,
+                 'resolution': 256,
+                 'scale_factor': 0.3611,
+                 'shift_factor': 0.1159,
+                 'type': 'autoencoder_2d',
+                 'z_channels': 16},
+ 'img_resolution': '768px',
+ 'model': {'axes_dim': [16, 56, 56],
+           'cond_embed': True,
+           'context_in_dim': 4096,
+           'depth': 19,
+           'depth_single_blocks': 38,
+           'from_pretrained': './ckpts/Open_Sora_v2.safetensors',
+           'fused_qkv': False,
+           'guidance_embed': False,
+           'hidden_size': 3072,
+           'in_channels': 64,
+           'mlp_ratio': 4.0,
+           'num_heads': 24,
+           'qkv_bias': True,
+           'theta': 10000,
+           'type': 'flux',
+           'use_liger_rope': True,
+           'vec_in_dim': 768},
+ 'motion_score': '4',
+ 'offload': True,
+ 'prompt': 'Smoke test — neon alley courier at night, cinematic 10s clip',
+ 'resolution': '256px',
+ 'sampling_option': {'aspect_ratio': '16:9',
+                     'guidance': 7.5,
+                     'guidance_img': 3.0,
+                     'image_osci': True,
+                     'is_causal_vae': True,
+                     'method': 'i2v',
+                     'num_frames': 65,
+                     'num_steps': 40,
+                     'resolution': '256px',
+                     'scale_temporal_osci': True,
+                     'seed': None,
+                     'shift': True,
+                     'temporal_reduction': 4,
+                     'text_osci': True},
+ 'save_dir': 'outputs',
+ 'seed': 1993865,
+ 't5': {'from_pretrained': './ckpts/google/t5-v1_1-xxl',
+        'max_length': 512,
+        'shardformer': True,
+        'type': 'text_embedder'},
+ 'use_t2i2v': True}
+[[34m2026-06-21 00:20:16[0m] Building dataset...
+[[34m2026-06-21 00:20:17[0m] Dataset contains 1 samples.
+[[34m2026-06-21 00:20:17[0m] Building models...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/scripts/diffusion/inference.py", line 245, in <module>
+[rank0]:     main()
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/scripts/diffusion/inference.py", line 127, in main
+[rank0]:     model, model_ae, model_t5, model_clip, optional_models = prepare_models(
+[rank0]:                                                              ^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/utils/sampling.py", line 532, in prepare_models
+[rank0]:     model = build_module(
+[rank0]:             ^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/registry.py", line 24, in build_module
+[rank0]:     return builder.build(cfg)
+[rank0]:            ^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/mmengine/registry/registry.py", line 570, in build
+[rank0]:     return self.build_func(cfg, *args, **kwargs, registry=self)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/mmengine/registry/build_functions.py", line 121, in build_from_cfg
+[rank0]:     obj = obj_cls(**args)  # type: ignore
+[rank0]:           ^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/models/mmdit/model.py", line 290, in Flux
+[rank0]:     model = MMDiTModel(config)
+[rank0]:             ^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/models/mmdit/model.py", line 117, in __init__
+[rank0]:     DoubleStreamBlock(
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/models/mmdit/layers.py", line 280, in __init__
+[rank0]:     nn.Linear(mlp_hidden_dim, hidden_size, bias=True),
+[rank0]:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/nn/modules/linear.py", line 99, in __init__
+[rank0]:     self.weight = Parameter(torch.empty((out_features, in_features), **factory_kwargs))
+[rank0]:                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/utils/_device.py", line 79, in __torch_function__
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]: RuntimeError: CUDA driver error: device not ready
+[rank0]:[W621 00:20:18.204285396 ProcessGroupNCCL.cpp:1168] Warning: WARNING: process group has NOT been destroyed before we destruct ProcessGroupNCCL. On normal program exit, the application should call destroy_process_group to ensure that any pending NCCL operations have finished in this process. In rare cases this process can exit before this point and block the progress of another member of the process group. This constraint has always been present,  but this warning has only been added since PyTorch 2.4 (function operator())
+E0621 00:20:19.781000 139839270838592 torch/distributed/elastic/multiprocessing/api.py:833] failed (exitcode: 1) local_rank: 0 (pid: 533) of binary: /mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/bin/python3
+Traceback (most recent call last):
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/bin/torchrun", line 8, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 348, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/run.py", line 901, in main
+    run(args)
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/run.py", line 892, in run
+    elastic_launch(
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/launcher/api.py", line 133, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/launcher/api.py", line 264, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+scripts/diffusion/inference.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-06-21_00:20:19
+  host      : ComhemNetHub417895.localdomain
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 533)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+[BUILD_PROGRESS] 99 Render failed (code 1)

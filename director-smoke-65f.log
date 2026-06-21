@@ -1,0 +1,93 @@
+=== GPU before ===
+memory.used [MiB], memory.free [MiB]
+400 MiB, 11598 MiB
+=== starting director smoke ===
+=== AI Video Creator · Director Engine · local render ===
+Resolution: 256px · Config: configs/diffusion/inference/256px.py
+Estimated build: ~120s
+[BUILD_PROGRESS] 5 Pipeline starting (optional GPU deps stubbed)
+[06/21/26 02:07:48] INFO     colossalai - colossalai - INFO:                    
+                             /mnt/c/Users/micke/AppData/Roaming/AI Video        
+                             Creator/addons/wsl-venv/lib/python3.12/site-package
+                             s/colossalai/initialize.py:75 launch               
+                    INFO     colossalai - colossalai - INFO: Distributed        
+                             environment is initialized, world size: 1          
+[[34m2026-06-21 02:07:48[0m] Inference configuration:
+ {'ae': {'from_pretrained': './ckpts/hunyuan_vae.safetensors',
+        'in_channels': 3,
+        'latent_channels': 16,
+        'layers_per_block': 2,
+        'out_channels': 3,
+        'type': 'hunyuan_vae',
+        'use_spatial_tiling': True,
+        'use_temporal_tiling': False},
+ 'aspect_ratio': '16:9',
+ 'batch_size': 1,
+ 'clip': {'from_pretrained': './ckpts/openai/clip-vit-large-patch14',
+          'max_length': 77,
+          'type': 'text_embedder'},
+ 'cond_type': 't2v',
+ 'config_path': 'configs/diffusion/inference/256px.py',
+ 'dataset': {'type': 'text'},
+ 'dtype': 'bf16',
+ 'fps_save': 24,
+ 'model': {'axes_dim': [16, 56, 56],
+           'cond_embed': True,
+           'context_in_dim': 4096,
+           'depth': 19,
+           'depth_single_blocks': 38,
+           'from_pretrained': './ckpts/Open_Sora_v2.safetensors',
+           'fused_qkv': False,
+           'guidance_embed': False,
+           'hidden_size': 3072,
+           'in_channels': 64,
+           'mlp_ratio': 4.0,
+           'num_heads': 24,
+           'qkv_bias': True,
+           'theta': 10000,
+           'type': 'flux',
+           'use_liger_rope': False,
+           'vec_in_dim': 768},
+ 'motion_score': '4',
+ 'offload_model': True,
+ 'prompt': 'Smoke test — neon alley courier at night, cinematic 10s clip',
+ 'resolution': '256px',
+ 'sampling_option': {'aspect_ratio': '16:9',
+                     'guidance': 7.5,
+                     'guidance_img': 3.0,
+                     'image_osci': True,
+                     'is_causal_vae': True,
+                     'method': 'i2v',
+                     'num_frames': 65,
+                     'num_steps': 20,
+                     'resolution': '256px',
+                     'scale_temporal_osci': True,
+                     'seed': None,
+                     'shift': True,
+                     'temporal_reduction': 4,
+                     'text_osci': True},
+ 'save_dir': 'outputs',
+ 'seed': 2000326,
+ 't5': {'from_pretrained': './ckpts/google/t5-v1_1-xxl',
+        'max_length': 512,
+        'shardformer': True,
+        'type': 'text_embedder'}}
+[[34m2026-06-21 02:07:48[0m] Building dataset...
+[[34m2026-06-21 02:07:49[0m] Dataset contains 1 samples.
+[[34m2026-06-21 02:07:49[0m] Building models...
+[[34m2026-06-21 02:07:50[0m] Loading checkpoint from ./ckpts/Open_Sora_v2.safetensors
+[[34m2026-06-21 02:10:27[0m] Model loaded successfully
+[[34m2026-06-21 02:10:32[0m] Loading checkpoint from ./ckpts/hunyuan_vae.safetensors
+[[34m2026-06-21 02:10:36[0m] Model loaded successfully
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:35<00:35, 35.69s/it]Loading checkpoint shards: 100%|██████████| 2/2 [01:11<00:00, 35.79s/it]Loading checkpoint shards: 100%|██████████| 2/2 [01:11<00:00, 35.77s/it]
+[[34m2026-06-21 02:11:52[0m] CUDA max memory max memory allocated at build model: 31.7 GB
+[[34m2026-06-21 02:11:52[0m] CUDA max memory max memory reserved at build model: 32.1 GB
+Inference progress:   0%|          | 0/1 [00:00<?, ?it/s][[34m2026-06-21 02:11:52[0m] Generating video...
+Saved to outputs/video_256px/prompt_0000.mp4
+Inference progress: 100%|██████████| 1/1 [55:44<00:00, 3344.67s/it]Inference progress: 100%|██████████| 1/1 [55:44<00:00, 3344.69s/it]
+[[34m2026-06-21 03:07:36[0m] Inference finished.
+[[34m2026-06-21 03:07:36[0m] CUDA max memory max memory allocated at inference: 41.9 GB
+[[34m2026-06-21 03:07:36[0m] CUDA max memory max memory reserved at inference: 42.2 GB
+[rank0]:[W621 03:07:37.701960547 ProcessGroupNCCL.cpp:1168] Warning: WARNING: process group has NOT been destroyed before we destruct ProcessGroupNCCL. On normal program exit, the application should call destroy_process_group to ensure that any pending NCCL operations have finished in this process. In rare cases this process can exit before this point and block the progress of another member of the process group. This constraint has always been present,  but this warning has only been added since PyTorch 2.4 (function operator())
+[OUTPUT_VIDEO] /mnt/f/ai-video-tool/director-smoke-job-output.mp4
+[BUILD_PROGRESS] 100 Render complete

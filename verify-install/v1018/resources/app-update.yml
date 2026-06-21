@@ -1,0 +1,5 @@
+owner: Druttzen
+repo: ai-video-tool
+provider: github
+releaseType: release
+updaterCacheDirName: ai-video-tool-updater

@@ -1,0 +1,21 @@
+=== AI Video Creator · Director Engine · local render ===
+Resolution: 256px · Config: configs/diffusion/inference/t2i2v_256px.py
+Estimated build: ~120s
+[BUILD_PROGRESS] 5 Pipeline starting (TensorNVMe stub active)
+Traceback (most recent call last):
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/scripts/diffusion/inference.py", line 17, in <module>
+    from opensora.utils.cai import (
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/utils/cai.py", line 12, in <module>
+    from opensora.models.hunyuan_vae.policy import HunyuanVaePolicy
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/models/__init__.py", line 3, in <module>
+    from .mmdit import *
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/models/mmdit/__init__.py", line 1, in <module>
+    from .model import Flux
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/models/mmdit/model.py", line 26, in <module>
+    from opensora.models.mmdit.layers import (
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/models/mmdit/layers.py", line 28, in <module>
+    from .math import attention, liger_rope, rope
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/opensora/models/mmdit/math.py", line 3, in <module>
+    from flash_attn import flash_attn_func as flash_attn_func_v2
+ModuleNotFoundError: No module named 'flash_attn'
+[BUILD_PROGRESS] 99 Render failed (code 1)

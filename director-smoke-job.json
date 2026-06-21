@@ -1,0 +1,15 @@
+{
+  "prompt": "Smoke test — neon alley courier at night, cinematic 10s clip",
+  "localPipelinePath": "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora",
+  "pythonPath": "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/bin/python3",
+  "configPath": "configs/diffusion/inference/256px.py",
+  "renderBackend": "local-python",
+  "durationSeconds": 5,
+  "resolutionTier": "256px",
+  "numFrames": 65,
+  "numSteps": 20,
+  "estimatedBuildSeconds": 120,
+  "output": {
+    "container": "mp4"
+  }
+}

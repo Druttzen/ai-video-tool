@@ -1,0 +1,113 @@
+=== AI Video Creator · Director Engine · local render ===
+Resolution: 256px · Config: configs/diffusion/inference/t2i2v_256px.py
+Estimated build: ~120s
+[BUILD_PROGRESS] 5 Pipeline starting (optional GPU deps stubbed)
+[[34m2026-06-20 23:38:37[0m] Inference configuration:
+ {'ae': {'from_pretrained': './ckpts/hunyuan_vae.safetensors',
+        'in_channels': 3,
+        'latent_channels': 16,
+        'layers_per_block': 2,
+        'out_channels': 3,
+        'type': 'hunyuan_vae',
+        'use_spatial_tiling': True,
+        'use_temporal_tiling': False},
+ 'aspect_ratio': '16:9',
+ 'batch_size': 1,
+ 'clip': {'from_pretrained': './ckpts/openai/clip-vit-large-patch14',
+          'max_length': 77,
+          'type': 'text_embedder'},
+ 'cond_type': 't2v',
+ 'config_path': 'configs/diffusion/inference/t2i2v_256px.py',
+ 'dataset': {'type': 'text'},
+ 'dtype': 'bf16',
+ 'fps_save': 24,
+ 'img_flux': {'axes_dim': [16, 56, 56],
+              'cond_embed': False,
+              'context_in_dim': 4096,
+              'depth': 19,
+              'depth_single_blocks': 38,
+              'from_pretrained': './ckpts/flux1-dev.safetensors',
+              'guidance_embed': True,
+              'hidden_size': 3072,
+              'in_channels': 64,
+              'mlp_ratio': 4.0,
+              'num_heads': 24,
+              'qkv_bias': True,
+              'theta': 10000,
+              'type': 'flux',
+              'vec_in_dim': 768},
+ 'img_flux_ae': {'ch': 128,
+                 'ch_mult': [1, 2, 4, 4],
+                 'from_pretrained': './ckpts/flux1-dev-ae.safetensors',
+                 'in_channels': 3,
+                 'num_res_blocks': 2,
+                 'out_ch': 3,
+                 'resolution': 256,
+                 'scale_factor': 0.3611,
+                 'shift_factor': 0.1159,
+                 'type': 'autoencoder_2d',
+                 'z_channels': 16},
+ 'img_resolution': '768px',
+ 'model': {'axes_dim': [16, 56, 56],
+           'cond_embed': True,
+           'context_in_dim': 4096,
+           'depth': 19,
+           'depth_single_blocks': 38,
+           'from_pretrained': './ckpts/Open_Sora_v2.safetensors',
+           'fused_qkv': False,
+           'guidance_embed': False,
+           'hidden_size': 3072,
+           'in_channels': 64,
+           'mlp_ratio': 4.0,
+           'num_heads': 24,
+           'qkv_bias': True,
+           'theta': 10000,
+           'type': 'flux',
+           'use_liger_rope': True,
+           'vec_in_dim': 768},
+ 'motion_score': '4',
+ 'prompt': 'Smoke test — neon alley courier at night, cinematic 10s clip',
+ 'resolution': '256px',
+ 'sampling_option': {'aspect_ratio': '16:9',
+                     'guidance': 7.5,
+                     'guidance_img': 3.0,
+                     'image_osci': True,
+                     'is_causal_vae': True,
+                     'method': 'i2v',
+                     'num_frames': 65,
+                     'num_steps': 40,
+                     'resolution': '256px',
+                     'scale_temporal_osci': True,
+                     'seed': None,
+                     'shift': True,
+                     'temporal_reduction': 4,
+                     'text_osci': True},
+ 'save_dir': 'outputs',
+ 'seed': 1991385,
+ 't5': {'from_pretrained': './ckpts/google/t5-v1_1-xxl',
+        'max_length': 512,
+        'shardformer': True,
+        'type': 'text_embedder'},
+ 'use_t2i2v': True}
+[[34m2026-06-20 23:38:37[0m] Building dataset...
+Traceback (most recent call last):
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/scripts/diffusion/inference.py", line 245, in <module>
+    main()
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora/scripts/diffusion/inference.py", line 79, in main
+    dist.barrier()
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/c10d_logger.py", line 79, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/distributed_c10d.py", line 3925, in barrier
+    opts.device = _get_pg_default_device(group)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/distributed_c10d.py", line 669, in _get_pg_default_device
+    group = group or _get_default_group()
+                     ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/lib/python3.12/site-packages/torch/distributed/distributed_c10d.py", line 1025, in _get_default_group
+    raise ValueError(
+ValueError: Default process group has not been initialized, please make sure to call init_process_group.
+[BUILD_PROGRESS] 99 Render failed (code 1)
