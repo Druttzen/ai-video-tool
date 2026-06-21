@@ -171,6 +171,39 @@ Setup Hub can **check and install updates** for local render dependencies:
 
 Manifest: `data/addon-updates-manifest.json` (pinned URLs/versions).
 
+### WSL local render (Windows)
+
+On Windows, native Python often lacks **ColossalAI** and a CUDA **torch** wheel. The app can route local Director renders through **WSL2** when a managed Linux venv exists under your addons folder (`%AppData%\AI Video Creator\addons\wsl-venv`).
+
+**One-time in WSL** (if bootstrap warns about missing build tools):
+
+```bash
+sudo apt update && sudo apt install -y cmake build-essential libaio-dev
+```
+
+**Bootstrap the Linux venv** (from repo root, in WSL or via `wsl bash scripts/wsl-run-bootstrap.sh`):
+
+```bash
+bash scripts/wsl-run-bootstrap.sh
+```
+
+Helper scripts under `scripts/wsl-*.sh` share portable path resolution in `scripts/wsl-paths.sh` — they auto-detect your AppData addons path (no hardcoded Windows username). Override when needed:
+
+| Variable | Purpose |
+|----------|---------|
+| `ADDONS_ROOT` | Addons folder (contains `wsl-venv`, `open-sora`) |
+| `AI_VIDEO_CREATOR_USER_DATA` | Roaming app data dir (addons = `$VAR/addons`) |
+| `AI_VIDEO_TOOL_REPO` | Repo root if not inferred from script location |
+
+| Script | Purpose |
+|--------|---------|
+| `wsl-verify-stack.sh` | torch, colossalai, tensornvme, flash_attn, GPU |
+| `wsl-run-dist-probe.sh` | torchrun + distributed init smoke test |
+| `wsl-director-smoke.sh` | Full Director job smoke (`director-smoke-job.json`) |
+| `wsl-kill-stale-gpu.sh` | Kill stuck inference/torchrun processes |
+
+From Windows: `node scripts/wsl-pipeline-steps.cjs [tensornvme|dist|smoke|all]` runs the same checks through WSL.
+
 ### Project bundles
 
 Exports use **`ai-video-creator-bundle`** (`ai-video-bundle.json`). Imports still accept legacy **`ai-music-creator-bundle`** from AI Music Creator.
