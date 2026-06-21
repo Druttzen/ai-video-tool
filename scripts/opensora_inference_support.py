@@ -80,6 +80,12 @@ def opensora_subprocess_env(python: str, base: dict | None = None) -> dict:
         env.setdefault("TORCHDYNAMO_DISABLE", "1")
         env.setdefault("TORCH_COMPILE_DISABLE", "1")
         env.setdefault("TRITON_CACHE_DIR", "/tmp/triton-cache")
+        # drvfs (/mnt/c) mmap can SIGBUS on large checkpoint shards — prefer copy paths.
+        env.setdefault("SAFETENSORS_FAST_GPU", "0")
+        env.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+        env.setdefault("CUDA_MODULE_LOADING", "LAZY")
+        env.setdefault("TOKENIZERS_PARALLELISM", "false")
+        env.setdefault("WSL_LOW_VRAM", "1")
         ptxas = _wsl_triton_ptxas_path()
         if ptxas:
             env.setdefault("TRITON_PTXAS_PATH", ptxas)
