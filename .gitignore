@@ -61,3 +61,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python bytecode (local render / WSL stubs)
+**/__pycache__/
+*.py[cod]
+
+# Director / WSL local smoke outputs (regenerate via scripts/smoke-local-mp4 or wsl-director-smoke.sh)
+/director-smoke*.log
+/director-smoke-job.json
+/director-smoke-job-output.mp4
+/wsl-bootstrap.log
+/verify-install/
+
+# Accidental pip stderr captures
+/=*

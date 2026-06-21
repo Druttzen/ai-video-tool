@@ -1,6 +1,6 @@
 # AI Video Creator — Video Prompt Studio
 
-**Version 1.0.22**
+**Version 1.0.27**
 
 A **standalone** video prompt studio by DJ M@D (Bones Vibration). Built on the same architecture as [AI Music Creator](https://github.com/Druttzen/ai-music-tool), but fully focused on **AI video** — not tied to Open-Sora, Suno tokens, or any single cloud provider.
 
@@ -23,6 +23,7 @@ Built-in vocabulary lives in `data/director-catalog.json` — owned by this app,
 
 ```bash
 npm install
+git lfs install      # once per clone — required if the repo stores large binaries via LFS
 npm run dev          # browser — full prompt studio
 npm run electron     # desktop — export + optional local render
 ```
@@ -203,6 +204,12 @@ Helper scripts under `scripts/wsl-*.sh` share portable path resolution in `scrip
 | `wsl-kill-stale-gpu.sh` | Kill stuck inference/torchrun processes |
 
 From Windows: `node scripts/wsl-pipeline-steps.cjs [tensornvme|dist|smoke|all]` runs the same checks through WSL.
+
+Generate a local smoke job JSON (gitignored) before `wsl-director-smoke.sh`:
+
+```bash
+npm run smoke:local-mp4 -- --write-job ./director-smoke-job.json
+```
 
 ### Project bundles
 
