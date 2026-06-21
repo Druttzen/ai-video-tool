@@ -3,5 +3,5 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=wsl-paths.sh
 source "$SCRIPT_DIR/wsl-paths.sh"
-cd "$REPO_ROOT"
-"$WSL_PY" scripts/run-director-job.py director-smoke-job.json
+nvidia-smi
+"$WSL_PY" -c "import torch; print('cuda available', torch.cuda.is_available()); x=torch.zeros(1,device='cuda'); print('cuda tensor ok', x)"

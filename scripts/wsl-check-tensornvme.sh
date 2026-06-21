@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-export LD_LIBRARY_PATH="${HOME}/.tensornvme/lib:${LD_LIBRARY_PATH:-}"
-source "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/bin/activate"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=wsl-paths.sh
+source "$SCRIPT_DIR/wsl-paths.sh"
+# shellcheck disable=SC1091
+source "$VENV_ACTIVATE"
 python3 -c "import tensornvme; print('tensornvme OK:', tensornvme.__file__)"

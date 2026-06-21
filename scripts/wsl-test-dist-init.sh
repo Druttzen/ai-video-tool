@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
-source "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/bin/activate"
-cd "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/open-sora"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=wsl-paths.sh
+source "$SCRIPT_DIR/wsl-paths.sh"
+# shellcheck disable=SC1091
+source "$VENV_ACTIVATE"
+cd "$OPEN_SORA_DIR"
 torchrun --nproc_per_node 1 --standalone -c "
 import os
 print('WORLD_SIZE', os.environ.get('WORLD_SIZE'))

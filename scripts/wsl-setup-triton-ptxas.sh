@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Triton shells out to ptxas with an unquoted venv path; symlink avoids AppData spaces.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=wsl-paths.sh
 source "$SCRIPT_DIR/wsl-paths.sh"
-cd "$REPO_ROOT"
-"$WSL_PY" scripts/run-director-job.py director-smoke-job.json
+wsl_setup_triton_ptxas

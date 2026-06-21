@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 const { execFileSync } = require("child_process");
+const {
+  getRepoRootWsl,
+  getWslPyWsl,
+  wslSourcePathsPrelude,
+  wslTensornvmeEnvPrelude,
+} = require("./lib/wsl-paths.cjs");
 
 function wsl(cmd) {
   return execFileSync("wsl", ["bash", "-lc", cmd], {
@@ -8,7 +14,9 @@ function wsl(cmd) {
   });
 }
 
-const venv = "/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/bin/activate";
+const repoRoot = getRepoRootWsl();
+const wslPy = getWslPyWsl();
+const pathsPrelude = wslSourcePathsPrelude();
 const step = process.argv[2] || "all";
 
 try {
@@ -16,7 +24,7 @@ try {
     console.log("=== tensornvme import ===");
     console.log(
       wsl(
-        `export LD_LIBRARY_PATH="\${HOME}/.tensornvme/lib:\${LD_LIBRARY_PATH:-}"; . '${venv}'; python3 -c 'import tensornvme; print("tensornvme OK:", tensornvme.__file__)'`,
+        `${wslTensornvmeEnvPrelude()}; ${pathsPrelude}; source "$VENV_ACTIVATE"; python3 -c 'import tensornvme; print("tensornvme OK:", tensornvme.__file__)'`,
       ),
     );
   }
@@ -25,13 +33,13 @@ try {
     console.log("=== dist init test ===");
     console.log(
       wsl(
-        `. '${venv}'; torchrun --nproc_per_node 1 --standalone /mnt/f/ai-video-tool/scripts/wsl-dist-probe.py`,
+        `${pathsPrelude}; source "$VENV_ACTIVATE"; torchrun --nproc_per_node 1 --standalone ${repoRoot}/scripts/wsl-dist-probe.py`,
       ),
     );
     console.log("=== inference argv ===");
     console.log(
       wsl(
-        `. '${venv}'; cd /mnt/f/ai-video-tool/scripts; python3 -c "from opensora_inference_support import opensora_inference_argv; print(opensora_inference_argv('/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/bin/python3', ['scripts/diffusion/inference.py', 'cfg.py']))"`,
+        `${pathsPrelude}; source "$VENV_ACTIVATE"; cd ${repoRoot}/scripts; python3 -c "from opensora_inference_support import opensora_inference_argv; print(opensora_inference_argv('${wslPy}', ['scripts/diffusion/inference.py', 'cfg.py']))"`,
       ),
     );
   }
@@ -40,7 +48,7 @@ try {
     console.log("=== director smoke render ===");
     console.log(
       wsl(
-        `export LD_LIBRARY_PATH="\${HOME}/.tensornvme/lib:\${LD_LIBRARY_PATH:-}"; cd /mnt/f/ai-video-tool; '/mnt/c/Users/micke/AppData/Roaming/AI Video Creator/addons/wsl-venv/bin/python3' scripts/run-director-job.py director-smoke-job.json`,
+        `${wslTensornvmeEnvPrelude()}; ${pathsPrelude}; cd ${repoRoot}; "$WSL_PY" scripts/run-director-job.py director-smoke-job.json`,
       ),
     );
   }
