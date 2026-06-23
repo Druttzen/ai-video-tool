@@ -33,6 +33,8 @@ import {
   scanMissingToolsFromHost,
   installToolsFromHost,
 } from "../lib/setup-addon-updates";
+import { useSetupHubInstallProgress } from "../hooks/use-setup-hub-install-progress";
+import { SetupHubInstallProgressModal } from "./setup-hub-install-progress-modal";
 
 const STATUS_STYLES = {
   ready: "border-emerald-400/40 bg-emerald-500/10 text-emerald-100",
@@ -60,6 +62,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
   const [addonBusy, setAddonBusy] = useState(false);
   const skipAutoUpdateRef = useRef(false);
   const forceManaged = Boolean(scan?.forceManaged);
+  const installProgress = useSetupHubInstallProgress();
 
   const modules = getSetupHubModules();
   const summary = useMemo(() => summarizeSetupScan(scan), [scan]);
@@ -254,20 +257,29 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
     }
   };
 
-  const onInstallAllTools = async () => {
-    setAddonBusy(true);
-    try {
-      skipAutoUpdateRef.current = true;
-      const batch = await installToolsFromHost({ forcePipeline: true });
-      if (batch?.launched) {
-        ws.setStatusWithTime(batch.message || "Install Addons CMD opened", "info");
-        return;
+  const finalizeAddonBatch = useCallback(
+    async (batch) => {
+      if (batch?.postScan?.items) {
+        setAddonReport({ ok: batch.postScan.ok, checkedAt: batch.postScan.scannedAt, items: batch.postScan.items });
       }
-      if (batch?.postScan?.items) setAddonReport({ ok: batch.postScan.ok, checkedAt: batch.postScan.scannedAt, items: batch.postScan.items });
       if (batch?.results) applyAddonUpdatePaths(batch.results, scan);
       await runScan({ skipAutoUpdate: true });
       const latest = loadPersistedSetupScan();
       if (batch?.results && latest) applyAddonUpdatePaths(batch.results, latest);
+      return batch;
+    },
+    [applyAddonUpdatePaths, runScan, scan],
+  );
+
+  const onInstallAllTools = async () => {
+    setAddonBusy(true);
+    try {
+      skipAutoUpdateRef.current = true;
+      const batch = await installProgress.runWithProgress("Install all tools", () =>
+        installToolsFromHost({ forcePipeline: true }),
+      );
+      if (!batch) return;
+      await finalizeAddonBatch(batch);
       ws.setStatusWithTime(batch?.ok ? "Tool install finished" : "Some tools failed to install", batch?.ok ? "info" : "warning");
     } finally {
       setAddonBusy(false);
@@ -278,22 +290,11 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
     setAddonBusy(true);
     try {
       skipAutoUpdateRef.current = true;
-      const batch = await installToolsFromHost({ forcePipeline: false });
-      if (batch?.launched) {
-        ws.setStatusWithTime(batch.message || "Install Addons CMD opened", "info");
-        return;
-      }
-      if (batch?.postScan?.items) {
-        setAddonReport({
-          ok: batch.postScan.ok,
-          checkedAt: batch.postScan.scannedAt,
-          items: batch.postScan.items,
-        });
-      }
-      if (batch?.results) applyAddonUpdatePaths(batch.results, scan);
-      await runScan({ skipAutoUpdate: true });
-      const latest = loadPersistedSetupScan();
-      if (batch?.results && latest) applyAddonUpdatePaths(batch.results, latest);
+      const batch = await installProgress.runWithProgress("Update all addons", () =>
+        installToolsFromHost({ forcePipeline: false }),
+      );
+      if (!batch) return;
+      await finalizeAddonBatch(batch);
       ws.setStatusWithTime(
         batch?.ok ? "Addon updates finished — rescan complete" : "Some addon updates failed",
         batch?.ok ? "info" : "warning",
@@ -312,12 +313,15 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
     setAddonBusy(true);
     try {
       skipAutoUpdateRef.current = true;
-      const result = await updateAddonFromHost({
-        addonId,
-        scan,
-        openSoraPath: linkPath,
-        directorSettings: loadDirectorSettingsFromStorage(),
-      });
+      const result = await installProgress.runWithProgress(`Update ${item?.label || addonId}`, () =>
+        updateAddonFromHost({
+          addonId,
+          scan,
+          openSoraPath: linkPath,
+          directorSettings: loadDirectorSettingsFromStorage(),
+        }),
+      { totalAddons: 1 });
+      if (!result) return;
       applyAddonUpdatePaths([{ id: addonId, ...result }], scan);
       await runScan({ skipAutoUpdate: true });
       const latest = loadPersistedSetupScan();
@@ -339,7 +343,19 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
   };
 
   return (
-    <Panel
+    <>
+      <SetupHubInstallProgressModal
+        open={installProgress.modalOpen}
+        title={installProgress.progressState?.title || "Setup Hub"}
+        progress={installProgress.progressState?.progress}
+        status={installProgress.progressState?.status}
+        phaseLabel={installProgress.progressState?.phaseLabel}
+        message={installProgress.progressState?.message}
+        lines={installProgress.progressState?.lines || []}
+        summary={installProgress.progressState?.summary}
+        onClose={installProgress.dismissInstallModal}
+      />
+      <Panel
       title="All-in-One Setup Hub"
       hint="Scan managed addons under AppData — Python, venv, Open-Sora, pip deps, FFmpeg, models. Use Install Addons (CMD) or Install all tools here."
       data-testid="setup-hub-panel"
@@ -587,5 +603,6 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
         ) : null}
       </div>
     </Panel>
+    </>
   );
 });

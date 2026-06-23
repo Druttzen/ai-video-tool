@@ -72,6 +72,7 @@
       "scripts/lib/addon-platform.cjs",
       "scripts/lib/tool-installer.cjs",
       "scripts/lib/setup-hub-console.cjs",
+      "scripts/lib/setup-install-progress-bridge.cjs",
       "scripts/lib/install-console.cjs",
       "scripts/lib/process-exec.cjs",
       "scripts/lib/addon-updater.cjs",

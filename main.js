@@ -496,38 +496,70 @@ function setupAddonUpdaterIpc() {
     }
   });
 
-  ipcMain.handle("setup:update-addon", async (_event, payload) => {
+  ipcMain.handle("setup:update-addon", async (event, payload) => {
+    const userDataPath = app.getPath("userData");
+    const { createSetupInstallProgressBridge } = require("./scripts/lib/setup-install-progress-bridge.cjs");
+    const progress = createSetupInstallProgressBridge(event, userDataPath, { version: pkg.version });
+
     try {
-      const userDataPath = app.getPath("userData");
       const scan = payload?.scan
         ? normalizeHostScan(payload.scan)
         : normalizeHostScan(await scanSetupEnvironment(payload));
+      const addonId = payload?.addonId;
+      progress.onProgress({
+        phase: "addon-start",
+        addonId,
+        label: addonId,
+        forceReinstall: Boolean(payload?.forceReinstall),
+      });
       const result = await updateAddon({
-        addonId: payload?.addonId,
+        addonId,
         userDataPath,
         scan,
         openSoraPath: payload?.openSoraPath || payload?.openSoraInstallPath,
         pythonPath: payload?.pythonPath,
       });
+      progress.onProgress({ phase: "addon-done", addonId, item: { id: addonId, ...result } });
+      progress.finish({
+        ok: Boolean(result?.ok),
+        message: result?.message || result?.error || (result?.ok ? "Addon update finished." : "Addon update failed."),
+      });
       return result;
     } catch (e) {
-      return { ok: false, error: e?.message || "addon update failed" };
+      const message = e?.message || "addon update failed";
+      progress.reportError(message);
+      progress.finish({ ok: false, message });
+      return { ok: false, error: message };
     }
   });
 
-  ipcMain.handle("setup:update-all-addons", async (_event, payload) => {
+  ipcMain.handle("setup:update-all-addons", async (event, payload) => {
+    const userDataPath = app.getPath("userData");
+    const { createSetupInstallProgressBridge } = require("./scripts/lib/setup-install-progress-bridge.cjs");
+    const progress = createSetupInstallProgressBridge(event, userDataPath, { version: pkg.version });
+
     try {
-      const userDataPath = app.getPath("userData");
       const scan = normalizeHostScan(await scanSetupEnvironment(payload));
+      progress.onProgress({ phase: "update-all", message: "Updating all managed addons…" });
       const result = await updateAllAddons({
         scan,
         userDataPath,
         openSoraPath: payload?.openSoraInstallPath,
         pythonPath: payload?.pythonPath,
+        onProgress: (payloadProgress) => progress.onProgress(payloadProgress),
       });
+      const summary = result?.results?.length
+        ? `${result.results.filter((row) => row.ok || row.skipped).length}/${result.results.length} addons OK`
+        : result?.ok
+          ? "All addons up to date."
+          : "Some addon updates failed.";
+      progress.finish({ ok: Boolean(result?.ok), message: summary });
       return result;
     } catch (e) {
-      return { ok: false, error: e?.message || "addon batch update failed" };
+      const message = e?.message || "addon batch update failed";
+      progress.reportError(message);
+      progress.finish({ ok: false, message });
+      return { ok: false, error: message };
     }
   });
 
@@ -542,35 +574,24 @@ function setupAddonUpdaterIpc() {
     }
   });
 
-  ipcMain.handle("setup:install-tools", async (_event, payload) => {
+  ipcMain.handle("setup:install-tools", async (event, payload) => {
     const userDataPath = app.getPath("userData");
     const bulkInstall = !payload?.addonId;
-    const useProgressConsole = bulkInstall || Boolean(payload?.forcePipeline);
-    let progressConsole = null;
-
-    if (bulkInstall && process.platform === "win32" && app.isPackaged) {
-      const installCmd = path.join(path.dirname(process.execPath), "install-addons.cmd");
-      if (fs.existsSync(installCmd)) {
-        spawn("cmd.exe", ["/c", installCmd], { detached: true, stdio: "ignore", windowsHide: false }).unref();
-        return {
-          ok: true,
-          launched: true,
-          message: "Install Addons CMD opened — watch progress in that window",
-        };
-      }
-    }
+    const { createSetupInstallProgressBridge } = require("./scripts/lib/setup-install-progress-bridge.cjs");
+    const progress = createSetupInstallProgressBridge(event, userDataPath, { version: pkg.version });
 
     const pipViaPython =
       Boolean(payload?.pipViaPython) || (bulkInstall && process.platform === "win32");
 
     try {
-      if (useProgressConsole) {
-        const { createInstallReporter } = require("./scripts/lib/install-console.cjs");
-        progressConsole = createInstallReporter(userDataPath, {
-          version: pkg.version,
-          echoToConsole: false,
-        });
-      }
+      progress.onProgress({
+        phase: "start",
+        message: bulkInstall
+          ? payload?.forcePipeline
+            ? "Running full Setup Hub install pipeline…"
+            : "Updating managed addons…"
+          : `Installing ${payload?.addonId}…`,
+      });
 
       const result = await installTools({
         userDataPath,
@@ -579,24 +600,19 @@ function setupAddonUpdaterIpc() {
         forcePipeline: payload?.forcePipeline ?? bulkInstall,
         forceReinstall: Boolean(payload?.forceReinstall),
         pipViaPython,
-        onProgress: progressConsole ? (progress) => progressConsole.report(progress) : undefined,
+        onProgress: (payloadProgress) => progress.onProgress(payloadProgress),
       });
 
-      if (progressConsole) {
-        const summary = result?.postScan?.summary || result?.safe?.summary;
-        progressConsole.finish({
-          ok: Boolean(result?.ok),
-          message: summary || (result?.ok ? "Tool install finished." : "Tool install finished with errors."),
-        });
-      }
-
+      const summary =
+        result?.postScan?.summary ||
+        result?.safe?.summary ||
+        (result?.ok ? "Tool install finished." : "Tool install finished with errors.");
+      progress.finish({ ok: Boolean(result?.ok), message: summary });
       return result;
     } catch (e) {
       const message = e?.message || "tool install failed";
-      if (progressConsole) {
-        progressConsole.report({ phase: "error", message, ok: false });
-        progressConsole.finish({ ok: false, message });
-      }
+      progress.reportError(message);
+      progress.finish({ ok: false, message });
       return { ok: false, error: message };
     }
   });

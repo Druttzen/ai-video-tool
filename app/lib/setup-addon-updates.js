@@ -57,6 +57,14 @@ export async function installToolsFromHost(payload) {
   return window.electronAPI.installTools(payload);
 }
 
+/** @param {(payload: object) => void} callback */
+export function subscribeToolInstallProgressFromHost(callback) {
+  if (!isElectronApp() || !window.electronAPI?.onToolInstallProgress) {
+    return () => {};
+  }
+  return window.electronAPI.onToolInstallProgress(callback);
+}
+
 export async function openExternalUrlFromHost(url) {
   if (!isElectronApp() || !window.electronAPI?.openExternal) {
     if (typeof window !== "undefined" && url) window.open(url, "_blank", "noopener,noreferrer");

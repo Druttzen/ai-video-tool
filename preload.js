@@ -24,6 +24,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateAllAddons: (payload) => ipcRenderer.invoke("setup:update-all-addons", payload),
   scanMissingTools: (payload) => ipcRenderer.invoke("setup:scan-missing-tools", payload),
   installTools: (payload) => ipcRenderer.invoke("setup:install-tools", payload),
+  onToolInstallProgress: (callback) => {
+    if (typeof callback !== "function") return () => {};
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on("setup:tool-install-progress", handler);
+    return () => ipcRenderer.removeListener("setup:tool-install-progress", handler);
+  },
   getToolInstallProtocol: () => ipcRenderer.invoke("setup:tool-install-protocol"),
   analyzeMusicVideoBeats: (payload) => ipcRenderer.invoke("music-video:analyze-beats", payload),
   assembleMusicVideo: (payload) => ipcRenderer.invoke("music-video:assemble", payload),

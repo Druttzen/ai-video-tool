@@ -165,4 +165,5 @@ module.exports = {
   initProgressLog,
   openProgressConsole,
   progressFromPayload,
+  stripTimestamp,
 };

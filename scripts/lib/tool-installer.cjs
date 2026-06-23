@@ -237,8 +237,15 @@ async function installTools({
   }
 
   if (addonId) {
+    onProgress({
+      phase: "addon-start",
+      addonId,
+      label: addonId,
+      forceReinstall: Boolean(forceReinstall),
+    });
     const scan = await scanSetupEnvironment({ userDataPath: base });
-    const result = await updateAddon({ addonId, userDataPath: base, scan });
+    const result = await updateAddon({ addonId, userDataPath: base, scan, pipViaPython });
+    onProgress({ phase: "addon-done", addonId, item: { id: addonId, ...result } });
     const postScan = await scanMissingAddons({ userDataPath: base });
     return {
       ok: Boolean(result.ok),

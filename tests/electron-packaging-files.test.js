@@ -10,6 +10,7 @@ const SETUP_HUB_MAIN_SCRIPTS = [
   "scripts/lib/addon-platform.cjs",
   "scripts/lib/addon-updater.cjs",
   "scripts/lib/tool-installer.cjs",
+  "scripts/lib/setup-install-progress-bridge.cjs",
   "scripts/lib/install-console.cjs",
   "scripts/tool-installer.cjs",
   "scripts/install-addons-runner.cjs",
