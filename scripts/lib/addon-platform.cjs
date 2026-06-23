@@ -60,13 +60,12 @@ async function wslVenvExists(userDataPath) {
 async function probeWslPythonModule(userDataPath, moduleName = "torch") {
   if (process.platform !== "win32") return false;
   const wslVenv = windowsPathToWsl(getManagedWslVenvDir(userDataPath));
-  const activate = `${wslVenv}/bin/activate`;
+  const python = `${wslVenv}/bin/python3`;
   const cmd = [
     wslTensornvmeEnvPrelude(),
-    `test -f ${shellQuoteBash(activate)}`,
-    `&& . ${shellQuoteBash(activate)}`,
-    `&& python -c ${shellQuoteBash(`import ${moduleName}`)}`,
-  ].join("; ");
+    `test -x ${shellQuoteBash(python)}`,
+    `VIRTUAL_ENV=${shellQuoteBash(wslVenv)} ${shellQuoteBash(python)} -c ${shellQuoteBash(`import ${moduleName}`)}`,
+  ].join(" && ");
   try {
     await execLocal("wsl", ["bash", "-lc", cmd], { timeout: 90000 });
     return true;
@@ -159,6 +158,41 @@ async function runWslBootstrap({
   });
 }
 
+/**
+ * Install libaio-dev + tensornvme (+ optional flash-attn) in WSL.
+ * Uses stdio inherit so sudo password prompts work when run from a terminal.
+ */
+async function runWslLinuxOptionalInstall({ timeout = WSL_BOOTSTRAP_TIMEOUT_MS } = {}) {
+  if (process.platform !== "win32") {
+    throw new Error("WSL optional install only runs on Windows host");
+  }
+  const scriptWin = path.join(__dirname, "..", "wsl-install-linux-optional.sh");
+  const scriptWsl = windowsPathToWsl(scriptWin);
+
+  return new Promise((resolve, reject) => {
+    const child = spawn("wsl", ["bash", scriptWsl], {
+      shell: false,
+      stdio: "inherit",
+      windowsHide: false,
+    });
+
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error(`WSL optional install timeout after ${timeout}ms`));
+    }, timeout);
+
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve({ ok: true });
+      else reject(new Error(`WSL optional install exited with code ${code}`));
+    });
+  });
+}
+
 async function gitAvailable() {
   try {
     await execLocal("git", ["--version"], { timeout: 5000 });
@@ -210,6 +244,7 @@ module.exports = {
   probeWslRenderStack,
   resolveEffectivePlatform,
   runWslBootstrap,
+  runWslLinuxOptionalInstall,
   shellForPlatform,
   shellQuoteBash,
   windowsPathToWsl,

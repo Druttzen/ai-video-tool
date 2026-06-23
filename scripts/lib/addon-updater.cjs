@@ -43,6 +43,7 @@ const {
   probeWslPythonModule,
   probeWslRenderStack,
   runWslBootstrap,
+  runWslLinuxOptionalInstall,
   wslAvailable,
   wslVenvExists,
 } = require("./addon-platform.cjs");
@@ -1169,12 +1170,31 @@ async function updateWsl({ userDataPath, manifest }) {
 
   const wslPy = getWslVenvPythonPath(userDataPath);
   const existingStack = (await wslVenvExists(userDataPath)) ? await probeWslRenderStack(userDataPath) : null;
-  if (existingStack?.ok) {
+  if (existingStack?.ok && existingStack?.tensornvme) {
     return {
       ok: true,
       skipped: true,
       path: wslPy,
-      message: "WSL Linux render stack already ready",
+      message: "WSL Linux render stack already ready (incl. tensornvme)",
+    };
+  }
+
+  if (existingStack?.ok && !existingStack?.tensornvme) {
+    let optionalError = null;
+    try {
+      await runWslLinuxOptionalInstall();
+    } catch (err) {
+      optionalError = err?.message || "WSL optional deps install failed";
+    }
+    const stack = await probeWslRenderStack(userDataPath);
+    return {
+      ok: Boolean(stack?.tensornvme),
+      path: wslPy,
+      error: stack?.tensornvme ? undefined : optionalError || undefined,
+      message: stack?.tensornvme
+        ? "WSL optional stack installed (tensornvme ready)"
+        : optionalError ||
+          "tensornvme missing — run in WSL: bash scripts/wsl-install-linux-optional.sh (sudo for libaio-dev)",
     };
   }
 
@@ -1196,15 +1216,27 @@ async function updateWsl({ userDataPath, manifest }) {
     bootstrapError = err?.message || "WSL bootstrap failed";
   }
 
+  let optionalError = null;
+  const stackMid = (await wslVenvExists(userDataPath)) ? await probeWslRenderStack(userDataPath) : null;
+  if (stackMid?.ok && !stackMid?.tensornvme) {
+    try {
+      await runWslLinuxOptionalInstall();
+    } catch (err) {
+      optionalError = err?.message || "WSL optional deps install failed";
+    }
+  }
+
   const wslReady = await wslVenvExists(userDataPath);
   const stack = wslReady ? await probeWslRenderStack(userDataPath) : null;
   return {
     ok: Boolean(stack?.ok),
     path: wslPy,
-    error: stack?.ok ? undefined : bootstrapError || undefined,
-    message: stack?.ok
-      ? "WSL Linux venv + render stack bootstrapped (torch, colossalai, tensornvme, flash-attn)"
-      : stack?.torch
+    error: stack?.ok ? undefined : bootstrapError || optionalError || undefined,
+    message: stack?.tensornvme
+      ? "WSL Linux venv + render stack bootstrapped (torch, colossalai, tensornvme)"
+      : stack?.ok
+        ? "WSL render stack OK but tensornvme missing — run: npm run wsl:optional"
+        : stack?.torch
         ? "WSL venv has torch but colossalai/tensornvme missing — run Setup Hub WSL fix hint (sudo apt once), then Update all addons"
         : wslReady
           ? "WSL venv created but torch import failed"

@@ -20,6 +20,8 @@
     "smoke:local-mp4": "node scripts/smoke-local-mp4.cjs --check-only",
     "addons:check": "node scripts/check-addon-updates.cjs",
     "tools:scan": "node scripts/tool-installer.cjs scan",
+    "wsl:build-tools": "node scripts/wsl-npm-exec.cjs build-tools",
+    "wsl:optional": "node scripts/wsl-npm-exec.cjs optional",
     "tools:install": "node scripts/install-addons-runner.cjs",
     "tools:protocol": "node scripts/tool-installer.cjs protocol",
     "sync:open-sora-catalog": "node scripts/sync-open-sora-catalog.cjs",

@@ -141,8 +141,8 @@ install_linux_optional_deps() {
 
   pip uninstall -y cmake 2>/dev/null || true
   pip install colossalai || echo "[wsl-bootstrap] WARN: colossalai install failed"
-  if ! PATH="/usr/bin:${PATH}" pip install --no-build-isolation packaging tensornvme; then
-    DISABLE_URING=1 PATH="/usr/bin:${PATH}" pip install --no-build-isolation tensornvme \
+  if ! PATH="/usr/bin:${PATH}" python -m pip install --no-build-isolation packaging tensornvme; then
+    DISABLE_URING=1 PATH="/usr/bin:${PATH}" python -m pip install --no-build-isolation tensornvme \
       || echo "[wsl-bootstrap] WARN: tensornvme install failed — run Setup Hub WSL fix hint (sudo apt), then Update all addons"
   fi
 
