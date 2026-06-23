@@ -344,16 +344,20 @@ async function getOpenSoraGitState(installPath) {
 
 function configureEmbedPythonPath(pythonDir) {
   const pthName = fs.readdirSync(pythonDir).find((name) => /^python\d+\._pth$/i.test(name));
-  if (!pthName) return;
+  if (!pthName) return false;
   const pthPath = path.join(pythonDir, pthName);
   let content = fs.readFileSync(pthPath, "utf8");
+  // Windows embed ships with "#import site" commented out — pip needs site enabled.
+  content = content.replace(/^#\s*import\s+site\s*$/m, "import site");
   if (!/^import site/m.test(content)) {
     content = content.replace(/\r?\n?$/, "\nimport site\n");
   }
   if (!/\.\/Lib\/site-packages/m.test(content)) {
     content = content.replace(/\r?\n?$/, "\n./Lib/site-packages\n");
   }
+  fs.mkdirSync(path.join(pythonDir, "Lib", "site-packages"), { recursive: true });
   fs.writeFileSync(pthPath, content, "utf8");
+  return true;
 }
 
 function readWslBootstrapScriptContent() {
@@ -484,6 +488,12 @@ async function runPipInstallPythonScript(userDataPath, reqPath) {
 async function bootstrapEmbedPip(pythonExe, userDataPath, manifest) {
   const platformKey = manifestPlatformKey(process.platform);
   const embed = manifest.addons.python.embed?.[platformKey];
+  const pythonDir = path.dirname(pythonExe);
+
+  if (platformKey === "win32") {
+    configureEmbedPythonPath(pythonDir);
+  }
+
   if (!embed?.getPipUrl) {
     try {
       await execLocal(pythonExe, ["-m", "ensurepip", "--upgrade"], { timeout: 120000 });
@@ -502,10 +512,14 @@ async function bootstrapEmbedPip(pythonExe, userDataPath, manifest) {
   await downloadFile(embed.getPipUrl, getPipPath);
   await execLocal(pythonExe, [getPipPath], { timeout: 180000 });
   if (platformKey === "win32") {
-    configureEmbedPythonPath(path.dirname(pythonExe));
+    configureEmbedPythonPath(pythonDir);
   }
   if (!(await probePipAvailable(pythonExe))) {
-    return { ok: false, error: "get-pip.py finished but pip is still unavailable" };
+    return {
+      ok: false,
+      error:
+        "get-pip.py finished but pip is still unavailable — check python*._pth has import site and ./Lib/site-packages",
+    };
   }
   return { ok: true, message: "get-pip.py" };
 }
@@ -953,12 +967,24 @@ async function updateVenv({ userDataPath, pythonPath, manifest }) {
   }
   fs.mkdirSync(path.dirname(venvDir), { recursive: true });
 
-  try {
-    await execLocal(basePython, ["-m", "venv", venvDir], {
-      timeout: 120000,
-    });
-  } catch (venvErr) {
+  const stdlibVenv = await probePythonModule(basePython, "venv");
+  let venvErr = null;
+  if (stdlibVenv) {
     try {
+      await execLocal(basePython, ["-m", "venv", venvDir], {
+        timeout: 120000,
+      });
+    } catch (e) {
+      venvErr = e;
+    }
+  }
+
+  if (!fileExists(getVenvPythonPath(userDataPath))) {
+    try {
+      const pipCheck = await ensureEmbedPip(basePython, userDataPath, manifest);
+      if (!pipCheck.ok) {
+        return { ok: false, error: pipCheck.error || "pip required for virtualenv fallback" };
+      }
       await execLocal(basePython, ["-m", "pip", "install", "virtualenv"], {
         timeout: 180000,
       });
@@ -1382,12 +1408,16 @@ async function updateAllAddons(params) {
 }
 
 module.exports = {
+  bootstrapEmbedPip,
   checkAddonUpdates,
   compareSemver,
+  configureEmbedPythonPath,
+  ensureEmbedPip,
   getManagedAddonPaths,
   loadAddonManifest,
   mergeRequirementLines,
   normalizeHostScan,
+  probePipAvailable,
   readRequirementsLines,
   requirementsNeedsSync,
   syncAddonRequirements,

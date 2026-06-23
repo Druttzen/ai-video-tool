@@ -5,6 +5,7 @@ import path from "path";
 import {
   compareSemver,
   checkAddonUpdates,
+  configureEmbedPythonPath,
   loadAddonManifest,
   mergeRequirementLines,
   normalizeHostScan,
@@ -82,6 +83,27 @@ describe("addon-updater", () => {
     });
     const models = report.items.find((i) => i.id === "models");
     expect(models?.updateAvailable).toBe(false);
+  });
+
+  it("win32 embed manifest declares getPipUrl for pip bootstrap", () => {
+    const manifest = loadAddonManifest();
+    expect(manifest.addons.python.embed.win32.getPipUrl).toMatch(/get-pip\.py/);
+  });
+
+  it("configureEmbedPythonPath enables site and site-packages for embeddable layout", () => {
+    const pythonDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-video-embed-pth-"));
+    fs.writeFileSync(
+      path.join(pythonDir, "python311._pth"),
+      "python311.zip\n.\n\n# Uncomment to run site.main() automatically\n#import site\n",
+      "utf8",
+    );
+
+    expect(configureEmbedPythonPath(pythonDir)).toBe(true);
+
+    const content = fs.readFileSync(path.join(pythonDir, "python311._pth"), "utf8");
+    expect(content).toMatch(/^import site/m);
+    expect(content).toContain("./Lib/site-packages");
+    expect(fs.existsSync(path.join(pythonDir, "Lib", "site-packages"))).toBe(true);
   });
 });
 
