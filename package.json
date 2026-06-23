@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -65,6 +65,9 @@
       "icon.ico",
       "scripts/run-director-job.py",
       "scripts/run-open-sora-job.py",
+      "scripts/run-music-video-sync.py",
+      "scripts/opensora_inference_support.py",
+      "scripts/opensora-stub-paths/**/*",
       "scripts/sync-open-sora-catalog.cjs",
       "scripts/lib/environment-scan.cjs",
       "scripts/lib/open-sora-paths.cjs",

@@ -11,11 +11,27 @@ const SETUP_HUB_MAIN_SCRIPTS = [
   "scripts/lib/addon-updater.cjs",
   "scripts/lib/tool-installer.cjs",
   "scripts/lib/setup-install-progress-bridge.cjs",
+  "scripts/lib/setup-hub-console.cjs",
   "scripts/lib/install-console.cjs",
   "scripts/tool-installer.cjs",
   "scripts/install-addons-runner.cjs",
   "scripts/install-addons-pip.py",
   "scripts/wsl-addon-bootstrap.sh",
+];
+
+const PACKAGED_PYTHON_SCRIPTS = [
+  "scripts/run-director-job.py",
+  "scripts/run-open-sora-job.py",
+  "scripts/run-music-video-sync.py",
+  "scripts/opensora_inference_support.py",
+  "scripts/install-addons-pip.py",
+];
+
+const OPENSORA_STUB_FILES = [
+  "scripts/opensora-stub-paths/flash_attn/flash_attn/__init__.py",
+  "scripts/opensora-stub-paths/flash_attn/flash_attn/flash_attn_interface.py",
+  "scripts/opensora-stub-paths/tensornvme/tensornvme/__init__.py",
+  "scripts/opensora-stub-paths/tensornvme/tensornvme/async_file_io.py",
 ];
 
 const SETUP_HUB_DATA_FILES = [
@@ -53,6 +69,21 @@ describe("electron packaging files", () => {
 
     for (const rel of [...SETUP_HUB_MAIN_SCRIPTS, ...SETUP_HUB_DATA_FILES]) {
       expect(files.has(rel), `Setup Hub packaging missing: ${rel}`).toBe(true);
+      expect(fs.existsSync(path.join(root, rel)), `repo file missing: ${rel}`).toBe(true);
+    }
+  });
+
+  it("includes Director render and music-video Python helpers in packaged files", () => {
+    const root = path.join(import.meta.dirname, "..");
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+    const files = pkg.build?.files || [];
+
+    for (const rel of PACKAGED_PYTHON_SCRIPTS) {
+      expect(files.includes(rel), `packaging missing: ${rel}`).toBe(true);
+      expect(fs.existsSync(path.join(root, rel)), `repo file missing: ${rel}`).toBe(true);
+    }
+    expect(files.some((entry) => String(entry).includes("opensora-stub-paths"))).toBe(true);
+    for (const rel of OPENSORA_STUB_FILES) {
       expect(fs.existsSync(path.join(root, rel)), `repo file missing: ${rel}`).toBe(true);
     }
   });
@@ -100,7 +131,7 @@ describe("electron packaging files", () => {
   it("ships current version with Setup Hub manifest v2 and WSL script unpack", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-    expect(pkg.version).toBe("1.0.27");
+    expect(pkg.version).toBe("1.0.28");
     expect((pkg.build?.asarUnpack || []).some((entry) => entry.includes("wsl-addon-bootstrap"))).toBe(true);
     const hub = JSON.parse(fs.readFileSync(path.join(root, "data/setup-hub-manifest.json"), "utf8"));
     expect(hub.version).toBe("2.0.0");

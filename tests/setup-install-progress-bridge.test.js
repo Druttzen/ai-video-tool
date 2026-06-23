@@ -15,7 +15,7 @@ describe("setup-install-progress-bridge", () => {
       },
     };
 
-    const bridge = createSetupInstallProgressBridge(event, userData, { version: "1.0.27", openConsole: false });
+    const bridge = createSetupInstallProgressBridge(event, userData, { version: "1.0.28", openConsole: false });
     bridge.onProgress({ phase: "addon-start", addonId: "python", label: "Python", forceReinstall: true });
     bridge.finish({ ok: true, message: "All good" });
 

@@ -1,6 +1,6 @@
 # AI Video Creator — Video Prompt Studio
 
-**Version 1.0.27**
+**Version 1.0.28**
 
 A **standalone** video prompt studio by DJ M@D (Bones Vibration). Built on the same architecture as [AI Music Creator](https://github.com/Druttzen/ai-music-tool), but fully focused on **AI video** — not tied to Open-Sora, Suno tokens, or any single cloud provider.
 
@@ -161,13 +161,14 @@ Setup Hub can **check and install updates** for local render dependencies:
 | Addon | Auto-update behavior |
 |-------|----------------------|
 | **Open-Sora** | `git clone` or `git pull` + optional `pip install -r requirements.txt` |
-| **Python** | Windows embeddable zip → `%AppData%/…/addons/python/` |
+| **Python** | Windows embeddable zip → `%AppData%/…/addons/python/` (bootstraps pip via `get-pip.py` + `_pth` fix before venv) |
 | **FFmpeg** | Static Windows build → `%AppData%/…/addons/ffmpeg/` |
 | **Music video sync** | Librosa beat/onset analysis for Paths 1, 3, and 5 (desktop + managed venv) |
 | **WSL** | Optional Linux venv for CUDA torch (Windows host) |
 
 - Toggle **Auto-update … after each environment scan** in Setup Hub
 - Or use **Check addon updates** / **Update all addons**
+- **Install all tools** and bulk updates open an **in-app progress modal** with live log tail and a finish confirmation (success or error summary)
 - CLI: `npm run addons:check`
 
 Manifest: `data/addon-updates-manifest.json` (pinned URLs/versions).
@@ -198,6 +199,9 @@ Helper scripts under `scripts/wsl-*.sh` share portable path resolution in `scrip
 
 | Script | Purpose |
 |--------|---------|
+| `wsl-run-bootstrap.sh` | Bootstrap managed Linux venv + pip deps |
+| `wsl-prepare-native-ckpts.sh` | Symlink T5 ckpts to native WSL fs (avoids `/mnt/c` SIGBUS) |
+| `wsl-patch-open-sora-low-vram.py` | Patch Open-Sora for 12 GB GPU (T5/CLIP on CPU) |
 | `wsl-verify-stack.sh` | torch, colossalai, tensornvme, flash_attn, GPU |
 | `wsl-run-dist-probe.sh` | torchrun + distributed init smoke test |
 | `wsl-director-smoke.sh` | Full Director job smoke (`director-smoke-job.json`) |
