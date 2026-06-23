@@ -6,7 +6,6 @@ import {
 } from "./director-catalog";
 import {
   getIndexCameraMovement,
-  getIndexColorGrades,
   getIndexLightingSources,
   getIndexLightingTerms,
   getIndexVisualStyles,

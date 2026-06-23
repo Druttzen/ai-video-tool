@@ -8,7 +8,6 @@ const { execSync } = require("child_process");
 
 const OPEN_SORA_ROOT = process.argv[2] || process.env.OPEN_SORA_ROOT || "E:\\Open-Sora";
 const OUT = path.join(__dirname, "..", "data", "open-sora-catalog.json");
-const TERMS_OUT = path.join(__dirname, "..", "data", "open-sora-terms.json");
 
 const LIST_FILES = [
   { file: "autocomplete/camera_terms.py", key: "cameraMoves", var: "CAMERA_MOVES" },
@@ -245,19 +244,6 @@ print(json.dumps([{"name": s.name, "label": s.label, "style": s.style} for s in 
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify(catalog, null, 2));
   console.log(`Wrote ${OUT}`);
-
-  const termsSubset = {
-    syncedAt: catalog.syncedAt,
-    sourceRoot: catalog.sourceRoot,
-    cameraMoves: catalog.cameraMoves,
-    lightingTerms: catalog.lightingTerms,
-    colorProfiles: catalog.colorProfiles,
-    cameraPresets: catalog.cameraPresets,
-    lensKits: catalog.lensKits,
-    filmFormats: catalog.filmFormats,
-  };
-  fs.writeFileSync(TERMS_OUT, JSON.stringify(termsSubset, null, 2));
-  console.log(`Wrote ${TERMS_OUT}`);
 }
 
 main();

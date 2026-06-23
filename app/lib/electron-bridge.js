@@ -71,14 +71,6 @@ export async function revealDirectorOutput(filePath) {
   return window.electronAPI.revealDirectorOutput(filePath);
 }
 
-/** @returns {Promise<{ ok: boolean }>} */
-export async function confirmDesktopAction(payload) {
-  if (!isElectronApp() || !window.electronAPI?.confirmAction) {
-    return { ok: false };
-  }
-  return window.electronAPI.confirmAction(payload);
-}
-
 /** @returns {Promise<{ ok: boolean, scan?: object, error?: string }>} */
 export async function scanSetupEnvironmentFromHost(payload) {
   if (!isElectronApp() || !window.electronAPI?.scanSetupEnvironment) {

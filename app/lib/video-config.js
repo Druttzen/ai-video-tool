@@ -1,7 +1,6 @@
 import {
   cameraMotionOptions,
   lightingOptions,
-  pacingOptions,
   stylePresets as videoStylePresets,
   visualStyleOptions,
 } from "./video-visual-styles";
@@ -12,7 +11,6 @@ export const genreOptions = visualStyleOptions;
 export const rhythmOptions = cameraMotionOptions;
 /** Lighting chips. */
 export const soundOptions = lightingOptions;
-export { pacingOptions };
 
 export const lyricLanguageOptions = ["English", "No dialogue", "Multilingual signs", "Subtitle-safe"];
 export const lyricStyleOptions = [

@@ -19,7 +19,6 @@ import {
   summarizeSetupScan,
 } from "./setup-hub";
 import { loadCachedSystemStats } from "./system-stats";
-import { scrollToPanel } from "./music-video-workflows";
 
 /** @typedef {"idle"|"validating"|"rendering"|"assembled"|"done"|"failed"} ProductionPhase */
 
@@ -642,10 +641,6 @@ export async function runFullProduction(params = {}) {
     settings,
     multiClipNote: assessMusicVideoAssembly(params.audioAnalysis).note,
   };
-}
-
-export function scrollToProductionHint(target) {
-  scrollToPanel(target || "setup-hub-panel");
 }
 
 export async function revealProductionOutput(filePath) {

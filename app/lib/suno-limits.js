@@ -6,9 +6,6 @@
 /** Hard cap for the Style field (characters). Confirmed in Suno chat — treat as authoritative for this app. */
 export const SUNO_STYLE_CHAR_CAP = 1000;
 
-/** @deprecated alias — use SUNO_STYLE_CHAR_CAP */
-export const SUNO_STYLE_CHAR_TYPICAL_MAX = SUNO_STYLE_CHAR_CAP;
-
 /** Warn when approaching the Style cap so users can trim before truncation. */
 export const SUNO_STYLE_CHAR_WARN = 900;
 

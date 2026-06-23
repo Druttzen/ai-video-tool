@@ -22,7 +22,6 @@
     "tools:scan": "node scripts/tool-installer.cjs scan",
     "tools:install": "node scripts/install-addons-runner.cjs",
     "tools:protocol": "node scripts/tool-installer.cjs protocol",
-    "sync:open-sora-terms": "node scripts/sync-open-sora-terms.cjs",
     "sync:open-sora-catalog": "node scripts/sync-open-sora-catalog.cjs",
     "check": "npm run test && npm run lint && npm run build",
     "build": "next build",

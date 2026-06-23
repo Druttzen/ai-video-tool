@@ -125,14 +125,6 @@ export function mapSunoRhythmsToCamera(rhythms = []) {
   return uniq(mapTokenList(rhythms, RHYTHM_TO_CAMERA, "Tracking shot")).slice(0, 3);
 }
 
-export function mapBpmToPacing(bpm) {
-  const n = Number(bpm);
-  if (!n || n <= 0) return "Medium cut rhythm";
-  if (n >= 140) return "Fast montage";
-  if (n >= 110) return "Medium cut rhythm";
-  return "Slow meditative";
-}
-
 export function mapBpmToDurationHint(bpm, highlightDurationSec) {
   if (highlightDurationSec && highlightDurationSec > 0) {
     return `${Math.min(30, Math.max(6, Math.round(highlightDurationSec)))}s`;

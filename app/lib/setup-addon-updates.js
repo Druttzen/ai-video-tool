@@ -36,13 +36,6 @@ export async function updateAllAddonsFromHost(payload) {
   return window.electronAPI.updateAllAddons(payload);
 }
 
-export async function getToolInstallProtocolFromHost() {
-  if (!isElectronApp() || !window.electronAPI?.getToolInstallProtocol) {
-    return { ok: false, error: "Tool installer requires the desktop app" };
-  }
-  return window.electronAPI.getToolInstallProtocol();
-}
-
 export async function scanMissingToolsFromHost() {
   if (!isElectronApp() || !window.electronAPI?.scanMissingTools) {
     return { ok: false, error: "Tool scan requires the desktop app" };
@@ -55,14 +48,6 @@ export async function installToolsFromHost(payload) {
     return { ok: false, error: "Tool install requires the desktop app" };
   }
   return window.electronAPI.installTools(payload);
-}
-
-/** @param {(payload: object) => void} callback */
-export function subscribeToolInstallProgressFromHost(callback) {
-  if (!isElectronApp() || !window.electronAPI?.onToolInstallProgress) {
-    return () => {};
-  }
-  return window.electronAPI.onToolInstallProgress(callback);
 }
 
 export async function openExternalUrlFromHost(url) {

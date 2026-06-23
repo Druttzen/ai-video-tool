@@ -16,10 +16,6 @@ export function getIndexWorkflows() {
   return index.workflows || [];
 }
 
-export function getIndexWorkflowByKey(key) {
-  return getIndexWorkflows().find((w) => w.key === key || w.id === key) || null;
-}
-
 export function getIndexBundles() {
   return index.bundles || { exportFields: [], presetBundles: [] };
 }
@@ -48,56 +44,20 @@ export function getIndexStylePhrases() {
   return index.styles?.stylePhrases || [];
 }
 
-export function getIndexColorGrades() {
-  return index.styles?.colorGrades || [];
-}
-
 export function getIndexCameraMovement() {
   return index.camera?.movement || [];
-}
-
-export function getIndexCameraModifiers() {
-  return index.camera?.modifiers || [];
-}
-
-export function getIndexRunwayCameraTokens() {
-  return index.camera?.runwayTokens || [];
-}
-
-export function getIndexCameraFraming() {
-  return index.camera?.framing || [];
-}
-
-export function getIndexLightingQuality() {
-  return index.lighting?.quality || [];
 }
 
 export function getIndexLightingSources() {
   return index.lighting?.sources || [];
 }
 
-export function getIndexLightingDirection() {
-  return index.lighting?.direction || [];
-}
-
 export function getIndexLightingTerms() {
   return index.lighting?.terms || [];
 }
 
-export function getIndexLightingSetups() {
-  return index.lighting?.setups || [];
-}
-
-export function getIndexLightingPalettes() {
-  return index.lighting?.palettes || [];
-}
-
 export function getIndexMoodWords() {
   return index.mood?.words || [];
-}
-
-export function getIndexMoodSliders() {
-  return index.mood?.sliders || [];
 }
 
 export function getIndexRulesUniversal() {
@@ -110,10 +70,6 @@ export function getIndexRulesMusicVideo() {
 
 export function getIndexRulesModelFixes() {
   return index.rules?.modelFixes || {};
-}
-
-export function getIndexNegativePrompts() {
-  return index.rules?.negativePrompts || [];
 }
 
 export function getIndexModels() {
