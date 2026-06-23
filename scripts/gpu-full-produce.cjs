@@ -8,9 +8,9 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { spawn } = require("child_process");
 const { scanSetupEnvironment } = require("./lib/environment-scan.cjs");
 const { resolveUserDataPath } = require("./lib/open-sora-paths.cjs");
+const { spawnLocal } = require("./lib/process-exec.cjs");
 
 const root = path.resolve(__dirname, "..");
 const userDataPath = resolveUserDataPath(root);
@@ -21,17 +21,6 @@ function readArg(flag, fallback = "") {
   const idx = process.argv.indexOf(flag);
   if (idx < 0) return fallback;
   return process.argv[idx + 1] ?? fallback;
-}
-
-function run(cmd, args, opts = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: "inherit", shell: true, ...opts });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${cmd} exited ${code}`));
-    });
-  });
 }
 
 function buildClipSegmentPrompt(basePrompt, clip, index, total) {
@@ -45,8 +34,8 @@ function buildClipSegmentPrompt(basePrompt, clip, index, total) {
 
 async function main() {
   const maxClips = Math.max(1, Number(readArg("--clips", "4")) || 4);
-  const numFrames = Math.max(17, Number(readArg("--frames", "49")) || 49);
-  const numSteps = Math.max(8, Number(readArg("--steps", "20")) || 20);
+  const numFrames = Math.max(17, Number(readArg("--frames", "33")) || 33);
+  const numSteps = Math.max(8, Number(readArg("--steps", "16")) || 16);
   const fps = Math.max(8, Number(readArg("--fps", "16")) || 16);
 
   console.log("GPU full produce — scanning environment…");
@@ -98,7 +87,7 @@ async function main() {
     };
     fs.writeFileSync(jobPath, JSON.stringify(job, null, 2));
     console.log(`\n=== Clip ${i + 1}/${clipPlan.length}: ${clip.label || "segment"} ===`);
-    await run(`"${python}"`, [`"${runner}"`, `"${jobPath}"`], { cwd: root });
+    await spawnLocal(python, [runner, jobPath], { cwd: root });
 
     const staged = path.join(outDir, `clip-${i + 1}-output.mp4`);
     if (!fs.existsSync(staged)) {

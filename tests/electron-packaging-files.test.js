@@ -21,6 +21,7 @@ const SETUP_HUB_MAIN_SCRIPTS = [
 
 const PACKAGED_PYTHON_SCRIPTS = [
   "scripts/run-director-job.py",
+  "scripts/run-diffusers-wan-job.py",
   "scripts/run-open-sora-job.py",
   "scripts/run-music-video-sync.py",
   "scripts/opensora_inference_support.py",
@@ -126,6 +127,14 @@ describe("electron packaging files", () => {
     const releaseYml = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
     expect(releaseYml).not.toMatch(/build:setup-hub-exe/);
     expect(releaseYml).toMatch(/prepare:electron-dist/);
+  });
+
+  it("Director Python runners are invokable as CLI scripts", () => {
+    const root = path.join(import.meta.dirname, "..");
+    for (const rel of ["scripts/run-director-job.py", "scripts/run-diffusers-wan-job.py"]) {
+      const src = fs.readFileSync(path.join(root, rel), "utf8");
+      expect(src, `${rel} must call main() when executed`).toMatch(/if __name__ == ["']__main__["']/);
+    }
   });
 
   it("ships current version with Setup Hub manifest v2 and WSL script unpack", () => {

@@ -10,6 +10,7 @@
 const fs = require("fs");
 const path = require("path");
 const { scanSetupEnvironment, isPipelineFolder } = require("./lib/environment-scan.cjs");
+const { resolveUserDataPath } = require("./lib/open-sora-paths.cjs");
 
 function readArg(flag) {
   const idx = process.argv.indexOf(flag);
@@ -23,7 +24,9 @@ async function main() {
   const writeJob = readArg("--write-job");
   const checkOnly = process.argv.includes("--check-only") || !writeJob;
 
+  const userDataPath = resolveUserDataPath(path.join(__dirname, ".."));
   const scan = await scanSetupEnvironment({
+    userDataPath,
     directorSettings: { localPipelinePath: pipeline, localPythonPath: pythonPath },
     openSoraInstallPath: pipeline,
   });

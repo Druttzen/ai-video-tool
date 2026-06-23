@@ -176,6 +176,13 @@ def run_diffusers_wan_job(job_path: Path, job: dict) -> int:
         return 4
     print("=== AI Video Creator · Director Engine · Diffusers Wan ===", flush=True)
     result = subprocess.run([python, str(wan_script), str(job_path)], cwd=job_path.parent)
+    if result.returncode == 0:
+        output = job.get("output") or {}
+        container = str(output.get("container") or "mp4").lstrip(".")
+        staged = job_path.parent / f"{job_path.stem}-output.{container}"
+        if not staged.is_file():
+            print(f"Wan render finished without output video: {staged}", file=sys.stderr)
+            return 9
     return result.returncode
 
 
@@ -195,3 +202,7 @@ def main() -> int:
         print("ComfyUI local render is not wired yet — set localRenderEngine to diffusers-wan or open-sora", file=sys.stderr)
         return 3
     return run_opensora_job(job_path, job)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

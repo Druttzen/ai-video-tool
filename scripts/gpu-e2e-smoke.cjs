@@ -8,24 +8,13 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { spawn } = require("child_process");
 const { scanSetupEnvironment } = require("./lib/environment-scan.cjs");
 const { resolveUserDataPath } = require("./lib/open-sora-paths.cjs");
+const { spawnLocal } = require("./lib/process-exec.cjs");
 
 const root = path.resolve(__dirname, "..");
 const userDataPath = resolveUserDataPath(root);
 const renderRequested = process.argv.includes("--render") || process.env.GPU_E2E_RENDER === "1";
-
-function run(cmd, args, opts = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: "inherit", shell: true, ...opts });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${cmd} exited ${code}`));
-    });
-  });
-}
 
 async function main() {
   console.log("GPU E2E smoke — scanning environment…");
@@ -72,7 +61,13 @@ async function main() {
   const runner = path.join(root, "scripts", "run-director-job.py");
   console.log(`\nGPU E2E smoke — rendering minimal Wan clip (${job.numFrames} frames)…`);
   console.log(`  Job: ${jobPath}`);
-  await run(`"${python}"`, [`"${runner}"`, `"${jobPath}"`], { cwd: root });
+  await spawnLocal(python, [runner, jobPath], { cwd: root });
+
+  const staged = path.join(path.dirname(jobPath), `${path.basename(jobPath, ".json")}-output.mp4`);
+  if (!fs.existsSync(staged)) {
+    throw new Error(`Render finished without output video: ${staged}`);
+  }
+  console.log(`  Output: ${staged}`);
   console.log("\nGPU E2E smoke — render complete.");
 }
 
