@@ -19,12 +19,21 @@ import {
   summarizeSetupScan,
 } from "./setup-hub";
 import { loadCachedSystemStats } from "./system-stats";
+import {
+  DEFAULT_LOCAL_RENDER_ENGINE,
+  isWinNativeRenderReady,
+  normalizeLocalRenderEngine,
+  productionRequiredModulesForEngine,
+} from "./local-render-engine";
 
 /** @typedef {"idle"|"validating"|"rendering"|"assembled"|"done"|"failed"} ProductionPhase */
 
 export const PRODUCTION_PHASES = ["idle", "validating", "rendering", "assembled", "done", "failed"];
 
-export const PRODUCTION_REQUIRED_MODULES = ["python", "pipeline", "models"];
+export const PRODUCTION_REQUIRED_MODULES = ["python", "venv", "pip-deps"];
+
+/** @deprecated use productionRequiredModulesForEngine */
+export const PRODUCTION_OPEN_SORA_MODULES = ["python", "pipeline", "models"];
 
 const MULTI_CLIP_NOTE =
   "Full multi-clip music videos (beat-sync clip plans) are phase 2 — this run renders one Director segment. Use Director for each clip or wait for multi-segment pipeline.";
@@ -79,10 +88,17 @@ export function mergeProductionSession(session, patch = {}) {
  * True when WSL Linux stack is render-ready and Windows managed venv is not.
  * @param {object} raw — host scan raw object
  */
-export function shouldPreferWslRender(raw) {
+export function shouldPreferWslRender(raw, localRenderEngine = DEFAULT_LOCAL_RENDER_ENGINE) {
+  const engine = normalizeLocalRenderEngine(localRenderEngine);
+  if (engine === "diffusers-wan" && isWinNativeRenderReady(raw, engine)) {
+    return false;
+  }
   const wslStack = raw?.wsl;
   if (!wslStack?.ok || !wslStack?.path) return false;
   if (raw?.platform && raw.platform !== "win32") return false;
+  if (engine === "diffusers-wan") {
+    return !isWinNativeRenderReady(raw, engine);
+  }
   const winRenderReady = Boolean(
     raw?.pipDeps?.winRenderReady ?? (raw?.pipDeps?.ok && raw?.pipDeps?.cudaOk !== false),
   );
@@ -96,9 +112,12 @@ export function shouldPreferWslRender(raw) {
  */
 export function resolveRenderPythonFromScan(hostScanRaw, directorSettings = {}) {
   const raw = hostScanRaw?.raw || hostScanRaw || {};
+  const engine = normalizeLocalRenderEngine(
+    directorSettings.localRenderEngine || DEFAULT_LOCAL_RENDER_ENGINE,
+  );
   const wslReady = Boolean(raw.wsl?.ok && raw.wsl.path);
 
-  if (shouldPreferWslRender(raw)) {
+  if (shouldPreferWslRender(raw, engine)) {
     const missing = [];
     if (!raw.pipDeps?.cudaOk) missing.push("CUDA torch");
     if (!raw.pipDeps?.colossalaiOk) missing.push("colossalai");
@@ -170,7 +189,14 @@ export function evaluateProductionReadiness(scan) {
   const warnings = [];
   const hints = [];
 
-  for (const id of PRODUCTION_REQUIRED_MODULES) {
+  const directorSettings = loadDirectorSettingsFromStorage();
+  const renderEngine = normalizeLocalRenderEngine(directorSettings.localRenderEngine);
+  const requiredModules =
+    renderEngine === "open-sora"
+      ? [...productionRequiredModulesForEngine(renderEngine), "pipeline", "models"]
+      : productionRequiredModulesForEngine(renderEngine);
+
+  for (const id of requiredModules) {
     const row = modules[id];
     if (!row || row.status !== "ready") {
       blockers.push({
@@ -184,7 +210,20 @@ export function evaluateProductionReadiness(scan) {
 
   const pip = modules["pip-deps"];
   const wsl = modules.wsl;
-  if (pip?.status !== "ready" && wsl?.status !== "ready") {
+  const wanReady =
+    renderEngine === "diffusers-wan" &&
+    pip?.status === "ready" &&
+    (pip?.wanRenderReady || (pip?.cudaOk && pip?.diffusersOk));
+  if (renderEngine === "diffusers-wan") {
+    if (!wanReady && wsl?.status !== "ready") {
+      blockers.push({
+        id: "pip-deps",
+        message: pip?.message || "CUDA torch + diffusers not ready for Wan render",
+        fixHint: "Setup Hub → Update all addons (pip/torch/diffusers). NVIDIA GPU required.",
+        scrollTarget: "setup-hub-panel",
+      });
+    }
+  } else if (pip?.status !== "ready" && wsl?.status !== "ready") {
     blockers.push({
       id: "pip-deps",
       message: pip?.message || "torch/CUDA stack not ready in managed venv",
@@ -211,10 +250,11 @@ export function evaluateProductionReadiness(scan) {
   }
 
   const summary = summarizeSetupScan(scan);
-  const renderStackReady = pip?.status === "ready" || wsl?.status === "ready";
-  const coreModulesReady = PRODUCTION_REQUIRED_MODULES.every(
-    (id) => modules[id]?.status === "ready",
-  );
+  const renderStackReady =
+    renderEngine === "diffusers-wan"
+      ? Boolean(wanReady || wsl?.status === "ready")
+      : pip?.status === "ready" || wsl?.status === "ready";
+  const coreModulesReady = requiredModules.every((id) => modules[id]?.status === "ready");
   const ready = blockers.length === 0 && coreModulesReady && renderStackReady;
 
   return {

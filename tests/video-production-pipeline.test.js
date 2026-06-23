@@ -8,6 +8,11 @@ vi.mock("../app/lib/electron-bridge.js", () => ({
   revealDirectorOutput: vi.fn(),
 }));
 
+vi.mock("../app/lib/director-settings.js", () => ({
+  loadDirectorSettingsFromStorage: () => ({ localRenderEngine: "open-sora" }),
+  saveDirectorSettingsToStorage: vi.fn(),
+}));
+
 import {
   evaluateProductionReadiness,
   resolveRenderPythonFromScan,
@@ -15,13 +20,28 @@ import {
 } from "../app/lib/video-production-pipeline.js";
 
 describe("video production pipeline", () => {
-  it("shouldPreferWslRender when WSL stack ready and Windows venv lacks colossalai", () => {
+  it("shouldPreferWslRender false for diffusers-wan when Windows has CUDA+diffusers", () => {
+    const raw = {
+      platform: "win32",
+      pipDeps: {
+        ok: true,
+        cudaOk: true,
+        diffusersOk: true,
+        colossalaiOk: false,
+        wanRenderReady: true,
+      },
+      wsl: { ok: true, path: "/mnt/c/AppData/addons/wsl-venv/bin/python3" },
+    };
+    expect(shouldPreferWslRender(raw, "diffusers-wan")).toBe(false);
+  });
+
+  it("shouldPreferWslRender when WSL stack ready and Windows venv lacks colossalai (open-sora)", () => {
     const raw = {
       platform: "win32",
       pipDeps: { ok: true, cudaOk: true, colossalaiOk: false, winRenderReady: false },
       wsl: { ok: true, path: "/mnt/c/AppData/addons/wsl-venv/bin/python3" },
     };
-    expect(shouldPreferWslRender(raw)).toBe(true);
+    expect(shouldPreferWslRender(raw, "open-sora")).toBe(true);
   });
 
   it("resolveRenderPythonFromScan picks WSL path on Windows without colossalai", () => {

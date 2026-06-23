@@ -1,5 +1,5 @@
 import { getDirectorQualityPresets } from "./director-catalog";
-import { migrateOutputSettings } from "./director-output-settings";
+import { DEFAULT_LOCAL_RENDER_ENGINE, normalizeLocalRenderEngine } from "./local-render-engine";
 
 export const DIRECTOR_SETTINGS_KEY = "ai_video_creator_director_settings_v1";
 export const LEGACY_OPEN_SORA_SETTINGS_KEY = "ai_video_creator_open_sora_settings_v1";
@@ -46,6 +46,8 @@ export const DEFAULT_DIRECTOR_SETTINGS = {
   autoOptimizeFromHardware: true,
   hardwareTier: null,
   lastOptimizedAt: null,
+  localRenderEngine: "diffusers-wan",
+  wanModelId: "",
 };
 
 export function loadDirectorSettingsFromStorage() {
@@ -74,6 +76,7 @@ function migrateLegacySettings(s) {
   if (s.preset === "CINEMATIC") next.qualityPreset = "STANDARD";
   if (s.preset === "ULTRA") next.qualityPreset = "PREMIUM";
   if (s.configPreset) delete next.configPreset;
+  next.localRenderEngine = normalizeLocalRenderEngine(s.localRenderEngine || DEFAULT_LOCAL_RENDER_ENGINE);
   return migrateOutputSettings(next);
 }
 

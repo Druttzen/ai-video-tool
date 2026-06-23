@@ -65,6 +65,7 @@
       "out/**/*",
       "icon.ico",
       "scripts/run-director-job.py",
+      "scripts/run-diffusers-wan-job.py",
       "scripts/run-open-sora-job.py",
       "scripts/run-music-video-sync.py",
       "scripts/opensora_inference_support.py",

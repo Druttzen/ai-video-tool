@@ -38,10 +38,12 @@ export function summarizeSetupScan(scan) {
   ).length;
   const depsReady =
     moduleStatus(scan, "pip-deps") === "ready" || moduleStatus(scan, "wsl") === "ready";
+  const wanReady = Boolean(scan.raw?.pipDeps?.wanRenderReady);
+  const openSoraStackReady =
+    moduleStatus(scan, "pipeline") === "ready" && moduleStatus(scan, "models") === "ready";
   const localRenderReady =
     moduleStatus(scan, "python") === "ready" &&
-    moduleStatus(scan, "pipeline") === "ready" &&
-    moduleStatus(scan, "models") === "ready" &&
+    (wanReady || openSoraStackReady) &&
     (!scan.raw?.forceManaged || (moduleStatus(scan, "venv") === "ready" && depsReady));
   return {
     ready,
@@ -153,14 +155,21 @@ export function buildSetupScanFromHost(hostScan, { coProducerLlmSettings } = {})
           status: scan.forceManaged ? "missing" : "optional",
           message: "Run addon update to sync data/addon-requirements.txt",
         },
-    "pip-deps": scan.pipDeps?.winRenderReady
+    "pip-deps": scan.pipDeps?.wanRenderReady
+      ? {
+          status: "ready",
+          message: `${scan.pipDeps.probeModule || "torch"} + CUDA + diffusers ready (Wan local render)`,
+        }
+      : scan.pipDeps?.winRenderReady
       ? { status: "ready", message: `${scan.pipDeps.probeModule || "torch"} + CUDA + colossalai OK in managed venv` }
       : scan.pipDeps?.ok
         ? {
             status: "optional",
             message: scan.pipDeps.cudaOk
-              ? "torch OK — colossalai unavailable on Windows; use WSL addon for local MP4"
-              : "torch OK but no CUDA — enable WSL addon or install CUDA torch",
+              ? scan.pipDeps.diffusersOk
+                ? "torch + diffusers OK — Wan render ready"
+                : "torch OK — install diffusers via Update all addons; or use WSL for Open-Sora"
+              : "torch OK but no CUDA — NVIDIA GPU required for local Wan render",
           }
         : {
             status: scan.forceManaged ? "missing" : "optional",
@@ -300,9 +309,13 @@ export function applyMaxedStandaloneProfile(hostScan) {
     : scan.openSora?.ok
       ? scan.openSora.path
       : "";
-  if (pipelinePath) {
+  if (scan.pipDeps?.wanRenderReady) {
+    director.localRenderEngine = "diffusers-wan";
+    director.renderBackend = "local-python";
+  } else if (pipelinePath) {
     director.localPipelinePath = pipelinePath;
     director.renderBackend = "local-python";
+    director.localRenderEngine = "open-sora";
     openSora.installPath = pipelinePath;
   }
 

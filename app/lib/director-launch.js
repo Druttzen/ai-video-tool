@@ -2,8 +2,16 @@ import { buildDirectorJobPayload } from "./director-prompt-builder";
 import { isElectronApp, launchDirectorJob } from "./electron-bridge";
 import { computeBuildPlan } from "./video-build-estimate";
 
+import { normalizeLocalRenderEngine } from "./local-render-engine";
+
 function hasLocalPipelinePath(settings) {
   return Boolean(String(settings?.localPipelinePath || "").trim());
+}
+
+function localRenderReady(settings) {
+  const engine = normalizeLocalRenderEngine(settings?.localRenderEngine);
+  if (engine === "diffusers-wan") return true;
+  return hasLocalPipelinePath(settings);
 }
 
 /** Export-first: always works in browser; optional local render in Electron. */
@@ -24,11 +32,11 @@ export async function sendDirectorJob({ project, settings, imagePayload, buildPl
         error: "Local GPU render requires the AI Video Creator desktop app.",
       };
     }
-    if (!hasLocalPipelinePath(settings)) {
+    if (!localRenderReady(settings)) {
       return {
         ok: false,
         error:
-          "Local GPU render needs a pipeline folder (Director → Advanced). Output settings (MP4) apply after render — Export only saves job JSON.",
+          "Local GPU render needs Wan (Diffusers) in Director → Advanced, or an Open-Sora pipeline folder for the open-sora engine.",
       };
     }
 

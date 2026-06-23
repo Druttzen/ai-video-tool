@@ -158,6 +158,8 @@ export function buildDirectorJobPayload(p, settings, opts = {}) {
     },
     localPipelinePath: settings?.localPipelinePath || "",
     pythonPath: settings?.localPythonPath || "python",
+    localRenderEngine: settings?.localRenderEngine || "diffusers-wan",
+    wanModelId: settings?.wanModelId || "",
   };
 
   if (useI2v) {

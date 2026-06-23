@@ -56,9 +56,8 @@ import {
 import { resolveAudioCacheBlob } from "../lib/audio-cache";
 import {
   buildProjectBundleExport,
-  mergeCustomPresetsMaps,
-  parseProjectBundleImport,
 } from "../lib/project-bundle";
+import { applyParsedBundleImport } from "../lib/apply-bundle-import";
 import {
   dispatchProjectResetEvent,
   persistBlankProjectNow,
@@ -154,6 +153,8 @@ export function useProjectActions({
   setSelectedHistoryId,
   setSelectedRhythms,
   setSelectedSounds,
+  setAudioAnalysis,
+  setImageAnalysis,
   setStatusWithTime,
   setStructure,
   setTempo,
@@ -172,7 +173,10 @@ export function useProjectActions({
   voiceRefLastName,
   voiceStyleLine,
   voiceStyleCompact,
+  applyAnalyzerPatch,
   applyAudioToSunoStyle,
+  setAudioAnalysis,
+  setImageAnalysis,
   imageAnalysis,
 }) {
   const coProducerVoiceFields = useCallback(
@@ -306,54 +310,81 @@ export function useProjectActions({
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          captureSnapshot("before import");
           const raw = JSON.parse(String(reader.result));
-          const {
-            project,
-            customPresets: importedPresets,
-            gpuWorkflow,
-            directorSettings,
-            openSoraSettings,
-          } = parseProjectBundleImport(raw);
-          const cvPresets = extractCharacterVoicePresetsFromProject(project);
-          if (cvPresets && Object.keys(cvPresets).length > 0) {
-            const presetResult = persistCharacterVoicePresets(cvPresets, { merge: true });
-            if (!presetResult.ok) {
-              setStatusWithTime(storageFailureMessage(presetResult), "error");
-            }
-          }
-          const cvSession = extractCharacterVoiceStudioSessionFromProject(project);
-          if (cvSession !== null) {
-            persistCharacterVoiceStudioSession(cvSession);
-          }
-          if (importedPresets && Object.keys(importedPresets).length > 0) {
-            setCustomPresets((prev) => {
-              const next = mergeCustomPresetsMaps(prev, importedPresets);
-              const result = safeLocalStorage.setJSON(PRESET_KEY, next);
-              if (!result.ok) {
-                setStatusWithTime(storageFailureMessage(result), "error");
-              }
-              return next;
-            });
-          }
-          if (gpuWorkflow) {
-            saveGpuWorkflowSettings(gpuWorkflow);
-          }
-          if (directorSettings) {
-            saveDirectorSettingsToStorage(directorSettings);
-          }
-          if (openSoraSettings) {
-            saveOpenSoraSettingsToStorage(openSoraSettings);
-          }
-          loadState(migrateImportedProject(project, APP_VERSION));
-          setStatusWithTime("Imported project bundle (includes Director/Open-Sora settings when present)");
+          applyParsedBundleImport({
+            raw,
+            appVersion: APP_VERSION,
+            captureSnapshot,
+            loadState,
+            setCustomPresets,
+            setStatusWithTime,
+            handoffActions: {
+              setAudioAnalysis,
+              setImageAnalysis,
+              applyAnalyzerPatch,
+              patch,
+            },
+          });
         } catch {
           setStatusWithTime("Import failed", "error");
         }
       };
       reader.readAsText(file);
+      event.target.value = "";
     },
-    [captureSnapshot, loadState, setCustomPresets, setStatusWithTime],
+    [
+      applyAnalyzerPatch,
+      captureSnapshot,
+      loadState,
+      patch,
+      setAudioAnalysis,
+      setCustomPresets,
+      setImageAnalysis,
+      setStatusWithTime,
+    ],
+  );
+
+  const importProjectBundleFromPath = useCallback(
+    async (bundlePath) => {
+      if (!bundlePath || typeof window === "undefined" || !window.electronAPI?.readProjectBundleFile) {
+        return { ok: false, error: "Bundle import requires desktop app" };
+      }
+      try {
+        const res = await window.electronAPI.readProjectBundleFile(bundlePath);
+        if (!res?.ok || !res.raw) {
+          setStatusWithTime(res?.error || "Bundle read failed", "error");
+          return res;
+        }
+        applyParsedBundleImport({
+          raw: res.raw,
+          appVersion: APP_VERSION,
+          captureSnapshot,
+          loadState,
+          setCustomPresets,
+          setStatusWithTime,
+          handoffActions: {
+            setAudioAnalysis,
+            setImageAnalysis,
+            applyAnalyzerPatch,
+            patch,
+          },
+        });
+        return { ok: true };
+      } catch (e) {
+        setStatusWithTime(e?.message || "Bundle import failed", "error");
+        return { ok: false, error: e?.message };
+      }
+    },
+    [
+      applyAnalyzerPatch,
+      captureSnapshot,
+      loadState,
+      patch,
+      setAudioAnalysis,
+      setCustomPresets,
+      setImageAnalysis,
+      setStatusWithTime,
+    ],
   );
 
   const captureSunoPasteFromProject = useCallback(() => {
@@ -1063,6 +1094,7 @@ Variation ${i + 1}: keep the core identity, change texture and movement without 
     generateVoiceStyleFromNames,
     handoffTrackToVoiceCharacterStudio,
     importProject,
+    importProjectBundleFromPath,
     loadPresetObject,
     resetAll,
     restoreHistory,

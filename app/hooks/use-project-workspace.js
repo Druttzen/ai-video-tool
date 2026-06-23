@@ -11,7 +11,7 @@ import { useSnapshotFields } from "./use-snapshot-fields";
 import { useSplashAutoDismiss, useSplashOverlay } from "./use-splash-seen";
 import { useStatusMessage } from "./use-status-message";
 import { useWorkspaceBindings } from "./use-workspace-bindings";
-import { APP_VERSION } from "../lib/video-config";
+import { useBundleImportListener } from "./use-bundle-import-listener";
 
 /**
  * Orchestrates project state, analyzers, persistence, prompts, actions, and workspace context value.
@@ -84,6 +84,8 @@ export function useProjectWorkspaceProvider() {
     resetSplash,
     setStatusWithTime,
   });
+
+  useBundleImportListener(workspace.importProjectBundleFromPath);
 
   return {
     avgScore,

@@ -251,6 +251,7 @@ async function scanSetupEnvironment({
   const torchOk = renderPython ? await probePythonModule(renderPython, "torch") : false;
   const cudaOk = renderPython && torchOk ? await probeTorchCuda(renderPython) : false;
   const colossalaiOk = renderPython ? await probePythonModule(renderPython, "colossalai") : false;
+  const diffusersOk = renderPython ? await probePythonModule(renderPython, "diffusers") : false;
   let gpuVendor = null;
   try {
     gpuVendor = await resolveGpuVendor();
@@ -261,6 +262,8 @@ async function scanSetupEnvironment({
     ok: torchOk,
     cudaOk,
     colossalaiOk,
+    diffusersOk,
+    wanRenderReady: Boolean(torchOk && cudaOk && diffusersOk),
     gpuVendor,
     gpuVendorEnv: GPU_VENDOR_ENV,
     winRenderReady: Boolean(torchOk && cudaOk && colossalaiOk),

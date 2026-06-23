@@ -401,7 +401,19 @@
     {
       "id": "local-python",
       "label": "Local GPU render",
-      "description": "Render MP4 on your GPU — requires a pipeline folder under Director → Advanced"
+      "description": "Render MP4 on your GPU — Wan 2.1 (Diffusers) by default, or Open-Sora in Director → Advanced"
+    }
+  ],
+  "localRenderEngines": [
+    {
+      "id": "diffusers-wan",
+      "label": "Wan 2.1 (Diffusers)",
+      "description": "Native CUDA on Windows — no WSL or Open-Sora folder required"
+    },
+    {
+      "id": "open-sora",
+      "label": "Open-Sora 2.0",
+      "description": "ColossalAI pipeline — needs clone + WSL on Windows"
     }
   ]
 }

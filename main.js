@@ -14,6 +14,37 @@ const execFileAsync = promisify(execFile);
 app.setPath("userData", resolveUserDataPath(__dirname));
 
 let mainWindow = null;
+let pendingBundleImportPath = null;
+
+const BUNDLE_FILE_RE = /\.(json|aivbundle\.json)$/i;
+
+function extractBundlePathFromArgv(argv) {
+  if (!Array.isArray(argv)) return null;
+  for (const arg of argv) {
+    const trimmed = String(arg || "").trim();
+    if (!trimmed || trimmed.startsWith("-")) continue;
+    const lower = trimmed.toLowerCase();
+    if (
+      BUNDLE_FILE_RE.test(lower) &&
+      (lower.includes("bundle") || lower.endsWith(".aivbundle.json"))
+    ) {
+      try {
+        return path.resolve(trimmed);
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+function queueBundleImport(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return;
+  pendingBundleImportPath = filePath;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("project:pending-bundle-import", { path: filePath });
+  }
+}
 
 /** Resolve bundled script paths (asar + asarUnpack). */
 function resolveAppScript(relativePath) {
@@ -48,11 +79,13 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0);
 }
 
-app.on("second-instance", () => {
+app.on("second-instance", (_event, argv) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
   }
+  const bundlePath = extractBundlePathFromArgv(argv);
+  if (bundlePath) queueBundleImport(bundlePath);
 });
 
 process.on("uncaughtException", (err) => {
@@ -110,6 +143,14 @@ function createWindow() {
   });
 
   mainWindow.loadFile(indexPath);
+
+  mainWindow.webContents.on("did-finish-load", () => {
+    if (pendingBundleImportPath) {
+      mainWindow.webContents.send("project:pending-bundle-import", {
+        path: pendingBundleImportPath,
+      });
+    }
+  });
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
@@ -1057,6 +1098,33 @@ function setupOpenSoraIpc() {
   });
 }
 
+function setupProjectImportIpc() {
+  ipcMain.handle("project:read-bundle-file", async (_event, filePath) => {
+    try {
+      const resolved = path.resolve(String(filePath || ""));
+      if (!fs.existsSync(resolved)) {
+        return { ok: false, error: `Bundle not found: ${resolved}` };
+      }
+      const raw = JSON.parse(fs.readFileSync(resolved, "utf8"));
+      let audioSidecarPath = null;
+      const sidecarName = raw?.handoff?.audioSidecarName;
+      if (sidecarName) {
+        const candidate = path.join(path.dirname(resolved), String(sidecarName));
+        if (fs.existsSync(candidate)) audioSidecarPath = candidate;
+      }
+      return { ok: true, raw, path: resolved, audioSidecarPath };
+    } catch (e) {
+      return { ok: false, error: e?.message || "read bundle failed" };
+    }
+  });
+
+  ipcMain.handle("project:consume-pending-bundle", async () => {
+    const current = pendingBundleImportPath;
+    pendingBundleImportPath = null;
+    return current ? { ok: true, path: current } : { ok: false };
+  });
+}
+
 function setupAppIpc() {
   ipcMain.handle("app:open-external", async (_event, url) => {
     try {
@@ -1165,7 +1233,17 @@ function openReadmeOnce() {
 }
 
 app.whenReady().then(() => {
+  const startupBundle = extractBundlePathFromArgv(process.argv);
+  if (startupBundle) pendingBundleImportPath = startupBundle;
+
+  if (!app.isPackaged && process.defaultApp) {
+    app.setAsDefaultProtocolClient("aivideo", process.execPath, [path.resolve(process.argv[1])]);
+  } else {
+    app.setAsDefaultProtocolClient("aivideo");
+  }
+
   setupAppIpc();
+  setupProjectImportIpc();
   setupSystemIpc();
   setupMusicVideoSyncIpc();
   setupSetupHubIpc();

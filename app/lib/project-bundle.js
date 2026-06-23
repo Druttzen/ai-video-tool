@@ -20,7 +20,7 @@ export const PROJECT_BUNDLE_FORMAT = "ai-video-creator-bundle";
 /** @deprecated Import-only alias — exports use PROJECT_BUNDLE_FORMAT */
 export const PROJECT_BUNDLE_FORMAT_LEGACY = "ai-music-creator-bundle";
 export const PROJECT_BUNDLE_FORMATS = [PROJECT_BUNDLE_FORMAT, PROJECT_BUNDLE_FORMAT_LEGACY];
-export const PROJECT_BUNDLE_VERSION = 1;
+export const PROJECT_BUNDLE_VERSION = 2;
 
 function isKnownBundleFormat(format) {
   return PROJECT_BUNDLE_FORMATS.includes(String(format || ""));
@@ -106,6 +106,9 @@ export function parseProjectBundleImport(raw) {
       project.characterVoiceStudioSession = raw.characterVoiceStudioSession;
     }
 
+    const handoff =
+      raw.handoff && typeof raw.handoff === "object" ? { ...raw.handoff } : null;
+
     return {
       project,
       customPresets: normalizeCustomPresetsMap(raw.customPresets),
@@ -114,9 +117,12 @@ export function parseProjectBundleImport(raw) {
         raw.directorSettings && typeof raw.directorSettings === "object" ? raw.directorSettings : null,
       openSoraSettings:
         raw.openSoraSettings && typeof raw.openSoraSettings === "object" ? raw.openSoraSettings : null,
+      handoff,
       bundleMeta: {
         exportedAt: raw.exportedAt || null,
         bundleVersion: raw.bundleVersion ?? PROJECT_BUNDLE_VERSION,
+        handoffSource: handoff?.source || null,
+        handoffIntent: handoff?.intent || null,
       },
     };
   }
@@ -128,6 +134,7 @@ export function parseProjectBundleImport(raw) {
     gpuWorkflow: raw.gpuWorkflow && typeof raw.gpuWorkflow === "object" ? raw.gpuWorkflow : null,
     directorSettings: null,
     openSoraSettings: null,
+    handoff: null,
     bundleMeta: null,
   };
 }

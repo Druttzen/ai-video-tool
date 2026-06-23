@@ -44,7 +44,7 @@ describe("sendDirectorJob", () => {
     expect(anchor.click).toHaveBeenCalled();
   });
 
-  it("blocks local render without a pipeline folder", async () => {
+  it("blocks open-sora local render without a pipeline folder", async () => {
     vi.stubGlobal("window", {
       electronAPI: {
         launchDirectorJob: vi.fn(),
@@ -53,11 +53,34 @@ describe("sendDirectorJob", () => {
 
     const result = await sendDirectorJob({
       project: makeProject(),
-      settings: { ...DEFAULT_DIRECTOR_SETTINGS, renderBackend: "local-python", localPipelinePath: "" },
+      settings: {
+        ...DEFAULT_DIRECTOR_SETTINGS,
+        renderBackend: "local-python",
+        localRenderEngine: "open-sora",
+        localPipelinePath: "",
+      },
     });
 
     expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/pipeline folder/i);
+    expect(result.error).toMatch(/pipeline|Open-Sora|Wan/i);
     expect(window.electronAPI.launchDirectorJob).not.toHaveBeenCalled();
+  });
+
+  it("allows diffusers-wan local render without pipeline folder", async () => {
+    const launchDirectorJob = vi.fn().mockResolvedValue({ ok: true, pid: 1 });
+    vi.stubGlobal("window", { electronAPI: { launchDirectorJob } });
+
+    const result = await sendDirectorJob({
+      project: makeProject(),
+      settings: {
+        ...DEFAULT_DIRECTOR_SETTINGS,
+        renderBackend: "local-python",
+        localRenderEngine: "diffusers-wan",
+        localPipelinePath: "",
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(launchDirectorJob).toHaveBeenCalled();
   });
 });

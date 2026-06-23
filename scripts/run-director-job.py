@@ -74,18 +74,10 @@ def stage_output_video(job_path: Path, pipeline_root: Path, job: dict) -> Path |
     return dest
 
 
-def main() -> int:
-    if len(sys.argv) < 2:
-        print("Usage: run-director-job.py <job.json>", file=sys.stderr)
-        return 2
-
-    job_path = Path(sys.argv[1]).resolve()
-    with job_path.open(encoding="utf-8") as f:
-        job = json.load(f)
-
+def run_opensora_job(job_path: Path, job: dict) -> int:
     pipeline_root = Path(job.get("localPipelinePath") or "").expanduser()
     if not pipeline_root.is_dir():
-        print("No local pipeline configured — export-only mode.", file=sys.stderr)
+        print("No local Open-Sora pipeline configured — export-only mode.", file=sys.stderr)
         print(json.dumps(job, indent=2))
         return 0
 
@@ -176,5 +168,30 @@ def main() -> int:
     return result.returncode
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+def run_diffusers_wan_job(job_path: Path, job: dict) -> int:
+    python = job.get("pythonPath") or sys.executable
+    wan_script = SCRIPT_DIR / "run-diffusers-wan-job.py"
+    if not wan_script.is_file():
+        print(f"Missing Wan runner: {wan_script}", file=sys.stderr)
+        return 4
+    print("=== AI Video Creator · Director Engine · Diffusers Wan ===", flush=True)
+    result = subprocess.run([python, str(wan_script), str(job_path)], cwd=job_path.parent)
+    return result.returncode
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        print("Usage: run-director-job.py <job.json>", file=sys.stderr)
+        return 2
+
+    job_path = Path(sys.argv[1]).resolve()
+    with job_path.open(encoding="utf-8") as f:
+        job = json.load(f)
+
+    engine = str(job.get("localRenderEngine") or "diffusers-wan").strip()
+    if engine == "diffusers-wan":
+        return run_diffusers_wan_job(job_path, job)
+    if engine == "comfyui":
+        print("ComfyUI local render is not wired yet — set localRenderEngine to diffusers-wan or open-sora", file=sys.stderr)
+        return 3
+    return run_opensora_job(job_path, job)

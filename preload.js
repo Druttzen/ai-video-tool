@@ -36,4 +36,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   loadAgentSession: () => ipcRenderer.invoke("agent:load-session"),
   saveAgentSession: (session) => ipcRenderer.invoke("agent:save-session", session),
   openExternal: (url) => ipcRenderer.invoke("app:open-external", url),
+  readProjectBundleFile: (filePath) => ipcRenderer.invoke("project:read-bundle-file", filePath),
+  consumePendingBundleImport: () => ipcRenderer.invoke("project:consume-pending-bundle"),
+  onPendingBundleImport: (callback) => {
+    if (typeof callback !== "function") return () => {};
+    const handler = (_event, payload) => callback(payload);
+    ipcRenderer.on("project:pending-bundle-import", handler);
+    return () => ipcRenderer.removeListener("project:pending-bundle-import", handler);
+  },
 });

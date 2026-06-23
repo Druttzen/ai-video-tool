@@ -29,7 +29,7 @@ describe("project-bundle", () => {
     );
 
     expect(bundle.bundleFormat).toBe(PROJECT_BUNDLE_FORMAT);
-    expect(bundle.bundleVersion).toBe(1);
+    expect(bundle.bundleVersion).toBe(2);
     expect(bundle.appVersion).toBe("0.9.10");
     expect(bundle.project.idea).toBe("test idea");
     expect(bundle.customPresets["My Techno"].genres).toEqual(["Techno"]);
@@ -41,13 +41,16 @@ describe("project-bundle", () => {
   it("parseProjectBundleImport accepts bundled and legacy flat JSON", () => {
     const bundled = parseProjectBundleImport({
       bundleFormat: PROJECT_BUNDLE_FORMAT,
-      bundleVersion: 1,
+      bundleVersion: 2,
       appVersion: "0.9.10",
       exportedAt: "2026-06-03T00:00:00.000Z",
       project: { idea: "bundled" },
       customPresets: { A: { genres: ["Ambient"] } },
       characterVoicePresets: { Lead: { firstName: "Sam" } },
+      handoff: { source: "ai-music-creator", intent: "music-video-path-e" },
     });
+    expect(bundled.handoff?.intent).toBe("music-video-path-e");
+    expect(bundled.bundleMeta?.bundleVersion).toBe(2);
     expect(bundled.project.idea).toBe("bundled");
     expect(bundled.customPresets.A.genres).toEqual(["Ambient"]);
     expect(bundled.project.characterVoicePresets.Lead.firstName).toBe("Sam");

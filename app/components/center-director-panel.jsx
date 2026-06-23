@@ -8,6 +8,7 @@ import {
   getDirectorAspectRatios,
   getDirectorExamplePrompts,
   getDirectorQualityPresets,
+  getDirectorLocalRenderEngines,
   getDirectorRenderBackends,
   getDirectorStyleProfiles,
 } from "../lib/director-catalog";
@@ -74,6 +75,7 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
 
   const qualityPresets = getDirectorQualityPresets();
   const backends = getDirectorRenderBackends();
+  const renderEngines = getDirectorLocalRenderEngines();
   const styles = getDirectorStyleProfiles();
   const examples = getDirectorExamplePrompts(8);
   const aspects = getDirectorAspectRatios();
@@ -571,16 +573,45 @@ export const CenterDirectorPanel = memo(function CenterDirectorPanel() {
             onStatus={(msg) => ws.setStatusWithTime(msg)}
           />
           <p>
-            Local GPU render needs a compatible Python diffusion pipeline on disk. Set the folder path below,
-            choose Output mode → Local GPU render, then Render locally. Export only downloads JSON — it never
-            writes MP4.
+            Local GPU render uses{" "}
+            <strong className="text-white/80">
+              {renderEngines.find((e) => e.id === settings.localRenderEngine)?.label || "Wan 2.1"}
+            </strong>{" "}
+            by default (native Windows CUDA). Open-Sora needs the pipeline folder below and usually WSL on
+            Windows.
           </p>
           <label className="block">
-            <span className="text-white/45">Local pipeline folder</span>
+            <span className="text-white/45">Local render engine</span>
+            <select
+              value={settings.localRenderEngine || "diffusers-wan"}
+              onChange={(e) =>
+                persist({
+                  ...settings,
+                  localRenderEngine: e.target.value,
+                  renderBackend: "local-python",
+                })
+              }
+              className="mt-1 w-full rounded-2xl border border-white/10 bg-black/30 p-3 text-white"
+            >
+              {renderEngines.map((engine) => (
+                <option key={engine.id} value={engine.id}>
+                  {engine.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-white/45">Open-Sora pipeline folder (open-sora engine only)</span>
             <input
               value={settings.localPipelinePath}
-              onChange={(e) => persist({ ...settings, localPipelinePath: e.target.value, renderBackend: e.target.value ? "local-python" : "export" })}
-              placeholder="Optional path to a compatible Python video pipeline"
+              onChange={(e) =>
+                persist({
+                  ...settings,
+                  localPipelinePath: e.target.value,
+                  renderBackend: e.target.value ? "local-python" : settings.renderBackend,
+                })
+              }
+              placeholder="Required only for Open-Sora 2.0 engine"
               className="mt-1 w-full rounded-2xl border border-white/10 bg-black/30 p-3 text-white"
             />
           </label>

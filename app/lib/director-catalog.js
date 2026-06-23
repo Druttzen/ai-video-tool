@@ -40,6 +40,10 @@ export function getDirectorRenderBackends() {
   return catalog.renderBackends || [];
 }
 
+export function getDirectorLocalRenderEngines() {
+  return catalog.localRenderEngines || [];
+}
+
 export function getDirectorCameraPresets() {
   return catalog.cameraPresets || [];
 }

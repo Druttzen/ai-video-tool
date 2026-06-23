@@ -13,6 +13,7 @@ export function pickProjectActionInput(projectState, analyzers, pipeline, snapsh
   return {
     applyAudioToMusicVideo: analyzers.applyAudioToMusicVideo,
     applyAudioVisualMusicVideo: analyzers.applyAudioVisualMusicVideo,
+    applyAnalyzerPatch: analyzers.applyAnalyzerPatch,
     applyAudioToSunoStyle: analyzers.applyAudioToSunoStyle,
     audioAnalysis: analyzers.audioAnalysis,
     audioPreviewUrl: analyzers.audioPreviewUrl,
@@ -87,6 +88,8 @@ export function pickProjectActionInput(projectState, analyzers, pipeline, snapsh
     setSelectedHistoryId: projectState.setSelectedHistoryId,
     setSelectedRhythms: projectState.setSelectedRhythms,
     setSelectedSounds: projectState.setSelectedSounds,
+    setAudioAnalysis: analyzers.setAudioAnalysis,
+    setImageAnalysis: analyzers.setImageAnalysis,
     setStatusWithTime: externals.setStatusWithTime,
     setStructure: projectState.setStructure,
     setTempo: projectState.setTempo,
