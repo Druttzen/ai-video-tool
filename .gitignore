@@ -78,3 +78,4 @@ next-env.d.ts
 
 # Managed addons, venv, models, and Electron job state (repo-local dev installs)
 /.userdata/
+.userdata-dist-hidden-at
