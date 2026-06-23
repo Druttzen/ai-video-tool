@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Beat-sync multi-clip progress demo</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, sans-serif;
+        background: #0b0d10;
+        color: #fff;
+        padding: 2rem;
+      }
+      .panel {
+        max-width: 520px;
+        margin: 0 auto;
+        border-radius: 1rem;
+        border: 1px solid rgba(251, 146, 60, 0.35);
+        background: rgba(249, 115, 22, 0.1);
+        padding: 1rem;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(255, 237, 213, 0.9);
+        margin-bottom: 0.5rem;
+      }
+      .bar {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+      }
+      .fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #fb923c, #fcd34d);
+        width: 0%;
+        transition: width 0.6s ease;
+      }
+      .label { margin-top: 0.75rem; font-size: 11px; color: rgba(255, 237, 213, 0.9); }
+      .sub { margin-top: 0.25rem; font-size: 10px; color: rgba(255, 255, 255, 0.5); }
+      h1 { text-align: center; font-size: 1rem; font-weight: 600; color: #fdba74; }
+    </style>
+  </head>
+  <body>
+    <h1>Beat-sync clips — live simulation</h1>
+    <div class="panel" id="panel">
+      <div class="row">
+        <span>Beat-sync clips</span>
+        <span id="counts">0/4 rendered</span>
+      </div>
+      <div class="bar"><div class="fill" id="fill"></div></div>
+      <div class="label" id="label">Starting…</div>
+      <div class="sub" id="sub"></div>
+    </div>
+    <script>
+      const steps = [
+        { rendered: 0, current: 1, pct: 11, label: "Clip 1/4: 5s (0s–5s)", sub: "Launching segment…", status: "launching" },
+        { rendered: 0, current: 1, pct: 23, label: "Clip 1/4: 5s (0s–5s)", sub: "Rendering segment…", status: "rendering" },
+        { rendered: 1, current: 2, pct: 36, label: "Finished clip 1/4 — starting next…", sub: "", status: "clip-complete" },
+        { rendered: 1, current: 2, pct: 48, label: "Clip 2/4: 5s (5s–10s)", sub: "Rendering segment…", status: "rendering" },
+        { rendered: 2, current: 3, pct: 61, label: "Finished clip 2/4 — starting next…", sub: "", status: "clip-complete" },
+        { rendered: 2, current: 3, pct: 73, label: "Clip 3/4: 5s (10s–15s)", sub: "Rendering segment…", status: "rendering" },
+        { rendered: 3, current: 4, pct: 86, label: "Finished clip 3/4 — starting next…", sub: "", status: "clip-complete" },
+        { rendered: 3, current: 4, pct: 95, label: "Clip 4/4: 5s (15s–20s)", sub: "Rendering segment…", status: "rendering" },
+        { rendered: 4, current: 4, pct: 100, label: "All 4 clips rendered", sub: "", status: "clips-rendered" },
+        { rendered: 4, current: 4, pct: 100, label: "Assembling 4 clips with audio…", sub: "FFmpeg mux", status: "assembling" },
+        { rendered: 4, current: 4, pct: 100, label: "Music video assembly complete", sub: "Done — music-video-with-audio.mp4", status: "done" },
+      ];
+
+      const fill = document.getElementById("fill");
+      const counts = document.getElementById("counts");
+      const label = document.getElementById("label");
+      const sub = document.getElementById("sub");
+
+      let i = 0;
+      function tick() {
+        const s = steps[i];
+        fill.style.width = s.pct + "%";
+        counts.textContent = `${s.rendered}/4 rendered · active ${s.current}/4`;
+        label.textContent = s.label;
+        sub.textContent = s.sub;
+        i = (i + 1) % steps.length;
+      }
+      tick();
+      setInterval(tick, 1400);
+    </script>
+  </body>
+</html>

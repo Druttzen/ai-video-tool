@@ -7,10 +7,20 @@ import { stylePresets } from "../lib/video-config";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 import { confirmProjectReset } from "../lib/project-reset";
 import { scrollToSetupTarget } from "../lib/setup-hub";
-import { isElectronApp } from "../lib/electron-bridge";
+import { isElectronApp, openCanvasDashboard } from "../lib/electron-bridge";
+import { buildCanvasPayloadFromWorkspace } from "../lib/canvas-payload";
 
 export const PageSidebarLeft = memo(function PageSidebarLeft() {
   const {
+    audioAnalysis,
+    imageAnalysis,
+    idea,
+    tempo,
+    structure,
+    selectedGenres,
+    selectedRhythms,
+    selectedSounds,
+    agentProductionState,
     applyPreset,
     customPresets,
     deleteCustomPreset,
@@ -54,6 +64,33 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
           <p className="mt-2 text-xs text-white/50">
             Git · Node.js · Python · venv · Open-Sora · torch · FFmpeg · WSL
           </p>
+          <button
+            type="button"
+            onClick={async () => {
+              const payload = buildCanvasPayloadFromWorkspace({
+                idea,
+                tempo,
+                structure,
+                selectedGenres,
+                selectedRhythms,
+                selectedSounds,
+                audioAnalysis,
+                imageAnalysis,
+                production: agentProductionState,
+                agentProductionState,
+              });
+              const res = await openCanvasDashboard(payload);
+              if (!res?.ok) {
+                setStatusWithTime(res?.error || "Could not open canvas", "error");
+                return;
+              }
+              setStatusWithTime(res.reused ? "Canvas updated" : "Canvas opened", "info");
+            }}
+            className="mt-3 w-full rounded-2xl border border-violet-400/35 bg-violet-500/15 px-4 py-3 text-left text-sm font-bold text-violet-100 hover:bg-violet-500/25"
+            data-testid="sidebar-open-canvas"
+          >
+            Open Project Canvas
+          </button>
         </Panel>
       ) : null}
 

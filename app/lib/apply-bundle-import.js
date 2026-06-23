@@ -18,13 +18,14 @@ import {
   persistCharacterVoiceStudioSession,
 } from "./voice-character-studio-session";
 import { storageFailureMessage, safeLocalStorage } from "./safe-local-storage";
+import { hydrateAudioSidecarAnalysis } from "./audio-sidecar-import";
 
 const PRESET_KEY = "ai_video_creator_custom_presets_v1";
 
 /**
  * @param {object} params
  */
-export function applyParsedBundleImport(params) {
+export async function applyParsedBundleImport(params) {
   const {
     raw,
     appVersion,
@@ -47,6 +48,14 @@ export function applyParsedBundleImport(params) {
     handoff,
     bundleMeta,
   } = parseProjectBundleImport(raw);
+
+  if (handoff?.audioAnalysis && params.audioSidecarBuffer?.byteLength) {
+    handoff.audioAnalysis = await hydrateAudioSidecarAnalysis(
+      handoff.audioAnalysis,
+      params.audioSidecarBuffer,
+      handoff.audioSidecarName || handoff.audioAnalysis.fileName,
+    );
+  }
 
   const cvPresets = extractCharacterVoicePresetsFromProject(project);
   if (cvPresets && Object.keys(cvPresets).length > 0) {
@@ -97,9 +106,14 @@ export function applyParsedBundleImport(params) {
     handoffResult = applyProjectHandoff(handoff, handoffActions);
   }
 
+  const sidecarNote =
+    handoff?.audioAnalysis?.sidecarImported && handoff?.audioSidecarName
+      ? ` · audio sidecar ${handoff.audioSidecarName} cached`
+      : "";
+
   const versionNote = bundleMeta?.bundleVersion ? ` v${bundleMeta.bundleVersion}` : "";
   const handoffNote = handoffResult.applied ? ` — ${handoffResult.message}` : "";
-  setStatusWithTime?.(`Imported project bundle${versionNote}${handoffNote}`);
+  setStatusWithTime?.(`Imported project bundle${versionNote}${handoffNote}${sidecarNote}`);
 
   return { ok: true, handoff: handoffResult, bundleMeta };
 }

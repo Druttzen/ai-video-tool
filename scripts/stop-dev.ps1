@@ -2,7 +2,7 @@
 # Windows PowerShell. Do not use $pid as a loop variable (reserved).
 
 $ErrorActionPreference = "SilentlyContinue"
-$ports = @(3000, 9229, 9230, 9241, 9242)
+$ports = @(3000, 5174, 9229, 9230, 9241, 9242)
 $seen = @{}
 
 foreach ($port in $ports) {

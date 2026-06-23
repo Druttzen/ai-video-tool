@@ -1,0 +1,79 @@
+#!/usr/bin/env node
+/**
+ * GPU end-to-end smoke — verify Wan/Diffusers stack and optionally render one minimal clip.
+ *
+ * Usage:
+ *   node scripts/gpu-e2e-smoke.cjs              # scan only
+ *   node scripts/gpu-e2e-smoke.cjs --render     # one minimal Wan clip (GPU_E2E_RENDER=1)
+ */
+const fs = require("fs");
+const path = require("path");
+const { spawn } = require("child_process");
+const { scanSetupEnvironment } = require("./lib/environment-scan.cjs");
+
+const root = path.resolve(__dirname, "..");
+const renderRequested = process.argv.includes("--render") || process.env.GPU_E2E_RENDER === "1";
+
+function run(cmd, args, opts = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { stdio: "inherit", shell: true, ...opts });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`${cmd} exited ${code}`));
+    });
+  });
+}
+
+async function main() {
+  console.log("GPU E2E smoke — scanning environment…");
+  const scan = await scanSetupEnvironment({
+    directorSettings: { localRenderEngine: "diffusers-wan", localPythonPath: "python" },
+  });
+
+  const pip = scan.pipDeps || {};
+  const wanReady = Boolean(pip.wanRenderReady || (pip.cudaOk && pip.diffusersOk && pip.torchOk));
+  const python = scan.venv?.ok ? scan.venv.path : scan.python?.path;
+
+  console.log(`  Python: ${python || "missing"}`);
+  console.log(`  CUDA: ${pip.cudaOk ? "yes" : "no"}`);
+  console.log(`  Diffusers: ${pip.diffusersOk ? "yes" : "no"}`);
+  console.log(`  Wan ready: ${wanReady ? "yes" : "no"}`);
+
+  if (!python || !wanReady) {
+    console.error("\nGPU E2E smoke — SKIP (Wan/CUDA stack not ready). Fix in Setup Hub.");
+    process.exit(renderRequested ? 1 : 0);
+  }
+
+  if (!renderRequested) {
+    console.log("\nGPU E2E smoke — prerequisites OK. Re-run with --render for one minimal Wan clip.");
+    process.exit(0);
+  }
+
+  const jobPath = path.join(root, ".userdata", "gpu-e2e-job.json");
+  fs.mkdirSync(path.dirname(jobPath), { recursive: true });
+  const job = {
+    kind: "director_video_job",
+    prompt: "GPU E2E smoke — neon alley, cinematic, short test clip",
+    localRenderEngine: "diffusers-wan",
+    pythonPath: python,
+    numFrames: 17,
+    fps: 16,
+    numSteps: 8,
+    seed: 42,
+    aspectRatio: "16:9",
+    resolutionTier: "256px",
+  };
+  fs.writeFileSync(jobPath, JSON.stringify(job, null, 2));
+
+  const runner = path.join(root, "scripts", "run-director-job.py");
+  console.log(`\nGPU E2E smoke — rendering minimal Wan clip (${job.numFrames} frames)…`);
+  console.log(`  Job: ${jobPath}`);
+  await run(`"${python}"`, [`"${runner}"`, `"${jobPath}"`], { cwd: root });
+  console.log("\nGPU E2E smoke — render complete.");
+}
+
+main().catch((err) => {
+  console.error("\nGPU E2E smoke — FAILED:", err?.message || err);
+  process.exit(2);
+});

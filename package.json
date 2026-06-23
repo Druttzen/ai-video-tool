@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -16,6 +16,9 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:electron": "powershell -NoProfile -Command \"$env:E2E_ELECTRON='1'; npx playwright test tests/e2e/electron-multiclip-progress.spec.js\"",
+    "smoke:gpu-e2e": "node scripts/gpu-e2e-smoke.cjs",
+    "smoke:gpu-e2e:render": "node scripts/gpu-e2e-smoke.cjs --render",
     "smoke:desktop": "node scripts/smoke-desktop-setup.cjs",
     "smoke:local-mp4": "node scripts/smoke-local-mp4.cjs --check-only",
     "addons:check": "node scripts/check-addon-updates.cjs",
@@ -27,12 +30,18 @@
     "sync:open-sora-catalog": "node scripts/sync-open-sora-catalog.cjs",
     "check": "npm run test && npm run lint && npm run build",
     "build": "next build",
+    "canvas:dev": "vite --config tools/canvas/vite.config.ts",
+    "canvas:build": "vite build --config tools/canvas/vite.config.ts",
+    "canvas:typecheck": "tsc --noEmit --project tools/canvas/tsconfig.json",
+    "canvas:electron": "electron tools/canvas/electron/main.js",
+    "demo:multiclip": "vitest run tests/multiclip-production-progress.test.js && node scripts/open-multiclip-demo.cjs",
+    "electron:canvas": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-electron-canvas.ps1",
     "electron": "electron .",
     "build:readme-pdf": "node scripts/generate-readme-pdf.cjs",
     "build:installer-license": "node scripts/generate-installer-license.cjs",
     "install-addons": "node scripts/install-addons-runner.cjs",
     "prepare:electron-dist": "node scripts/prep-electron-dist.cjs",
-    "dist": "npm run build && npm run build:readme-pdf && npm run build:installer-license && npm run prepare:electron-dist && node scripts/run-electron-builder.cjs"
+    "dist": "npm run build && npm run canvas:build && npm run build:readme-pdf && npm run build:installer-license && npm run prepare:electron-dist && node scripts/run-electron-builder.cjs"
   },
   "dependencies": {
     "electron-updater": "^6.8.3",
@@ -44,6 +53,9 @@
   "devDependencies": {
     "@playwright/test": "^1.51.1",
     "@tailwindcss/postcss": "^4.2.4",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.4.1",
     "electron": "41.3.0",
     "electron-builder": "26.8.1",
     "eslint": "^9.39.4",
@@ -51,6 +63,8 @@
     "fake-indexeddb": "^6.2.5",
     "pdfkit": "^0.18.0",
     "tailwindcss": "^4.2.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
     "vitest": "^4.1.8"
   },
   "overrides": {
@@ -90,7 +104,9 @@
       "data/addon-updates-manifest.json",
       "data/addon-requirements.txt",
       "data/addon-requirements-optional.txt",
-      "data/setup-hub-manifest.json"
+      "data/setup-hub-manifest.json",
+      "tools/canvas/build/**/*",
+      "tools/canvas/electron/preload.js"
     ],
     "asarUnpack": [
       "scripts/**/*.py",

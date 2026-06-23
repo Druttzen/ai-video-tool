@@ -278,6 +278,31 @@ export function useVideoPrepAgent({
     ],
   );
 
+  useEffect(() => {
+    const allowE2E =
+      typeof window !== "undefined" &&
+      (process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_E2E_HOOKS === "1");
+    if (!allowE2E) return undefined;
+
+    const onSeed = (event) => {
+      const production = event?.detail?.production;
+      const workflow = event?.detail?.workflow || {};
+      setProductionState(mergeProductionSession({ production: null }, production || {}).production);
+      if (workflow.patchApplied) setPatchApplied(true);
+      if (workflow.directorReady) setDirectorReady(true);
+    };
+
+    window.addEventListener("e2e:seed-production", onSeed);
+    window.__videoPrepAgentE2E = {
+      seedProduction: (production, workflow = {}) => {
+        window.dispatchEvent(
+          new CustomEvent("e2e:seed-production", { detail: { production, workflow } }),
+        );
+      },
+    };
+    return () => window.removeEventListener("e2e:seed-production", onSeed);
+  }, []);
+
   const appendProductionMessage = useCallback(
     (content, extra = {}) => {
       const msg = {
@@ -383,6 +408,14 @@ export function useVideoPrepAgent({
         audioBuffer,
         coProducerLlmSettings,
         onPhase: (phase) => updateProduction({ phase }),
+        onProgress: (progress) => {
+          if (!progress || typeof progress !== "object") return;
+          const { phase: progressPhase, ...rest } = progress;
+          updateProduction({
+            ...(progressPhase ? { phase: progressPhase } : {}),
+            ...rest,
+          });
+        },
         onMessage: (message) => {
           if (message) appendProductionMessage(message);
         },
@@ -425,6 +458,11 @@ export function useVideoPrepAgent({
         assembledOutputPath: result.assembly?.path || result.outputPath,
         logPath: result.launch?.logPath || null,
         multiClipNote: result.multiClipNote || null,
+        multiClip: Boolean(result.multiClip),
+        clipTotal: result.clipPaths?.length || 0,
+        clipsRendered: result.clipPaths?.length || 0,
+        clipStatus: result.multiClip ? "done" : null,
+        clipLabel: result.multiClip ? "Music video assembly complete" : null,
       });
 
       const outputName = result.outputPath?.split(/[/\\]/).pop() || "output.mp4";

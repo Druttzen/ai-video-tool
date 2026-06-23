@@ -963,7 +963,8 @@ export function mergeLearningProfile(profile, event) {
 export function mergeSessionFromWorkspace(session, params) {
   const base = session || buildDefaultAgentSession();
   const checklist = buildWorkflowChecklist(params);
-  const phase = detectWorkflowPhase({ ...params, patchApplied: checklist.patchApplied, production });
+  const productionState = params.production !== undefined ? params.production : base.production;
+  const phase = detectWorkflowPhase({ ...params, patchApplied: checklist.patchApplied, production: productionState });
   const analysisSnapshots = {
     audioFileName: params.audioAnalysis?.fileName || base.analysisSnapshots?.audioFileName || null,
     imageFileName: params.imageAnalysis?.fileName || base.analysisSnapshots?.imageFileName || null,

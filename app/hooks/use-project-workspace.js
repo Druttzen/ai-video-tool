@@ -12,6 +12,7 @@ import { useSplashAutoDismiss, useSplashOverlay } from "./use-splash-seen";
 import { useStatusMessage } from "./use-status-message";
 import { useWorkspaceBindings } from "./use-workspace-bindings";
 import { useBundleImportListener } from "./use-bundle-import-listener";
+import { APP_VERSION } from "../lib/video-config";
 
 /**
  * Orchestrates project state, analyzers, persistence, prompts, actions, and workspace context value.

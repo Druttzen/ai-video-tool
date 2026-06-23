@@ -44,4 +44,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("project:pending-bundle-import", handler);
     return () => ipcRenderer.removeListener("project:pending-bundle-import", handler);
   },
+  openCanvas: (payload) => ipcRenderer.invoke("canvas:open", payload),
 });

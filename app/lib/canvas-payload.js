@@ -1,0 +1,123 @@
+/**
+ * Build Canvas dashboard payload from current project workspace state.
+ */
+import { loadDirectorSettingsFromStorage } from "./director-settings";
+import { loadPersistedSetupScan, summarizeSetupScan } from "./setup-hub";
+
+function slimAudioAnalysis(audioAnalysis) {
+  if (!audioAnalysis || typeof audioAnalysis !== "object") return null;
+  const beatSync = audioAnalysis.beatSync;
+  return {
+    fileName: audioAnalysis.fileName,
+    bpm: audioAnalysis.bpm,
+    durationSec: audioAnalysis.durationSec ?? audioAnalysis.duration,
+    highlightStart: audioAnalysis.highlightStart,
+    highlightEnd: audioAnalysis.highlightEnd,
+    sidecarImported: audioAnalysis.sidecarImported,
+    beatSync: beatSync
+      ? {
+          clipPlan: beatSync.clipPlan,
+          beatCount: beatSync.beatCount,
+          bpm: beatSync.bpm,
+          source: beatSync.source,
+        }
+      : undefined,
+  };
+}
+
+function slimImageAnalysis(imageAnalysis) {
+  if (!imageAnalysis || typeof imageAnalysis !== "object") return null;
+  return {
+    suggestedGenres: imageAnalysis.suggestedGenres,
+    suggestedSounds: imageAnalysis.suggestedSounds,
+    suggestedRhythms: imageAnalysis.suggestedRhythms,
+  };
+}
+
+function slimProductionState(production) {
+  if (!production || typeof production !== "object") return null;
+  return {
+    phase: production.phase,
+    multiClip: production.multiClip,
+    clipTotal: production.clipTotal,
+    clipCurrent: production.clipCurrent,
+    clipsRendered: production.clipsRendered,
+    clipStatus: production.clipStatus,
+    clipLabel: production.clipLabel,
+    multiClipNote: production.multiClipNote,
+    renderMessage: production.renderMessage,
+    lastOutputPath: production.lastOutputPath,
+    lastError: production.lastError,
+  };
+}
+
+function slimDirectorSettings(settings) {
+  if (!settings || typeof settings !== "object") return null;
+  return {
+    renderBackend: settings.renderBackend,
+    localRenderEngine: settings.localRenderEngine,
+    qualityPreset: settings.qualityPreset,
+    aspectRatio: settings.aspectRatio,
+    numFrames: settings.numFrames,
+    fps: settings.fps,
+    durationSeconds: settings.durationSeconds,
+    wanModelId: settings.wanModelId,
+  };
+}
+
+function buildSetupSummary() {
+  try {
+    const scan = loadPersistedSetupScan();
+    if (!scan?.modules) return null;
+    const summary = summarizeSetupScan(scan);
+    const modules = Object.entries(scan.modules).map(([id, row]) => ({
+      id,
+      status: row?.status,
+      message: row?.message,
+    }));
+    return { summary, modules };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {object} workspace
+ */
+export function buildCanvasPayloadFromWorkspace(workspace = {}) {
+  const audioAnalysis = slimAudioAnalysis(workspace.audioAnalysis);
+  const imageAnalysis = slimImageAnalysis(workspace.imageAnalysis);
+  const idea = String(workspace.idea || "").trim();
+  const directorSettings = slimDirectorSettings(
+    workspace.directorSettings || loadDirectorSettingsFromStorage(),
+  );
+  const production = slimProductionState(workspace.production || workspace.agentProductionState);
+
+  let handoff;
+  if (audioAnalysis || imageAnalysis) {
+    const clipCount = audioAnalysis?.beatSync?.clipPlan?.length || 0;
+    handoff = {
+      source: audioAnalysis?.sidecarImported ? "ai-music-creator" : "ai-video-tool",
+      intent: clipCount >= 2 ? "music-video-path-e" : "project-only",
+      audioAnalysis: audioAnalysis || undefined,
+      imageAnalysis: imageAnalysis || undefined,
+    };
+  }
+
+  return {
+    title: idea ? idea.slice(0, 72) : "AI Video Creator Canvas",
+    exportedAt: new Date().toISOString(),
+    project: {
+      idea,
+      tempo: workspace.tempo,
+      structure: workspace.structure,
+      selectedGenres: workspace.selectedGenres,
+      selectedRhythms: workspace.selectedRhythms,
+      selectedSounds: workspace.selectedSounds,
+    },
+    handoff,
+    directorSettings,
+    production,
+    setup: buildSetupSummary(),
+  };
+}

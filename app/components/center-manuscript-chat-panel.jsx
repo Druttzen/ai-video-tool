@@ -6,6 +6,10 @@ import { Panel } from "./ui-blocks";
 import { PanelActions } from "./panel-actions";
 import { isCoProducerLlmReady, saveCoProducerLlmSettings } from "../lib/co-producer-llm";
 import { useProjectWorkspace } from "../context/project-workspace-context";
+import {
+  formatMultiClipProgressLabel,
+  multiClipProgressPercent,
+} from "../lib/video-production-pipeline";
 
 function AnalysisChip({ chip }) {
   return (
@@ -56,6 +60,47 @@ function WorkflowProgressBar({ checklist, phase, productionPhase }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function MultiClipProductionProgress({ state, phase }) {
+  if (!state?.multiClip || !phase || phase === "idle" || phase === "done" || phase === "failed") {
+    return null;
+  }
+
+  const total = Number(state.clipTotal) || 0;
+  const rendered = Number(state.clipsRendered) || 0;
+  const current = Number(state.clipCurrent) || 0;
+  const pct = multiClipProgressPercent(state);
+  const label = formatMultiClipProgressLabel(state);
+
+  return (
+    <div
+      className="mb-3 rounded-2xl border border-orange-400/35 bg-orange-500/10 p-3"
+      data-testid="video-prep-multiclip-progress"
+    >
+      <div className="mb-2 flex items-center justify-between gap-2 text-[10px] uppercase tracking-wider text-orange-100/90">
+        <span>Beat-sync clips</span>
+        <span>
+          {rendered}/{total} rendered
+          {current > 0 && phase === "rendering" ? ` · active ${current}/${total}` : ""}
+        </span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-black/40">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-orange-400 to-amber-300 transition-all duration-500"
+          style={{ width: `${pct}%` }}
+          data-testid="video-prep-multiclip-progress-bar"
+        />
+      </div>
+      {label ? <p className="mt-2 text-[11px] text-orange-50/90">{label}</p> : null}
+      {state.renderMessage ? (
+        <p className="mt-1 text-[10px] text-white/50">{state.renderMessage}</p>
+      ) : null}
+      {state.multiClipNote ? (
+        <p className="mt-1 text-[10px] text-white/45">{state.multiClipNote}</p>
+      ) : null}
     </div>
   );
 }
@@ -241,9 +286,12 @@ export const CenterManuscriptChatPanel = memo(function CenterManuscriptChatPanel
         productionPhase={ws.agentProductionPhase}
       />
 
+      <MultiClipProductionProgress state={ws.agentProductionState} phase={ws.agentProductionPhase} />
+
       {(ws.agentProductionPhase === "rendering" ||
         ws.agentProductionPhase === "assembled" ||
-        ws.agentProductionPhase === "validating") && (
+        ws.agentProductionPhase === "validating") &&
+      !ws.agentProductionState?.multiClip ? (
         <p
           className="mb-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100"
           data-testid="video-prep-production-status"
@@ -253,7 +301,7 @@ export const CenterManuscriptChatPanel = memo(function CenterManuscriptChatPanel
             <span className="mt-1 block text-white/55">{ws.agentProductionState.multiClipNote}</span>
           ) : null}
         </p>
-      )}
+      ) : null}
 
       {ws.agentWorkflowSuggestions?.length ? (
         <div
@@ -418,9 +466,13 @@ export const CenterManuscriptChatPanel = memo(function CenterManuscriptChatPanel
           onClick={() => ws.runAgentFullProduction?.()}
           className="rounded-2xl bg-orange-300 px-4 py-2 text-sm font-bold text-black hover:bg-orange-200 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {ws.agentProductionPhase === "rendering" || ws.agentProductionPhase === "validating"
-            ? "Producing…"
-            : "Produce video"}
+          {ws.agentProductionPhase === "assembled"
+            ? "Assembling…"
+            : ws.agentProductionPhase === "rendering" || ws.agentProductionPhase === "validating"
+              ? ws.agentProductionState?.multiClip && ws.agentProductionState?.clipCurrent
+                ? `Producing clip ${ws.agentProductionState.clipCurrent}/${ws.agentProductionState.clipTotal}…`
+                : "Producing…"
+              : "Produce video"}
         </button>
         <button
           type="button"

@@ -91,6 +91,7 @@ export function useProjectActions({
   customPresets,
   history,
   idea,
+  imageAnalysis,
   instrumentalVocalFx,
   intensityText,
   lastAutosavePayloadRef,
@@ -175,9 +176,6 @@ export function useProjectActions({
   voiceStyleCompact,
   applyAnalyzerPatch,
   applyAudioToSunoStyle,
-  setAudioAnalysis,
-  setImageAnalysis,
-  imageAnalysis,
 }) {
   const coProducerVoiceFields = useCallback(
     () => ({
@@ -308,10 +306,10 @@ export function useProjectActions({
       const file = event.target.files?.[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         try {
           const raw = JSON.parse(String(reader.result));
-          applyParsedBundleImport({
+          await applyParsedBundleImport({
             raw,
             appVersion: APP_VERSION,
             captureSnapshot,
@@ -355,13 +353,14 @@ export function useProjectActions({
           setStatusWithTime(res?.error || "Bundle read failed", "error");
           return res;
         }
-        applyParsedBundleImport({
+        await applyParsedBundleImport({
           raw: res.raw,
           appVersion: APP_VERSION,
           captureSnapshot,
           loadState,
           setCustomPresets,
           setStatusWithTime,
+          audioSidecarBuffer: res.audioSidecarBuffer,
           handoffActions: {
             setAudioAnalysis,
             setImageAnalysis,

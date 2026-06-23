@@ -134,3 +134,15 @@ export async function saveAgentSessionToHost(session) {
   }
   return window.electronAPI.saveAgentSession(session);
 }
+
+/**
+ * Open the analytical canvas dashboard with an optional project/handoff snapshot.
+ * @param {object} [payload]
+ * @returns {Promise<{ ok: boolean, error?: string, reused?: boolean }>}
+ */
+export async function openCanvasDashboard(payload) {
+  if (!isElectronApp() || !window.electronAPI?.openCanvas) {
+    return { ok: false, error: "Canvas requires the desktop app" };
+  }
+  return window.electronAPI.openCanvas(payload);
+}

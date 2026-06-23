@@ -14,7 +14,11 @@ vi.mock("../app/lib/director-settings.js", () => ({
 }));
 
 import {
+  assessMusicVideoAssembly,
+  buildProductionJob,
   evaluateProductionReadiness,
+  formatMultiClipProgressLabel,
+  multiClipProgressPercent,
   resolveRenderPythonFromScan,
   shouldPreferWslRender,
 } from "../app/lib/video-production-pipeline.js";
@@ -81,5 +85,50 @@ describe("video production pipeline", () => {
     };
     const result = evaluateProductionReadiness(scan);
     expect(result.ready).toBe(true);
+  });
+
+  it("assessMusicVideoAssembly allows multi-clip beat-sync plans", () => {
+    const clipPlan = [
+      { start: 0, end: 6, duration: 6 },
+      { start: 6, end: 12, duration: 6 },
+      { start: 12, end: 18, duration: 6 },
+    ];
+    const mv = assessMusicVideoAssembly({ beatSync: { clipPlan } });
+    expect(mv.canAssemble).toBe(true);
+    expect(mv.multiClip).toBe(true);
+    expect(mv.segmentCount).toBe(3);
+  });
+
+  it("buildProductionJob varies prompt and frames per clip segment", () => {
+    const { job, settings, segmentProject } = buildProductionJob({
+      project: { idea: "base prompt", mood: { darkness: 50, energy: 50 } },
+      productionClip: { start: 0, end: 5, duration: 5 },
+      clipIndex: 2,
+      clipTotal: 4,
+      scan: { raw: { venv: { ok: true, path: "python" } } },
+    });
+    expect(segmentProject.idea).toContain("MV segment 3/4");
+    expect(job.prompt).toContain("base prompt");
+    expect(settings.seed).toBe(44);
+    expect(settings.numFrames).toBeGreaterThan(17);
+  });
+
+  it("formatMultiClipProgressLabel and percent track clip assembly", () => {
+    const state = {
+      multiClip: true,
+      clipTotal: 4,
+      clipCurrent: 2,
+      clipsRendered: 1,
+      clipStatus: "rendering",
+      clipLabel: "Clip 2/4: 6s (12s–18s)",
+    };
+    expect(formatMultiClipProgressLabel(state)).toContain("Clip 2/4");
+    expect(multiClipProgressPercent(state)).toBeGreaterThan(20);
+    expect(multiClipProgressPercent({ multiClip: true, clipTotal: 3, clipStatus: "assembling", clipsRendered: 3 })).toBe(
+      100,
+    );
+    expect(formatMultiClipProgressLabel({ multiClip: true, clipTotal: 3, clipStatus: "assembling", clipsRendered: 3 })).toContain(
+      "Assembling",
+    );
   });
 });

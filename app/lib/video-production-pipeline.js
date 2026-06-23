@@ -25,6 +25,12 @@ import {
   normalizeLocalRenderEngine,
   productionRequiredModulesForEngine,
 } from "./local-render-engine";
+import { mediaNumFramesForDuration } from "./media-duration-limits";
+import {
+  buildClipSegmentPrompt,
+  DEFAULT_PRODUCTION_MAX_CLIPS,
+  resolveProductionClipPlan,
+} from "./production-clip-plan";
 
 /** @typedef {"idle"|"validating"|"rendering"|"assembled"|"done"|"failed"} ProductionPhase */
 
@@ -35,8 +41,43 @@ export const PRODUCTION_REQUIRED_MODULES = ["python", "venv", "pip-deps"];
 /** @deprecated use productionRequiredModulesForEngine */
 export const PRODUCTION_OPEN_SORA_MODULES = ["python", "pipeline", "models"];
 
-const MULTI_CLIP_NOTE =
-  "Full multi-clip music videos (beat-sync clip plans) are phase 2 — this run renders one Director segment. Use Director for each clip or wait for multi-segment pipeline.";
+const MULTI_CLIP_CAP_NOTE = (planned, total) =>
+  `Beat-sync plan: rendering ${planned} of ${total} segments (cap ${DEFAULT_PRODUCTION_MAX_CLIPS})`;
+
+function notifyProductionProgress(onProgress, patch) {
+  if (onProgress && patch && typeof patch === "object") {
+    onProgress({ updatedAt: Date.now(), ...patch });
+  }
+}
+
+/**
+ * @param {object|null} state
+ */
+export function formatMultiClipProgressLabel(state) {
+  if (!state?.multiClip || !state.clipTotal) return null;
+  if (state.clipStatus === "assembling") {
+    return `Assembling ${state.clipsRendered || state.clipTotal} clips with audio…`;
+  }
+  if (state.clipLabel) return state.clipLabel;
+  if (state.clipCurrent > 0) {
+    return `Clip ${state.clipCurrent}/${state.clipTotal}`;
+  }
+  return `Beat-sync render (${state.clipTotal} clips)`;
+}
+
+/**
+ * @param {object|null} state
+ */
+export function multiClipProgressPercent(state) {
+  if (!state?.multiClip || !state.clipTotal) return 0;
+  const total = Math.max(1, Number(state.clipTotal) || 1);
+  const rendered = Math.max(0, Number(state.clipsRendered) || 0);
+  if (state.clipStatus === "assembling") return 100;
+  if (state.clipStatus === "rendering" && rendered < total) {
+    return Math.min(99, Math.round(((rendered + 0.45) / total) * 100));
+  }
+  return Math.min(100, Math.round((rendered / total) * 100));
+}
 
 const POLL_INTERVAL_MS = 1500;
 const POLL_TIMEOUT_MS = 6 * 60 * 60 * 1000;
@@ -53,6 +94,18 @@ export function createDefaultProductionState() {
     jobPath: null,
     multiClipNote: null,
     renderPythonSource: null,
+    multiClip: false,
+    clipTotal: 0,
+    clipPlannedTotal: 0,
+    clipCurrent: 0,
+    clipIndex: 0,
+    clipsRendered: 0,
+    clipStart: null,
+    clipEnd: null,
+    clipDuration: null,
+    clipStatus: null,
+    clipLabel: null,
+    renderMessage: null,
   };
 }
 
@@ -360,24 +413,41 @@ export function buildProductionJob(params = {}) {
   const settings = buildProductionDirectorSettings(params);
   const project = params.project || {};
   const imagePayload = params.imagePayload || null;
+  const productionClip = params.productionClip || null;
+  const clipIndex = Number(params.clipIndex) || 0;
+  const clipTotal = Number(params.clipTotal) || 1;
+
+  const segmentSettings = { ...settings };
+  const segmentProject = { ...project };
+
+  if (productionClip) {
+    const basePrompt = project.idea || project.prompt || "";
+    segmentProject.idea = buildClipSegmentPrompt(basePrompt, productionClip, clipIndex, clipTotal);
+    const clipDuration = Number(productionClip.duration) || Number(productionClip.end) - Number(productionClip.start);
+    if (clipDuration > 0) {
+      segmentSettings.numFrames = mediaNumFramesForDuration(clipDuration, segmentSettings.fps || 24);
+    }
+    segmentSettings.seed = (Number(segmentSettings.seed) || 42) + clipIndex;
+  }
+
   const plan =
     params.buildPlan ||
-    computeBuildPlan(settings, params.systemStats || loadCachedSystemStats(), {
+    computeBuildPlan(segmentSettings, params.systemStats || loadCachedSystemStats(), {
       useI2v: Boolean(imagePayload?.base64 || project.imageAnalysis),
-      promptLength: project.idea?.length || 0,
+      promptLength: segmentProject.idea?.length || 0,
     });
 
-  const job = buildDirectorJobPayload(project, settings, {
+  const job = buildDirectorJobPayload(segmentProject, segmentSettings, {
     imagePayload,
     estimatedBuildSeconds: plan.estimatedSeconds,
   });
 
-  job.pythonPath = settings.localPythonPath;
-  if (settings.preferWslRender) {
+  job.pythonPath = segmentSettings.localPythonPath;
+  if (segmentSettings.preferWslRender) {
     job.preferWslRender = true;
   }
 
-  return { job, settings, buildPlan: plan };
+  return { job, settings: segmentSettings, buildPlan: plan, segmentProject };
 }
 
 /**
@@ -385,18 +455,18 @@ export function buildProductionJob(params = {}) {
  */
 export function assessMusicVideoAssembly(audioAnalysis) {
   const clipPlan = audioAnalysis?.beatSync?.clipPlan;
-  const segmentCount = Array.isArray(clipPlan) ? clipPlan.length : 0;
-  if (segmentCount > 1) {
-    return {
-      canAssemble: false,
-      segmentCount,
-      note: MULTI_CLIP_NOTE,
-    };
-  }
+  const totalSegments = Array.isArray(clipPlan) ? clipPlan.length : 0;
+  const productionClips = resolveProductionClipPlan(audioAnalysis);
+  const segmentCount = productionClips.length >= 2 ? productionClips.length : totalSegments || 1;
+
   return {
     canAssemble: true,
-    segmentCount: segmentCount || 1,
-    note: segmentCount === 1 ? null : MULTI_CLIP_NOTE,
+    segmentCount,
+    multiClip: productionClips.length >= 2,
+    note:
+      productionClips.length >= 2 && totalSegments > productionClips.length
+        ? MULTI_CLIP_CAP_NOTE(productionClips.length, totalSegments)
+        : null,
   };
 }
 
@@ -454,23 +524,25 @@ export async function waitForDirectorRenderComplete(params = {}) {
  * @param {object} params
  */
 export async function maybeAssembleWithAudio(params = {}) {
-  const { renderPath, audioAnalysis, audioBuffer, outputPath } = params;
+  const clipPaths = params.clipPaths?.length
+    ? params.clipPaths.filter(Boolean)
+    : params.renderPath
+      ? [params.renderPath]
+      : [];
+  const renderPath = clipPaths[0] || params.renderPath;
+  const { audioAnalysis, audioBuffer, outputPath } = params;
   if (!renderPath) {
     return { ok: false, skipped: true, reason: "No render output" };
   }
 
   const mv = assessMusicVideoAssembly(audioAnalysis);
   if (!audioAnalysis) {
-    return { ok: true, skipped: true, path: renderPath, reason: "No audio — using render only" };
-  }
-
-  if (!mv.canAssemble) {
     return {
       ok: true,
       skipped: true,
       path: renderPath,
-      reason: mv.note,
-      multiClip: true,
+      reason: "No audio — using render only",
+      clipPaths,
     };
   }
 
@@ -481,6 +553,7 @@ export async function maybeAssembleWithAudio(params = {}) {
       ok: true,
       skipped: true,
       path: renderPath,
+      clipPaths,
       reason: "FFmpeg not installed — render saved without audio mux",
     };
   }
@@ -490,6 +563,7 @@ export async function maybeAssembleWithAudio(params = {}) {
       ok: true,
       skipped: true,
       path: renderPath,
+      clipPaths,
       reason: "Audio file not in cache — attach track before produce",
     };
   }
@@ -504,7 +578,7 @@ export async function maybeAssembleWithAudio(params = {}) {
   const out = baseOut.endsWith(".mp4") ? baseOut : `${baseOut}.mp4`;
 
   const result = await assembleMusicVideoFromHost({
-    clipPaths: [renderPath],
+    clipPaths,
     audioPath: "",
     audioBuffer,
     fileName: safeName,
@@ -512,14 +586,16 @@ export async function maybeAssembleWithAudio(params = {}) {
   });
 
   if (!result?.ok) {
-    return { ok: false, error: result?.error || "Audio mux failed", path: renderPath };
+    return { ok: false, error: result?.error || "Audio mux failed", path: renderPath, clipPaths };
   }
 
   return {
     ok: true,
     skipped: false,
     path: result.path || out,
+    clipPaths,
     message: result.message,
+    multiClip: mv.multiClip,
   };
 }
 
@@ -555,6 +631,7 @@ function formatFailureHints(readiness, renderError) {
 export async function runFullProduction(params = {}) {
   const onPhase = params.onPhase || (() => {});
   const onMessage = params.onMessage || (() => {});
+  const onProgress = params.onProgress || (() => {});
 
   onPhase("validating");
   onMessage("Checking Setup Hub readiness…");
@@ -576,7 +653,7 @@ export async function runFullProduction(params = {}) {
     };
   }
 
-  const { job, settings, buildPlan } = buildProductionJob({
+  const { segmentProject } = buildProductionJob({
     project: params.project,
     imagePayload: params.imagePayload,
     scan: readiness.scan,
@@ -584,77 +661,198 @@ export async function runFullProduction(params = {}) {
     systemStats: params.systemStats,
   });
 
-  if (!job.prompt) {
+  if (!segmentProject.idea && !params.project?.idea) {
     onPhase("failed");
     return { ok: false, phase: "failed", error: "Project prompt is empty — apply agent plan first" };
   }
 
-  saveDirectorSettingsToStorage(settings);
-
-  onPhase("rendering");
-  onMessage(
-    settings.renderPythonSource === "wsl"
-      ? "Launching render via WSL CUDA…"
-      : "Launching Director local render…",
+  saveDirectorSettingsToStorage(
+    buildProductionDirectorSettings({
+      project: params.project,
+      scan: readiness.scan,
+      directorSettings: params.directorSettings,
+    }),
   );
 
-  const launch = await sendDirectorJob({
-    project: params.project,
-    settings,
-    imagePayload: params.imagePayload,
-    buildPlan,
-  });
-
-  if (!launch?.ok) {
-    onPhase("failed");
-    return {
-      ok: false,
-      phase: "failed",
-      error: launch?.error || "Failed to launch render",
-      hints: formatFailureHints(readiness, launch?.error),
-    };
+  const clipPlan = resolveProductionClipPlan(
+    params.audioAnalysis,
+    params.maxProductionClips ?? DEFAULT_PRODUCTION_MAX_CLIPS,
+  );
+  const multiClip = clipPlan.length >= 2;
+  const segments = multiClip ? clipPlan : [null];
+  if (multiClip) {
+    const capNote = MULTI_CLIP_CAP_NOTE(clipPlan.length, params.audioAnalysis.beatSync.clipPlan.length);
+    onMessage(capNote);
+    notifyProductionProgress(onProgress, {
+      multiClip: true,
+      clipTotal: segments.length,
+      clipPlannedTotal: params.audioAnalysis.beatSync.clipPlan.length,
+      clipsRendered: 0,
+      clipCurrent: 0,
+      clipIndex: -1,
+      clipStatus: "planned",
+      multiClipNote: capNote,
+      clipLabel: capNote,
+    });
+  } else {
+    notifyProductionProgress(onProgress, { multiClip: false, clipTotal: 0, clipsRendered: 0 });
   }
 
-  if (launch.exportOnly) {
-    onPhase("failed");
-    return {
-      ok: false,
-      phase: "failed",
-      error: "Export-only mode — enable local GPU render in Director → Advanced",
-    };
-  }
+  onPhase("rendering");
+  const clipPaths = [];
+  let lastLaunch = null;
+  let lastSettings = null;
 
-  onMessage("Rendering… this may take several minutes");
+  for (let i = 0; i < segments.length; i += 1) {
+    const productionClip = segments[i];
+    const clipLabel = multiClip
+      ? `Clip ${i + 1}/${segments.length}: ${productionClip.duration}s (${productionClip.start}s–${productionClip.end}s)`
+      : null;
 
-  const renderResult = await waitForDirectorRenderComplete({
-    logPath: launch.logPath,
-    pid: launch.pid,
-    startedAt: launch.startedAt,
-    estimatedMs: launch.estimatedMs || buildPlan.estimatedSeconds * 1000,
-    onProgress: (st) => {
-      if (st.message) onMessage(st.message);
-    },
-  });
+    if (multiClip) {
+      notifyProductionProgress(onProgress, {
+        multiClip: true,
+        clipIndex: i,
+        clipCurrent: i + 1,
+        clipTotal: segments.length,
+        clipsRendered: i,
+        clipStart: productionClip.start,
+        clipEnd: productionClip.end,
+        clipDuration: productionClip.duration,
+        clipStatus: "launching",
+        clipLabel,
+        renderMessage: null,
+      });
+    }
+    const { settings: clipSettings, buildPlan: clipPlan_, segmentProject } = buildProductionJob({
+      project: params.project,
+      imagePayload: params.imagePayload,
+      scan: readiness.scan,
+      directorSettings: params.directorSettings,
+      systemStats: params.systemStats,
+      productionClip,
+      clipIndex: i,
+      clipTotal: segments.length,
+    });
+    lastSettings = clipSettings;
 
-  if (!renderResult.ok) {
-    onPhase("failed");
-    return {
-      ok: false,
-      phase: "failed",
-      error: renderResult.error,
+    if (multiClip) {
+      onMessage(`${clipLabel}…`);
+    } else {
+      onMessage(
+        clipSettings.renderPythonSource === "wsl"
+          ? "Launching render via WSL CUDA…"
+          : "Launching Director local render…",
+      );
+    }
+
+    saveDirectorSettingsToStorage(clipSettings);
+
+    const launch = await sendDirectorJob({
+      project: segmentProject,
+      settings: clipSettings,
+      imagePayload: params.imagePayload,
+      buildPlan: clipPlan_,
+    });
+    lastLaunch = launch;
+
+    if (!launch?.ok) {
+      onPhase("failed");
+      return {
+        ok: false,
+        phase: "failed",
+        error: launch?.error || "Failed to launch render",
+        hints: formatFailureHints(readiness, launch?.error),
+        clipPaths,
+      };
+    }
+
+    if (launch.exportOnly) {
+      onPhase("failed");
+      return {
+        ok: false,
+        phase: "failed",
+        error: "Export-only mode — enable local GPU render in Director → Advanced",
+      };
+    }
+
+    if (!multiClip) {
+      onMessage("Rendering… this may take several minutes");
+    } else {
+      notifyProductionProgress(onProgress, {
+        clipStatus: "rendering",
+        renderMessage: "Rendering segment…",
+      });
+    }
+
+    const renderResult = await waitForDirectorRenderComplete({
       logPath: launch.logPath,
-      hints: formatFailureHints(readiness, renderResult.error),
-    };
+      pid: launch.pid,
+      startedAt: launch.startedAt,
+      estimatedMs: launch.estimatedMs || clipPlan_.estimatedSeconds * 1000,
+      onProgress: (st) => {
+        if (multiClip) {
+          notifyProductionProgress(onProgress, {
+            clipStatus: "rendering",
+            renderMessage: st.message || null,
+          });
+        } else if (st.message) {
+          onMessage(st.message);
+        }
+      },
+    });
+
+    if (!renderResult.ok) {
+      onPhase("failed");
+      return {
+        ok: false,
+        phase: "failed",
+        error: renderResult.error,
+        logPath: launch.logPath,
+        hints: formatFailureHints(readiness, renderResult.error),
+        clipPaths,
+      };
+    }
+
+    if (renderResult.outputVideoPath) {
+      clipPaths.push(renderResult.outputVideoPath);
+    }
+
+    if (multiClip) {
+      notifyProductionProgress(onProgress, {
+        clipsRendered: i + 1,
+        clipStatus: i + 1 < segments.length ? "clip-complete" : "clips-rendered",
+        clipLabel:
+          i + 1 < segments.length
+            ? `Finished clip ${i + 1}/${segments.length} — starting next…`
+            : `All ${segments.length} clips rendered`,
+        renderMessage: null,
+      });
+    }
   }
 
-  let finalPath = renderResult.outputVideoPath;
+  let finalPath = clipPaths[clipPaths.length - 1] || null;
   let assembly = null;
 
   if (params.audioAnalysis) {
     onPhase("assembled");
-    onMessage("Muxing audio with rendered clip…");
+    if (multiClip) {
+      notifyProductionProgress(onProgress, {
+        clipStatus: "assembling",
+        clipsRendered: clipPaths.length,
+        clipTotal: segments.length,
+        multiClip: true,
+        clipLabel: `Assembling ${clipPaths.length} clips with audio…`,
+      });
+    }
+    onMessage(
+      multiClip
+        ? `Assembling ${clipPaths.length} clips with audio…`
+        : "Muxing audio with rendered clip…",
+    );
     assembly = await maybeAssembleWithAudio({
       renderPath: finalPath,
+      clipPaths,
       audioAnalysis: params.audioAnalysis,
       audioBuffer: params.audioBuffer,
       scan: readiness.scan,
@@ -662,24 +860,28 @@ export async function runFullProduction(params = {}) {
     if (assembly.ok && assembly.path) {
       finalPath = assembly.path;
     }
-    if (assembly.multiClip) {
-      onMessage(assembly.reason || MULTI_CLIP_NOTE);
+    if (assembly.skipped && assembly.reason) {
+      onMessage(assembly.reason);
     }
   }
 
   onPhase("done");
   onMessage(finalPath ? `Done — ${finalPath.split(/[/\\]/).pop()}` : "Render complete");
 
+  const mv = assessMusicVideoAssembly(params.audioAnalysis);
+
   return {
     ok: true,
     phase: "done",
     outputPath: finalPath,
-    renderPath: renderResult.outputVideoPath,
+    renderPath: clipPaths[0] || null,
+    clipPaths,
     assembly,
-    launch,
+    launch: lastLaunch,
     readiness,
-    settings,
-    multiClipNote: assessMusicVideoAssembly(params.audioAnalysis).note,
+    settings: lastSettings,
+    multiClip,
+    multiClipNote: mv.note,
   };
 }
 

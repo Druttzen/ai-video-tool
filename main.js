@@ -14,7 +14,9 @@ const execFileAsync = promisify(execFile);
 app.setPath("userData", resolveUserDataPath(__dirname));
 
 let mainWindow = null;
+let canvasWindow = null;
 let pendingBundleImportPath = null;
+let pendingCanvasPayload = null;
 
 const BUNDLE_FILE_RE = /\.(json|aivbundle\.json)$/i;
 
@@ -1098,6 +1100,98 @@ function setupOpenSoraIpc() {
   });
 }
 
+function resolveCanvasIndexPath() {
+  const candidates = [
+    path.join(__dirname, "tools", "canvas", "build", "index.html"),
+    path.join(process.resourcesPath, "tools", "canvas", "build", "index.html"),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+function createCanvasWindow(payload) {
+  if (payload !== undefined) {
+    pendingCanvasPayload = payload;
+  }
+
+  if (canvasWindow && !canvasWindow.isDestroyed()) {
+    canvasWindow.focus();
+    if (payload) {
+      canvasWindow.webContents.send("canvas:payload", payload);
+    }
+    return { ok: true, reused: true };
+  }
+
+  const preloadPath = path.join(__dirname, "tools", "canvas", "electron", "preload.js");
+  const iconPath = path.join(__dirname, "icon.ico");
+  const windowOptions = {
+    title: "AI Video Creator — Canvas",
+    width: 1100,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    backgroundColor: "#0b0d10",
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: preloadPath,
+    },
+  };
+  if (fs.existsSync(iconPath)) {
+    windowOptions.icon = iconPath;
+  }
+
+  canvasWindow = new BrowserWindow(windowOptions);
+
+  const devUrl =
+    process.env.CANVAS_DEV_URL || process.env.VITE_CANVAS_URL || (!app.isPackaged ? "http://localhost:5174" : "");
+  if (!app.isPackaged && devUrl) {
+    let fellBackToBuild = false;
+    canvasWindow.webContents.on("did-fail-load", (_event, _code, _description, validatedURL) => {
+      if (fellBackToBuild || validatedURL !== devUrl) return;
+      const indexPath = resolveCanvasIndexPath();
+      if (indexPath) {
+        fellBackToBuild = true;
+        canvasWindow.loadFile(indexPath);
+      }
+    });
+    canvasWindow.loadURL(devUrl);
+  } else {
+    const indexPath = resolveCanvasIndexPath();
+    if (!indexPath) {
+      dialog.showErrorBox(
+        "Canvas not built",
+        "Missing tools/canvas/build/index.html. Run npm run canvas:build first.",
+      );
+      canvasWindow.destroy();
+      canvasWindow = null;
+      return { ok: false, error: "Canvas build missing" };
+    }
+    canvasWindow.loadFile(indexPath);
+  }
+
+  canvasWindow.on("closed", () => {
+    canvasWindow = null;
+  });
+
+  return { ok: true };
+}
+
+function setupCanvasIpc() {
+  ipcMain.handle("canvas:open", async (_event, payload) => {
+    try {
+      return createCanvasWindow(payload ?? null);
+    } catch (e) {
+      return { ok: false, error: e?.message || "canvas open failed" };
+    }
+  });
+
+  ipcMain.handle("canvas:get-payload", async () => {
+    const payload = pendingCanvasPayload;
+    pendingCanvasPayload = null;
+    return payload;
+  });
+}
+
 function setupProjectImportIpc() {
   ipcMain.handle("project:read-bundle-file", async (_event, filePath) => {
     try {
@@ -1107,12 +1201,16 @@ function setupProjectImportIpc() {
       }
       const raw = JSON.parse(fs.readFileSync(resolved, "utf8"));
       let audioSidecarPath = null;
+      let audioSidecarBuffer = null;
       const sidecarName = raw?.handoff?.audioSidecarName;
       if (sidecarName) {
         const candidate = path.join(path.dirname(resolved), String(sidecarName));
-        if (fs.existsSync(candidate)) audioSidecarPath = candidate;
+        if (fs.existsSync(candidate)) {
+          audioSidecarPath = candidate;
+          audioSidecarBuffer = fs.readFileSync(candidate);
+        }
       }
-      return { ok: true, raw, path: resolved, audioSidecarPath };
+      return { ok: true, raw, path: resolved, audioSidecarPath, audioSidecarBuffer };
     } catch (e) {
       return { ok: false, error: e?.message || "read bundle failed" };
     }
@@ -1252,6 +1350,7 @@ app.whenReady().then(() => {
   setupBuildProgressIpc();
   setupDirectorIpc();
   setupOpenSoraIpc();
+  setupCanvasIpc();
   createWindow();
   setupAutoUpdater();
 });

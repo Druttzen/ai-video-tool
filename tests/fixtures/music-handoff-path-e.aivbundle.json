@@ -40,7 +40,26 @@
           {
             "start": 0,
             "end": 5,
+            "duration": 5,
             "label": "intro"
+          },
+          {
+            "start": 5,
+            "end": 10,
+            "duration": 5,
+            "label": "verse"
+          },
+          {
+            "start": 10,
+            "end": 15,
+            "duration": 5,
+            "label": "chorus"
+          },
+          {
+            "start": 15,
+            "end": 20,
+            "duration": 5,
+            "label": "outro"
           }
         ]
       }

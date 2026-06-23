@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "electron-dist/**",
     "dist/**",
     "next-env.d.ts",
+    ".userdata/**",
+    "tools/canvas/build/**",
   ]),
 ]);
 

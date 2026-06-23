@@ -61,6 +61,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+tools/canvas/build/*
+!tools/canvas/build/.gitkeep
+tools/canvas/node_modules/
 
 # Python bytecode (local render / WSL stubs)
 **/__pycache__/
