@@ -75,7 +75,14 @@ def run_wan(job: dict, job_path: Path) -> int:
 
     dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     pipe = WanPipeline.from_pretrained(model_id, torch_dtype=dtype)
-    pipe.enable_model_cpu_offload()
+    if hasattr(pipe, "enable_sequential_cpu_offload"):
+        pipe.enable_sequential_cpu_offload()
+    else:
+        pipe.enable_model_cpu_offload()
+    if hasattr(pipe, "enable_attention_slicing"):
+        pipe.enable_attention_slicing()
+    if hasattr(pipe, "enable_vae_slicing"):
+        pipe.enable_vae_slicing()
     pipe.set_progress_bar_config(disable=False)
 
     generator = torch.Generator(device="cuda").manual_seed(seed)
