@@ -24,6 +24,7 @@ const {
   getManagedModelsDir,
   getManagedNodeDir,
   getManagedOpenSoraDir,
+  getOpenSoraCkptsDir,
   resolveModelWeightsStatus,
   getManagedPythonDir,
   getManagedRequirementsMetaPath,
@@ -45,6 +46,7 @@ const {
   wslAvailable,
   wslVenvExists,
 } = require("./addon-platform.cjs");
+const { getTorchPipInstallArgs, resolveGpuVendor } = require("./gpu-vendor.cjs");
 
 const execFileAsync = promisify(execFile);
 
@@ -73,7 +75,16 @@ function compareSemver(a, b) {
 }
 
 const DOWNLOAD_TIMEOUT_MS = 600000;
-const PIP_Package_BLOCKLIST = new Set(["opensora", "open-sora"]);
+/** Installed separately (editable clone or dedicated torch step) — never from merged requirements.txt */
+const PIP_Package_BLOCKLIST = new Set([
+  "opensora",
+  "open-sora",
+  "torch",
+  "torchvision",
+  "torchaudio",
+]);
+/** Linux/WSL render stack — not buildable on native Windows */
+const PIP_WINDOWS_BLOCKLIST = new Set(["colossalai", "tensornvme", "flash-attn", "triton"]);
 
 function downloadFile(url, destPath, redirectLimit = 5) {
   return new Promise((resolve, reject) => {
@@ -118,7 +129,12 @@ async function runPython(pythonPath, args, { timeout = 900000, userDataPath = nu
 }
 
 function filterPipRequirementLines(lines) {
-  return lines.filter((line) => !PIP_Package_BLOCKLIST.has(packageKey(line)));
+  return lines.filter((line) => {
+    const key = packageKey(line);
+    if (!key || PIP_Package_BLOCKLIST.has(key)) return false;
+    if (process.platform === "win32" && PIP_WINDOWS_BLOCKLIST.has(key)) return false;
+    return true;
+  });
 }
 
 async function runGit(args, cwd) {
@@ -268,9 +284,9 @@ function requirementsNeedsSync(userDataPath) {
   const dest = getManagedRequirementsPath(userDataPath);
   if (!fileExists(dest)) return true;
 
-  const templateLines = readRequirementsLines(getBundledRequirementsTemplatePath());
-  const openSoraLines = readRequirementsLines(
-    path.join(getManagedOpenSoraDir(userDataPath), "requirements.txt"),
+  const templateLines = filterPipRequirementLines(readRequirementsLines(getBundledRequirementsTemplatePath()));
+  const openSoraLines = filterPipRequirementLines(
+    readRequirementsLines(path.join(getManagedOpenSoraDir(userDataPath), "requirements.txt")),
   );
   const expectedHash = hashRequirements(mergeRequirementLines(templateLines, openSoraLines));
   const meta = readRequirementsMeta(userDataPath);
@@ -385,21 +401,26 @@ function materializeWslBootstrapScript(userDataPath, scriptContent) {
 
 async function installTorchInVenv(userDataPath) {
   const venvPy = requireManagedVenvPython(userDataPath, true);
-  const args = ["-m", "pip", "install", "torch", "torchvision", "torchaudio"];
-  if (process.platform === "win32") {
-    try {
-      await runPython(
-        venvPy,
-        [...args, "--index-url", "https://download.pytorch.org/whl/cu121"],
-        { userDataPath },
-      );
-      return { ok: true, message: "torch (CUDA cu121 index)" };
-    } catch {
-      /* CPU fallback */
+  const vendor = await resolveGpuVendor();
+  const spec = getTorchPipInstallArgs(vendor, process.platform);
+  const pipBase = ["-m", "pip", ...spec.pipArgs];
+  try {
+    await runPython(venvPy, pipBase, { userDataPath });
+    return { ok: true, message: spec.label, vendor, note: spec.note || null };
+  } catch (primaryErr) {
+    if (!spec.fallbackDefault) {
+      throw primaryErr;
     }
   }
-  await runPython(venvPy, args, { userDataPath });
-  return { ok: true, message: "torch (default index)" };
+  await runPython(venvPy, ["-m", "pip", "install", "torch", "torchvision", "torchaudio"], {
+    userDataPath,
+  });
+  return {
+    ok: true,
+    message: `${spec.label} → torch (default index fallback)`,
+    vendor,
+    note: spec.note || null,
+  };
 }
 
 async function pipInstallOpenSoraEditable(userDataPath) {
@@ -825,10 +846,13 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
   const modelCount = weights.weightCount;
   const minModels = manifest.addons.models?.minimumArtifacts ?? 1;
   const modelDownloads = manifest.addons.models?.downloads || [];
-  const modelsPlaceholderOnly = modelDownloads.length === 0;
-  const modelsReady = modelsPlaceholderOnly
-    ? weights.ok
-    : modelCount >= minModels;
+  const hfRepo = manifest.addons.models?.huggingfaceRepo || "";
+  const modelsPlaceholderOnly = modelDownloads.length === 0 && !hfRepo;
+  const modelsReady = hfRepo
+    ? weights.hasWeights
+    : modelsPlaceholderOnly
+      ? weights.ok
+      : modelCount >= minModels;
   const ckptsHint = weights.ckptsPath ? ` — weights: ${weights.ckptsPath}` : "";
   items.push({
     id: "models",
@@ -843,9 +867,11 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
     updateAvailable: !modelsReady,
     message: weights.hasWeights
       ? `Open-Sora weights ready (${modelCount} file(s)${ckptsHint})`
-      : modelsReady
-        ? `Download hpcai-tech/Open-Sora-v2 into open-sora/ckpts${ckptsHint}`
-        : "Models not initialized — run Install Addons",
+      : hfRepo
+        ? `Download ${hfRepo} into open-sora/ckpts${ckptsHint}`
+        : modelsReady
+          ? `Download hpcai-tech/Open-Sora-v2 into open-sora/ckpts${ckptsHint}`
+          : "Models not initialized — run Install Addons",
     path: weights.ckptsPath || modelsDir,
     managed: true,
   });
@@ -1218,6 +1244,42 @@ async function updateFfmpeg({ userDataPath, manifest }) {
   };
 }
 
+async function downloadHuggingfaceModelWeights({ userDataPath, repoId }) {
+  const python = requireManagedVenvPython(userDataPath, true);
+  const ckptsPath = getOpenSoraCkptsDir(userDataPath);
+  fs.mkdirSync(ckptsPath, { recursive: true });
+
+  if (!(await probePythonModule(python, "huggingface_hub"))) {
+    await runPython(python, ["-m", "pip", "install", "huggingface-hub"], { userDataPath, timeout: 600000 });
+  }
+
+  const scriptPath = path.join(getAddonsCacheDir(userDataPath), "download-model-weights.py");
+  const script = `from huggingface_hub import snapshot_download
+import sys
+repo_id = ${JSON.stringify(repoId)}
+local_dir = ${JSON.stringify(ckptsPath)}
+print(f"[models] Downloading {repo_id} -> {local_dir}", flush=True)
+snapshot_download(repo_id=repo_id, local_dir=local_dir)
+print("[models] Download complete", flush=True)
+`;
+  fs.writeFileSync(scriptPath, script, "utf8");
+
+  await new Promise((resolve, reject) => {
+    const child = spawn(python, [scriptPath], {
+      stdio: "inherit",
+      env: venvEnv(userDataPath),
+      shell: false,
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`Model download exited with code ${code}`));
+    });
+  });
+
+  return { ok: true, path: ckptsPath, repoId };
+}
+
 async function updateModels({ userDataPath, manifest }) {
   const modelsDir = getManagedModelsDir(userDataPath);
   fs.mkdirSync(modelsDir, { recursive: true });
@@ -1249,19 +1311,39 @@ async function updateModels({ userDataPath, manifest }) {
   }
 
   const weights = resolveModelWeightsStatus(userDataPath);
-  const count = weights.weightCount;
+  const hfRepo = manifest.addons.models?.huggingfaceRepo || "";
+  let hfResult = null;
+  if (hfRepo && !weights.hasWeights) {
+    try {
+      hfResult = await downloadHuggingfaceModelWeights({ userDataPath, repoId: hfRepo });
+    } catch (err) {
+      return {
+        ok: false,
+        path: weights.ckptsPath || modelsDir,
+        error: err?.message || "Hugging Face model download failed",
+        message: `Failed to download ${hfRepo} — accept the model license on Hugging Face and retry`,
+        downloads: results,
+      };
+    }
+  }
+
+  const weightsAfter = resolveModelWeightsStatus(userDataPath);
+  const count = weightsAfter.weightCount;
   const min = manifest.addons.models?.minimumArtifacts ?? 1;
-  const placeholderOnly = downloads.length === 0;
+  const placeholderOnly = downloads.length === 0 && !hfRepo;
 
   return {
-    ok: placeholderOnly ? weights.ok : count >= min,
-    path: weights.ckptsPath || modelsDir,
+    ok: hfRepo ? weightsAfter.hasWeights : placeholderOnly ? weightsAfter.ok : count >= min,
+    path: weightsAfter.ckptsPath || modelsDir,
     count,
-    hasWeights: weights.hasWeights,
-    message: weights.hasWeights
+    hasWeights: weightsAfter.hasWeights,
+    message: weightsAfter.hasWeights
       ? `Open-Sora weights ready (${count} file(s))`
-      : "ckpts folder linked — download hpcai-tech/Open-Sora-v2 into open-sora/ckpts, then rescan",
+      : hfRepo
+        ? `Downloaded ${hfRepo} — rescan if weights still missing`
+        : "ckpts folder linked — download hpcai-tech/Open-Sora-v2 into open-sora/ckpts, then rescan",
     downloads: results,
+    huggingface: hfResult,
   };
 }
 

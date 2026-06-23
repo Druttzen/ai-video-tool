@@ -1,8 +1,21 @@
 /** Default Open-Sora install folder — managed under Electron userData/addons/open-sora. */
 const APP_DATA_DIR = "AI Video Creator";
+const LOCAL_USERDATA_DIR = ".userdata";
+
+function repoLocalOpenSoraPath() {
+  if (typeof process !== "undefined" && process.cwd) {
+    return `${process.cwd().replace(/\\/g, "/")}/${LOCAL_USERDATA_DIR}/addons/open-sora`;
+  }
+  return null;
+}
 
 /** Shown in UI when Electron userData path is not available (browser mode). */
 export function getDefaultOpenSoraInstallPath() {
+  const repoLocal = repoLocalOpenSoraPath();
+  if (repoLocal && typeof process !== "undefined" && process.env?.AI_VIDEO_USE_APPDATA !== "1") {
+    return repoLocal.replace(/\//g, "\\");
+  }
+
   if (typeof window !== "undefined") {
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
     if (/Win/i.test(ua)) {

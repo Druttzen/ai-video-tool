@@ -7,6 +7,61 @@ VENV_DIR="${VENV_DIR:-$ADDONS_ROOT/wsl-venv}"
 REQ_FILE="${REQ_FILE:-$ADDONS_ROOT/requirements.txt}"
 OPEN_SORA_DIR="${OPEN_SORA_DIR:-$ADDONS_ROOT/open-sora}"
 OPTIONAL_REQ_FILE="${OPTIONAL_REQ_FILE:-$ADDONS_ROOT/addon-requirements-optional.txt}"
+TORCH_CUDA_INDEX="${TORCH_CUDA_INDEX:-https://download.pytorch.org/whl/cu121}"
+TORCH_ROCM_INDEX="${TORCH_ROCM_INDEX:-https://download.pytorch.org/whl/rocm6.2}"
+TORCH_XPU_INDEX="${TORCH_XPU_INDEX:-https://download.pytorch.org/whl/xpu}"
+
+detect_gpu_vendor() {
+  local configured="${AI_VIDEO_GPU_VENDOR:-auto}"
+  configured="$(echo "$configured" | tr '[:upper:]' '[:lower:]')"
+  case "$configured" in
+    nvidia|cuda) echo "nvidia"; return ;;
+    amd|radeon|rocm) echo "amd"; return ;;
+    intel|arc|xpu) echo "intel"; return ;;
+    cpu|none) echo "cpu"; return ;;
+    auto) ;;
+    *) echo "cpu"; return ;;
+  esac
+
+  if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+    echo "nvidia"
+    return
+  fi
+  if command -v rocm-smi >/dev/null 2>&1 && rocm-smi >/dev/null 2>&1; then
+    echo "amd"
+    return
+  fi
+  if command -v lspci >/dev/null 2>&1 && lspci 2>/dev/null | grep -qiE 'VGA|Display.*(Intel|Arc)'; then
+    echo "intel"
+    return
+  fi
+  echo "cpu"
+}
+
+install_torch_for_vendor() {
+  local vendor="$1"
+  case "$vendor" in
+    nvidia)
+      echo "[wsl-bootstrap] installing torch (CUDA cu121 index)"
+      pip install torch torchvision torchaudio --index-url "$TORCH_CUDA_INDEX" \
+        || pip install torch torchvision torchaudio
+      ;;
+    amd)
+      echo "[wsl-bootstrap] installing torch (ROCm 6.2 index)"
+      pip install torch torchvision torchaudio --index-url "$TORCH_ROCM_INDEX" \
+        || pip install torch torchvision torchaudio
+      ;;
+    intel)
+      echo "[wsl-bootstrap] installing torch (Intel XPU index)"
+      pip install torch torchvision torchaudio --index-url "$TORCH_XPU_INDEX" \
+        || pip install torch torchvision torchaudio
+      ;;
+    *)
+      echo "[wsl-bootstrap] installing torch (CPU / default PyPI)"
+      pip install torch torchvision torchaudio || echo "[wsl-bootstrap] WARN: torch install failed"
+      ;;
+  esac
+}
 
 echo "[wsl-bootstrap] addons root: $ADDONS_ROOT"
 mkdir -p "$ADDONS_ROOT"
@@ -50,10 +105,9 @@ if python -c "import torch" 2>/dev/null; then
 else
   python -m pip install --upgrade pip wheel setuptools virtualenv
 
-  echo "[wsl-bootstrap] installing torch (CUDA index when available)"
-  if ! pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121; then
-    pip install torch torchvision torchaudio || echo "[wsl-bootstrap] WARN: torch install failed"
-  fi
+  GPU_VENDOR="$(detect_gpu_vendor)"
+  echo "[wsl-bootstrap] GPU vendor: $GPU_VENDOR (AI_VIDEO_GPU_VENDOR=${AI_VIDEO_GPU_VENDOR:-auto})"
+  install_torch_for_vendor "$GPU_VENDOR"
 fi
 
 if [ -d "$OPEN_SORA_DIR" ] && { [ -f "$OPEN_SORA_DIR/setup.py" ] || [ -f "$OPEN_SORA_DIR/pyproject.toml" ] || [ -d "$OPEN_SORA_DIR/opensora" ]; }; then

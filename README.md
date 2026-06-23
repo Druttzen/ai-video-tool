@@ -24,6 +24,7 @@ Built-in vocabulary lives in `data/director-catalog.json` — owned by this app,
 ```bash
 npm install
 git lfs install      # once per clone — required if the repo stores large binaries via LFS
+npm run tools:install  # optional — Python, FFmpeg, Open-Sora, venv → .userdata/addons/
 npm run dev          # browser — full prompt studio
 npm run electron     # desktop — export + optional local render
 ```
@@ -161,8 +162,8 @@ Setup Hub can **check and install updates** for local render dependencies:
 | Addon | Auto-update behavior |
 |-------|----------------------|
 | **Open-Sora** | `git clone` or `git pull` + optional `pip install -r requirements.txt` |
-| **Python** | Windows embeddable zip → `%AppData%/…/addons/python/` (bootstraps pip via `get-pip.py` + `_pth` fix before venv) |
-| **FFmpeg** | Static Windows build → `%AppData%/…/addons/ffmpeg/` |
+| **Python** | Windows embeddable zip → `.userdata/addons/python/` in repo dev (or `%AppData%/…/addons/python/` when `AI_VIDEO_USE_APPDATA=1`) |
+| **FFmpeg** | Static Windows build → `.userdata/addons/ffmpeg/` |
 | **Music video sync** | Librosa beat/onset analysis for Paths 1, 3, and 5 (desktop + managed venv) |
 | **WSL** | Optional Linux venv for CUDA torch (Windows host) |
 
@@ -175,7 +176,9 @@ Manifest: `data/addon-updates-manifest.json` (pinned URLs/versions).
 
 ### WSL local render (Windows)
 
-On Windows, native Python often lacks **ColossalAI** and a CUDA **torch** wheel. The app can route local Director renders through **WSL2** when a managed Linux venv exists under your addons folder (`%AppData%\AI Video Creator\addons\wsl-venv`).
+On Windows, native Python often lacks **ColossalAI** and a CUDA **torch** wheel. The app can route local Director renders through **WSL2** when a managed Linux venv exists under your addons folder (`F:\ai-video-tool\.userdata\addons\wsl-venv` in repo dev).
+
+**Install location (repo dev):** When you run from a git checkout, all managed tools install under **`.userdata/addons/`** in the repo (`python`, `nodejs`, `ffmpeg`, `open-sora`, `venv`, `wsl-venv`, `models`, pip requirements). Packaged desktop builds still use `%AppData%\AI Video Creator\` unless you set `ADDON_USER_DATA`. Set `AI_VIDEO_USE_APPDATA=1` to force the legacy AppData path from CLI/WSL scripts.
 
 **One-time in WSL** (if bootstrap warns about missing build tools):
 
@@ -194,8 +197,13 @@ Helper scripts under `scripts/wsl-*.sh` share portable path resolution in `scrip
 | Variable | Purpose |
 |----------|---------|
 | `ADDONS_ROOT` | Addons folder (contains `wsl-venv`, `open-sora`) |
-| `AI_VIDEO_CREATOR_USER_DATA` | Roaming app data dir (addons = `$VAR/addons`) |
+| `AI_VIDEO_CREATOR_USER_DATA` | userData dir (addons = `$VAR/addons`) — same as `ADDON_USER_DATA` |
+| `ADDON_USER_DATA` | userData dir for CLI/Electron override |
+| `AI_VIDEO_USE_APPDATA=1` | Force `%AppData%\AI Video Creator` instead of repo `.userdata` |
+| `AI_VIDEO_GPU_VENDOR` | PyTorch wheel index: `nvidia`, `amd`, `intel`, `cpu`, or `auto` (default). Used by `npm run tools:install`, Setup Hub pip-deps, and WSL bootstrap. |
 | `AI_VIDEO_TOOL_REPO` | Repo root if not inferred from script location |
+
+**GPU vendor → PyTorch:** `auto` detects NVIDIA (`nvidia-smi` / display adapter), AMD (ROCm / Radeon), or Intel Arc. NVIDIA uses the CUDA cu121 index; AMD uses ROCm 6.2 on Linux/WSL; Intel uses the XPU index. **Windows native AMD** has no ROCm wheels — install uses CPU PyTorch unless you use **WSL2** with `AI_VIDEO_GPU_VENDOR=amd`. Intel Arc on Windows may need Intel GPU drivers; XPU wheels fall back to CPU PyPI on failure.
 
 | Script | Purpose |
 |--------|---------|

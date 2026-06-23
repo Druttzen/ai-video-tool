@@ -28,8 +28,10 @@ if [ -n "${ADDONS_ROOT:-}" ]; then
   :
 elif [ -n "${AI_VIDEO_CREATOR_USER_DATA:-}" ]; then
   ADDONS_ROOT="${AI_VIDEO_CREATOR_USER_DATA}/addons"
-else
+elif [ "${AI_VIDEO_USE_APPDATA:-}" = "1" ]; then
   ADDONS_ROOT="$(_wsl_find_addons_root)"
+else
+  ADDONS_ROOT="${REPO_ROOT}/.userdata/addons"
 fi
 
 VENV_DIR="${VENV_DIR:-$ADDONS_ROOT/wsl-venv}"

@@ -75,3 +75,6 @@ next-env.d.ts
 
 # Accidental pip stderr captures
 /=*
+
+# Managed addons, venv, models, and Electron job state (repo-local dev installs)
+/.userdata/

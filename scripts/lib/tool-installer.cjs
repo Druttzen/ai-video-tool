@@ -11,7 +11,7 @@ const {
   updateAllAddons,
 } = require("./addon-updater.cjs");
 const { resolveEffectivePlatform } = require("./addon-platform.cjs");
-const { defaultUserDataPath } = require("./open-sora-paths.cjs");
+const { resolveUserDataPath } = require("./open-sora-paths.cjs");
 
 function getInstallProtocol() {
   const manifest = loadAddonManifest();
@@ -38,7 +38,7 @@ function getInstallProtocol() {
  * @param {string} [params.userDataPath]
  */
 async function scanMissingAddons({ userDataPath } = {}) {
-  const base = userDataPath || defaultUserDataPath();
+  const base = userDataPath || resolveUserDataPath();
   const platform = await resolveEffectivePlatform();
   const scan = await scanSetupEnvironment({ userDataPath: base });
   const report = await checkAddonUpdates({ scan, userDataPath: base });
@@ -83,7 +83,7 @@ const SAFE_SCAN_OPTIONAL = new Set(["ffmpeg", "models", "wsl", "music-video-sync
  * @param {string} [params.userDataPath]
  */
 async function runSafeScan({ userDataPath } = {}) {
-  const base = userDataPath || defaultUserDataPath();
+  const base = userDataPath || resolveUserDataPath();
   const envScan = await scanSetupEnvironment({ userDataPath: base });
   const report = await checkAddonUpdates({ scan: envScan, userDataPath: base });
 
@@ -133,7 +133,7 @@ async function runSafeScan({ userDataPath } = {}) {
  * @param {(payload: object) => void} [params.onProgress]
  */
 async function forceInstallPipeline({ userDataPath, onProgress = () => {}, pipViaPython = false } = {}) {
-  const base = userDataPath || defaultUserDataPath();
+  const base = userDataPath || resolveUserDataPath();
 
   const freshScan = async () => scanSetupEnvironment({ userDataPath: base });
 
@@ -223,7 +223,7 @@ async function installTools({
   pipViaPython = false,
   onProgress = () => {},
 } = {}) {
-  const base = userDataPath || defaultUserDataPath();
+  const base = userDataPath || resolveUserDataPath();
 
   if (forcePipeline && !addonId) {
     return forceInstallPipeline({ userDataPath: base, onProgress, pipViaPython });

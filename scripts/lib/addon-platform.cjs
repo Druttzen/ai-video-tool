@@ -5,6 +5,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const { execLocal } = require("./process-exec.cjs");
 const { getAddonsRoot, getManagedWslVenvDir } = require("./addon-paths.cjs");
+const { GPU_VENDOR_ENV, resolveGpuVendor } = require("./gpu-vendor.cjs");
 const WSL_BOOTSTRAP_TIMEOUT_MS = 1800000;
 
 function normalizeUnixScript(content) {
@@ -114,12 +115,14 @@ async function runWslBootstrap({
   const optionalReq = optionalRequirementsPath
     ? windowsPathToWsl(optionalRequirementsPath)
     : `${addonsRoot}/addon-requirements-optional.txt`;
+  const gpuVendor = await resolveGpuVendor();
   const prelude = [
     `export ADDONS_ROOT=${shellQuoteBash(addonsRoot)}`,
     `export VENV_DIR=${shellQuoteBash(wslVenv)}`,
     `export REQ_FILE=${shellQuoteBash(reqFile)}`,
     `export OPEN_SORA_DIR=${shellQuoteBash(openSora)}`,
     `export OPTIONAL_REQ_FILE=${shellQuoteBash(optionalReq)}`,
+    `export ${GPU_VENDOR_ENV}=${shellQuoteBash(gpuVendor)}`,
   ].join("; ");
 
   return new Promise((resolve, reject) => {

@@ -81,7 +81,7 @@
       "requiresElectron": true,
       "requiredForLocalMp4": true,
       "scrollTarget": "setup-hub-panel",
-      "fixHint": "Setup Hub → Update all addons runs pip install -r managed requirements.txt. On Windows without CUDA/colossalai, enable WSL2 and update the WSL addon instead."
+      "fixHint": "Setup Hub → Update all addons runs pip install -r managed requirements.txt. Set AI_VIDEO_GPU_VENDOR=nvidia|amd|intel|cpu|auto (default auto) before install to pick the PyTorch wheel index. On Windows without CUDA/colossalai, enable WSL2 and update the WSL addon instead."
     },
     {
       "id": "music-video-sync",

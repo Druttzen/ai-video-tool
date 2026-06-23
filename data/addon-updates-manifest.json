@@ -101,7 +101,7 @@
     },
     "pip-deps": {
       "label": "Pip dependencies",
-      "description": "Installs merged requirements.txt into managed venv only",
+      "description": "Installs merged requirements.txt into managed venv only. PyTorch wheel index follows AI_VIDEO_GPU_VENDOR (nvidia|amd|intel|cpu|auto).",
       "probeModule": "torch",
       "probeModules": ["torch", "gradio", "diffusers"]
     },
@@ -137,6 +137,7 @@
       "label": "Model weights",
       "description": "Cached under userData/addons/open-sora/ckpts (linked from addons/models/ckpts)",
       "minimumArtifacts": 1,
+      "huggingfaceRepo": "hpcai-tech/Open-Sora-v2",
       "downloads": []
     },
     "wsl": {

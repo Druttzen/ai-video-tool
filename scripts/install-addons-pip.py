@@ -12,7 +12,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-BLOCKLIST = {"opensora", "open-sora"}
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+
+from lib.gpu_vendor import get_torch_pip_install_spec, resolve_gpu_vendor
+
+BLOCKLIST = {"opensora", "open-sora", "torch", "torchvision", "torchaudio"}
+WINDOWS_BLOCKLIST = {"colossalai", "tensornvme", "flash-attn", "triton"}
 
 
 def log(message: str, level: str = "info") -> None:
@@ -30,6 +37,25 @@ def package_key(line: str) -> str:
     return re.split(r"[<>=!\[]", base)[0].strip().lower()
 
 
+def pip_spec(line: str) -> str:
+    return line.split(";")[0].strip()
+
+
+def marker_applies(line: str) -> bool:
+    parts = [p.strip() for p in line.split(";")]
+    if len(parts) <= 1:
+        return True
+    sys_name = platform.system()
+    for marker in parts[1:]:
+        neq = re.match(r'^platform_system\s*!=\s*["\'](\w+)["\']$', marker)
+        if neq:
+            return sys_name != neq.group(1)
+        eq = re.match(r'^platform_system\s*==\s*["\'](\w+)["\']$', marker)
+        if eq:
+            return sys_name == eq.group(1)
+    return True
+
+
 def read_lines(path: Path) -> list[str]:
     if not path.is_file():
         return []
@@ -38,16 +64,21 @@ def read_lines(path: Path) -> list[str]:
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        if package_key(line) in BLOCKLIST:
+        if not marker_applies(line):
             continue
-        lines.append(line)
+        spec = pip_spec(line)
+        if package_key(spec) in BLOCKLIST:
+            continue
+        if platform.system() == "Windows" and package_key(spec) in WINDOWS_BLOCKLIST:
+            continue
+        lines.append(spec)
     return lines
 
 
 def run_pip(python: Path, args: list[str], label: str) -> int:
     cmd = [str(python), "-m", "pip", *args]
-    log(f"{label} …")
-    log(f"  → {' '.join(cmd)}")
+    log(f"{label} ...")
+    log(f"  -> {' '.join(cmd)}")
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
@@ -89,18 +120,19 @@ def main() -> int:
     if code != 0:
         return code
 
-    torch_args = ["install", "torch", "torchvision", "torchaudio"]
-    if platform.system() == "Windows":
+    vendor = resolve_gpu_vendor()
+    torch_spec = get_torch_pip_install_spec(vendor)
+    log(f"GPU vendor: {vendor} ({torch_spec.label})")
+    if torch_spec.note:
+        log(torch_spec.note, "warn")
+    code = run_pip(python, torch_spec.pip_args, f"Install {torch_spec.label}")
+    if code != 0 and torch_spec.fallback_default:
+        log(f"{torch_spec.label} failed - trying default PyPI index", "warn")
         code = run_pip(
             python,
-            [*torch_args, "--index-url", "https://download.pytorch.org/whl/cu121"],
-            "Install torch (CUDA cu121 index)",
+            ["install", "torch", "torchvision", "torchaudio"],
+            "Install torch (default index)",
         )
-        if code != 0:
-            log("CUDA torch index failed — trying default PyPI index", "warn")
-            code = run_pip(python, torch_args, "Install torch (default index)")
-    else:
-        code = run_pip(python, torch_args, "Install torch")
     if code != 0:
         return code
 
@@ -112,22 +144,38 @@ def main() -> int:
         if has_project:
             code = run_pip(python, ["install", "-e", str(open_sora)], "Install Open-Sora editable")
             if code != 0:
-                return code
+                if platform.system() == "Windows":
+                    log(
+                        "Open-Sora editable skipped on Windows (colossalai needs WSL) - continuing with requirements.txt",
+                        "warn",
+                    )
+                else:
+                    return code
         else:
-            log("Open-Sora project files missing — skip editable install", "warn")
+            log("Open-Sora project files missing - skip editable install", "warn")
     else:
-        log("Open-Sora clone missing — skip editable install", "warn")
+        log("Open-Sora clone missing - skip editable install", "warn")
 
     if requirements.is_file():
-        code = run_pip(python, ["install", "-r", str(requirements)], f"pip install -r {requirements.name}")
-        if code != 0:
-            return code
+        req_lines = read_lines(requirements)
+        if req_lines:
+            log(f"Installing {len(req_lines)} requirement lines from {requirements.name}")
+            for line in req_lines:
+                opt_code = run_pip(python, ["install", line], f"Req: {package_key(line)}")
+                if opt_code != 0:
+                    log(f"Requirement skipped: {package_key(line)}", "warn")
+        else:
+            log(f"No installable lines in {requirements.name}", "warn")
     else:
         log(f"No requirements file at {requirements}", "warn")
 
     if optional and optional.is_file():
         log(f"Optional packages from {optional.name}")
+        skip_optional = {"xformers"} if platform.system() == "Windows" else set()
         for line in read_lines(optional):
+            if package_key(line) in skip_optional:
+                log(f"Optional skipped on Windows (CUDA torch): {package_key(line)}", "warn")
+                continue
             opt_code = run_pip(python, ["install", line], f"Optional: {package_key(line)}")
             if opt_code != 0:
                 log(f"Optional package skipped: {package_key(line)}", "warn")

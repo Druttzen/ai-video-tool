@@ -6,10 +6,12 @@ const { spawn, execFile } = require("child_process");
 const { promisify } = require("util");
 const { scanSetupEnvironment: scanHostEnvironment } = require("./scripts/lib/environment-scan.cjs");
 const { normalizeHostScan } = require("./scripts/lib/addon-updater.cjs");
-const { defaultOpenSoraPath } = require("./scripts/lib/open-sora-paths.cjs");
+const { defaultOpenSoraPath, resolveUserDataPath } = require("./scripts/lib/open-sora-paths.cjs");
 
 const pkg = require("./package.json");
 const execFileAsync = promisify(execFile);
+
+app.setPath("userData", resolveUserDataPath(__dirname));
 
 let mainWindow = null;
 

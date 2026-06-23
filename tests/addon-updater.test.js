@@ -72,17 +72,18 @@ describe("addon-updater", () => {
     expect(manifest.addons.ffmpeg.builds.linux.url).toContain("linux64");
   });
 
-  it("updateModels initializes placeholder folder when manifest has no downloads", async () => {
+  it("updateModels links ckpts folder and marks weights pending until HF download", async () => {
     const userData = fs.mkdtempSync(path.join(os.tmpdir(), "ai-video-models-ph-"));
     const result = await updateAddon({ addonId: "models", userDataPath: userData });
-    expect(result.ok).toBe(true);
+    expect(fs.existsSync(path.join(userData, "addons", "open-sora", "ckpts"))).toBe(true);
+    expect(result.ok).toBe(false);
     const report = await checkAddonUpdates({
       scan: {},
       userDataPath: userData,
       openSoraPath: "",
     });
     const models = report.items.find((i) => i.id === "models");
-    expect(models?.updateAvailable).toBe(false);
+    expect(models?.updateAvailable).toBe(true);
   });
 
   it("win32 embed manifest declares getPipUrl for pip bootstrap", () => {

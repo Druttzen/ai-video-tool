@@ -14,6 +14,7 @@ const {
   getWslVenvPythonPath,
 } = require("./addon-paths.cjs");
 const { gitAvailable, probeWslRenderStack, wslAvailable, wslVenvExists } = require("./addon-platform.cjs");
+const { GPU_VENDOR_ENV, resolveGpuVendor } = require("./gpu-vendor.cjs");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 const { execLocal } = require("./process-exec.cjs");
@@ -250,10 +251,18 @@ async function scanSetupEnvironment({
   const torchOk = renderPython ? await probePythonModule(renderPython, "torch") : false;
   const cudaOk = renderPython && torchOk ? await probeTorchCuda(renderPython) : false;
   const colossalaiOk = renderPython ? await probePythonModule(renderPython, "colossalai") : false;
+  let gpuVendor = null;
+  try {
+    gpuVendor = await resolveGpuVendor();
+  } catch {
+    gpuVendor = null;
+  }
   const pipDeps = {
     ok: torchOk,
     cudaOk,
     colossalaiOk,
+    gpuVendor,
+    gpuVendorEnv: GPU_VENDOR_ENV,
     winRenderReady: Boolean(torchOk && cudaOk && colossalaiOk),
     probeModule: "torch",
     managed: true,

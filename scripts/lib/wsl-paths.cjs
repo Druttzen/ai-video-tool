@@ -4,6 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 const { getAddonsRoot, getManagedOpenSoraDir, getManagedWslVenvDir } = require("./addon-paths.cjs");
+const { resolveUserDataPath } = require("./open-sora-paths.cjs");
 
 function winPathToWsl(mixedPath) {
   const normalized = path.resolve(String(mixedPath || "")).replace(/\\/g, "/");
@@ -17,13 +18,7 @@ function shellQuoteBash(value) {
 }
 
 function getUserDataPathWin() {
-  if (process.env.AI_VIDEO_CREATOR_USER_DATA) {
-    return process.env.AI_VIDEO_CREATOR_USER_DATA;
-  }
-  if (process.env.APPDATA) {
-    return path.join(process.env.APPDATA, "AI Video Creator");
-  }
-  return null;
+  return resolveUserDataPath(getRepoRootWin());
 }
 
 function getRepoRootWin() {

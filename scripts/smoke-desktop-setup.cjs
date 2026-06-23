@@ -9,7 +9,7 @@
  */
 const path = require("path");
 const { scanSetupEnvironment, defaultOpenSoraPath } = require("./lib/environment-scan.cjs");
-const { defaultUserDataPath } = require("./lib/open-sora-paths.cjs");
+const { resolveUserDataPath } = require("./lib/open-sora-paths.cjs");
 
 function readArg(flag) {
   const idx = process.argv.indexOf(flag);
@@ -22,7 +22,7 @@ async function main() {
   const python = readArg("--python");
   const jsonOut = process.argv.includes("--json");
 
-  const userDataPath = defaultUserDataPath();
+  const userDataPath = resolveUserDataPath(path.join(__dirname, ".."));
   const scan = await scanSetupEnvironment({
     userDataPath,
     directorSettings: {

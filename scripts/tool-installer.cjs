@@ -14,7 +14,7 @@ const {
   installTools,
   scanMissingAddons,
 } = require("./lib/tool-installer.cjs");
-const { defaultUserDataPath } = require("./lib/open-sora-paths.cjs");
+const { resolveUserDataPath } = require("./lib/open-sora-paths.cjs");
 
 function readArg(flag) {
   const idx = process.argv.indexOf(flag);
@@ -26,7 +26,7 @@ async function main() {
   const cmd = process.argv[2] || "scan";
   const jsonOut = process.argv.includes("--json");
   const addonId = readArg("--addon");
-  const userDataPath = process.env.ADDON_USER_DATA || defaultUserDataPath();
+  const userDataPath = resolveUserDataPath(path.join(__dirname, ".."));
 
   if (cmd === "protocol") {
     const protocol = getInstallProtocol();

@@ -7,7 +7,7 @@ const path = require("path");
 const fs = require("fs");
 const { forceInstallPipeline } = require("./lib/tool-installer.cjs");
 const { createInstallReporter } = require("./lib/install-console.cjs");
-const { defaultUserDataPath } = require("./lib/open-sora-paths.cjs");
+const { resolveUserDataPath } = require("./lib/open-sora-paths.cjs");
 
 function readPkgVersion() {
   const candidates = [
@@ -31,7 +31,7 @@ function readPkgVersion() {
 }
 
 async function main() {
-  const userDataPath = process.env.ADDON_USER_DATA || defaultUserDataPath();
+  const userDataPath = resolveUserDataPath(path.join(__dirname, ".."));
   const reporter = createInstallReporter(userDataPath, {
     version: readPkgVersion(),
     echoToConsole: true,
@@ -49,7 +49,7 @@ async function main() {
       onProgress: (payload) => reporter.report(payload),
     });
 
-    const ok = Boolean(pipeline.safe?.ok && pipeline.ok);
+    const ok = Boolean(pipeline.safe?.ok);
     reporter.finish({
       ok,
       message: pipeline.safe?.summary || (ok ? "All critical addons verified." : "Install finished with errors."),
