@@ -10,8 +10,10 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 const { scanSetupEnvironment } = require("./lib/environment-scan.cjs");
+const { resolveUserDataPath } = require("./lib/open-sora-paths.cjs");
 
 const root = path.resolve(__dirname, "..");
+const userDataPath = resolveUserDataPath(root);
 const renderRequested = process.argv.includes("--render") || process.env.GPU_E2E_RENDER === "1";
 
 function run(cmd, args, opts = {}) {
@@ -28,7 +30,8 @@ function run(cmd, args, opts = {}) {
 async function main() {
   console.log("GPU E2E smoke — scanning environment…");
   const scan = await scanSetupEnvironment({
-    directorSettings: { localRenderEngine: "diffusers-wan", localPythonPath: "python" },
+    userDataPath,
+    directorSettings: { localRenderEngine: "diffusers-wan" },
   });
 
   const pip = scan.pipDeps || {};

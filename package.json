@@ -19,6 +19,7 @@
     "test:e2e:electron": "powershell -NoProfile -Command \"$env:E2E_ELECTRON='1'; npx playwright test tests/e2e/electron-multiclip-progress.spec.js\"",
     "smoke:gpu-e2e": "node scripts/gpu-e2e-smoke.cjs",
     "smoke:gpu-e2e:render": "node scripts/gpu-e2e-smoke.cjs --render",
+    "smoke:gpu-full-produce": "node scripts/gpu-full-produce.cjs",
     "smoke:desktop": "node scripts/smoke-desktop-setup.cjs",
     "smoke:local-mp4": "node scripts/smoke-local-mp4.cjs --check-only",
     "addons:check": "node scripts/check-addon-updates.cjs",
