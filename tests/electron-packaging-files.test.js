@@ -8,6 +8,7 @@ const SETUP_HUB_MAIN_SCRIPTS = [
   "scripts/lib/open-sora-paths.cjs",
   "scripts/lib/addon-paths.cjs",
   "scripts/lib/addon-platform.cjs",
+  "scripts/lib/gpu-vendor.cjs",
   "scripts/lib/addon-updater.cjs",
   "scripts/lib/tool-installer.cjs",
   "scripts/lib/setup-install-progress-bridge.cjs",
@@ -49,6 +50,24 @@ const INSTALL_ADDONS_FILES = [
   "build/installer.nsh",
 ];
 
+/** Collect transitive ./ relative requires from a packaged .cjs file. */
+function collectRelativeCjsRequires(root, relPath, seen = new Set()) {
+  const normalized = relPath.replace(/\\/g, "/");
+  if (seen.has(normalized)) return seen;
+  seen.add(normalized);
+  if (!normalized.endsWith(".cjs")) return seen;
+
+  const full = path.join(root, normalized);
+  if (!fs.existsSync(full)) return seen;
+
+  const src = fs.readFileSync(full, "utf8");
+  const dir = path.dirname(normalized);
+  for (const m of src.matchAll(/require\("\.\/([^"]+)"\)/g)) {
+    collectRelativeCjsRequires(root, `${dir}/${m[1]}`, seen);
+  }
+  return seen;
+}
+
 describe("electron packaging files", () => {
   it("includes every main-process script required at startup", () => {
     const root = path.join(import.meta.dirname, "..");
@@ -70,6 +89,25 @@ describe("electron packaging files", () => {
 
     for (const rel of [...SETUP_HUB_MAIN_SCRIPTS, ...SETUP_HUB_DATA_FILES]) {
       expect(files.has(rel), `Setup Hub packaging missing: ${rel}`).toBe(true);
+      expect(fs.existsSync(path.join(root, rel)), `repo file missing: ${rel}`).toBe(true);
+    }
+  });
+
+  it("includes every scripts/lib relative require from packaged .cjs modules", () => {
+    const root = path.join(import.meta.dirname, "..");
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+    const files = new Set(pkg.build?.files || []);
+    const packagedCjs = [...files].filter((rel) => rel.startsWith("scripts/") && rel.endsWith(".cjs"));
+    const required = new Set();
+
+    for (const rel of packagedCjs) {
+      for (const dep of collectRelativeCjsRequires(root, rel)) {
+        required.add(dep);
+      }
+    }
+
+    for (const rel of required) {
+      expect(files.has(rel), `transitive packaging missing: ${rel}`).toBe(true);
       expect(fs.existsSync(path.join(root, rel)), `repo file missing: ${rel}`).toBe(true);
     }
   });
