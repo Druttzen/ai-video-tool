@@ -46,6 +46,14 @@ TIER_ASPECT_SIZES: dict[str, dict[str, tuple[int, int]]] = {
 }
 
 
+def align_wan_dims(width: int, height: int) -> tuple[int, int]:
+    """Wan requires height and width divisible by 16."""
+    def align(n: int) -> int:
+        return max(16, (int(n) // 16) * 16)
+
+    return align(width), align(height)
+
+
 def aspect_to_size(aspect: str) -> tuple[int, int]:
     key = str(aspect or "16:9").strip()
     mapping = TIER_ASPECT_SIZES["512px"]
@@ -57,12 +65,13 @@ def resolve_wan_size(job: dict) -> tuple[int, int]:
     width = job.get("width") or output.get("width")
     height = job.get("height") or output.get("height")
     if width and height:
-        return int(width), int(height)
+        return align_wan_dims(int(width), int(height))
 
     tier = str(job.get("resolutionTier") or job.get("resolution") or "512px").strip()
     aspect = str(job.get("aspectRatio") or "16:9").strip()
     tier_map = TIER_ASPECT_SIZES.get(tier) or TIER_ASPECT_SIZES["512px"]
-    return tier_map.get(aspect, tier_map["16:9"])
+    w, h = tier_map.get(aspect, tier_map["16:9"])
+    return align_wan_dims(w, h)
 
 
 def clamp_frames(num_frames: int) -> int:
