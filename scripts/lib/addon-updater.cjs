@@ -437,8 +437,24 @@ async function pipInstallOpenSoraEditable(userDataPath) {
   if (!hasProject) {
     return { ok: true, skipped: true, message: "Open-Sora project files not found — skip editable install" };
   }
-  await runPython(venvPy, ["-m", "pip", "install", "-e", target], { userDataPath, timeout: 900000 });
-  return { ok: true, message: `pip install -e ${target}` };
+  // ColossalAI (Open-Sora build dep) does not support native Windows — WSL stack handles GPU render.
+  if (process.platform === "win32") {
+    return {
+      ok: true,
+      skipped: true,
+      message: "Skip Open-Sora editable install on Windows (use WSL render stack)",
+    };
+  }
+  try {
+    await runPython(venvPy, ["-m", "pip", "install", "-e", target], { userDataPath, timeout: 900000 });
+    return { ok: true, message: `pip install -e ${target}` };
+  } catch (e) {
+    return {
+      ok: true,
+      skipped: true,
+      message: `Open-Sora editable install skipped: ${e?.message || "pip failed"}`,
+    };
+  }
 }
 
 async function pipInstallOptionalPackages(userDataPath) {
@@ -1105,6 +1121,7 @@ async function updatePipDeps({ userDataPath, pipViaPython = false } = {}) {
       steps: { torch: torchResult, editable: editableResult, requirements: pipResult, optional: optionalResult },
     };
   } catch (e) {
+    // Requirements sync already ran — surface pip failure but keep partial progress visible.
     return { ok: false, error: e?.message || "pip install failed", requirementsPath: reqPath };
   }
 }
