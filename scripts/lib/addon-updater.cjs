@@ -85,7 +85,13 @@ const PIP_Package_BLOCKLIST = new Set([
   "torchaudio",
 ]);
 /** Linux/WSL render stack — not buildable on native Windows */
-const PIP_WINDOWS_BLOCKLIST = new Set(["colossalai", "tensornvme", "flash-attn", "triton"]);
+const PIP_WINDOWS_BLOCKLIST = new Set([
+  "colossalai",
+  "tensornvme",
+  "flash-attn",
+  "triton",
+  "liger-kernel",
+]);
 
 function downloadFile(url, destPath, redirectLimit = 5) {
   return new Promise((resolve, reject) => {
