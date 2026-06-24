@@ -17,7 +17,14 @@ const SETUP_HUB_MAIN_SCRIPTS = [
   "scripts/tool-installer.cjs",
   "scripts/install-addons-runner.cjs",
   "scripts/install-addons-pip.py",
+  "scripts/lib/gpu_vendor.py",
+  "scripts/lib/__init__.py",
   "scripts/wsl-addon-bootstrap.sh",
+];
+
+const PACKAGED_PYTHON_SUPPORT = [
+  "scripts/lib/gpu_vendor.py",
+  "scripts/lib/__init__.py",
 ];
 
 const PACKAGED_PYTHON_SCRIPTS = [
@@ -117,7 +124,7 @@ describe("electron packaging files", () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
     const files = pkg.build?.files || [];
 
-    for (const rel of PACKAGED_PYTHON_SCRIPTS) {
+    for (const rel of [...PACKAGED_PYTHON_SCRIPTS, ...PACKAGED_PYTHON_SUPPORT]) {
       expect(files.includes(rel), `packaging missing: ${rel}`).toBe(true);
       expect(fs.existsSync(path.join(root, rel)), `repo file missing: ${rel}`).toBe(true);
     }
@@ -148,11 +155,14 @@ describe("electron packaging files", () => {
     expect(nsh).not.toMatch(/setup-hub\.exe/);
   });
 
-  it("unpacks pip install script for Python CMD subprocess", () => {
+  it("unpacks Python scripts for subprocess execution", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
     const unpack = pkg.build?.asarUnpack || [];
     expect(unpack.some((entry) => entry.includes("install-addons-pip.py"))).toBe(true);
+    expect(unpack.some((entry) => entry.includes("scripts/**/*.py") || entry.includes("**/*.py"))).toBe(
+      true,
+    );
     expect(unpack.some((entry) => entry.includes("install-addons-runner.cjs"))).toBe(false);
 
     const cmd = fs.readFileSync(path.join(root, "scripts/install-addons.cmd"), "utf8");
@@ -178,7 +188,7 @@ describe("electron packaging files", () => {
   it("ships current version with Setup Hub manifest v2 and WSL script unpack", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-    expect(pkg.version).toBe("1.0.31");
+    expect(pkg.version).toBe("1.0.32");
     expect((pkg.build?.asarUnpack || []).some((entry) => entry.includes("wsl-addon-bootstrap"))).toBe(true);
     const hub = JSON.parse(fs.readFileSync(path.join(root, "data/setup-hub-manifest.json"), "utf8"));
     expect(hub.version).toBe("2.0.0");

@@ -49,16 +49,10 @@ function queueBundleImport(filePath) {
   }
 }
 
-/** Resolve bundled script paths (asar + asarUnpack). */
+/** Resolve bundled script paths (asar + asarUnpack; Python prefers unpacked). */
 function resolveAppScript(relativePath) {
-  const candidates = [path.join(__dirname, relativePath)];
-  if (__dirname.includes("app.asar")) {
-    candidates.push(path.join(__dirname.replace("app.asar", "app.asar.unpacked"), relativePath));
-  }
-  if (process.resourcesPath) {
-    candidates.push(path.join(process.resourcesPath, relativePath));
-  }
-  return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+  const { resolveBundledScript } = require("./scripts/lib/install-console.cjs");
+  return resolveBundledScript(relativePath);
 }
 
 function parseOutputVideoPath(logText) {

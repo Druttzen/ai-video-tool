@@ -43,24 +43,80 @@ function createInstallReporter(userDataPath, { version = "", echoToConsole = tru
   };
 }
 
-function resolveBundledScript(relativePath) {
-  const rel = String(relativePath || "").replace(/\\/g, "/");
-  const repoRoot = path.join(__dirname, "..", "..");
-  const candidates = [
-    path.join(repoRoot, rel),
-    path.join(process.cwd(), rel),
-  ];
+function isSpawnableBundledScript(relativePath) {
+  return /\.(py|sh)$/i.test(String(relativePath || ""));
+}
+
+/** App roots for packaged Electron (asar + asar.unpacked) and dev repo layout. */
+function getBundledScriptRoots() {
+  const roots = [];
+  const seen = new Set();
+
+  function addRoot(base, unpacked) {
+    const packedRoot = path.resolve(String(base || ""));
+    const unpackedRoot = path.resolve(String(unpacked || packedRoot));
+    const key = `${packedRoot}\0${unpackedRoot}`;
+    if (!packedRoot || seen.has(key)) return;
+    seen.add(key);
+    roots.push({ packed: packedRoot, unpacked: unpackedRoot });
+  }
+
+  addRoot(path.join(__dirname, "..", ".."), path.join(__dirname, "..", ".."));
+
   if (process.resourcesPath) {
-    candidates.push(path.join(process.resourcesPath, "app.asar.unpacked", rel));
-    candidates.push(path.join(process.resourcesPath, rel));
+    addRoot(
+      path.join(process.resourcesPath, "app.asar"),
+      path.join(process.resourcesPath, "app.asar.unpacked"),
+    );
   }
-  if (__dirname.includes("app.asar")) {
-    candidates.push(path.join(__dirname.replace("app.asar", "app.asar.unpacked"), "..", rel));
+
+  const asarMarker = `${path.sep}app.asar${path.sep}`;
+  const asarIdx = __dirname.indexOf(asarMarker);
+  if (asarIdx >= 0) {
+    const packedRoot = __dirname.slice(0, asarIdx + "app.asar".length);
+    addRoot(packedRoot, `${packedRoot}.unpacked`);
+  } else if (__dirname.endsWith(`${path.sep}app.asar`)) {
+    const packedRoot = __dirname;
+    addRoot(packedRoot, `${packedRoot}.unpacked`);
   }
+
+  return roots;
+}
+
+function buildBundledScriptCandidates(relativePath, { roots, cwd } = {}) {
+  const rel = String(relativePath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  const searchRoots = roots || getBundledScriptRoots();
+  const preferUnpacked = isSpawnableBundledScript(rel);
+  const seen = new Set();
+  const candidates = [];
+
+  function add(candidate) {
+    const normalized = path.normalize(candidate);
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    candidates.push(normalized);
+  }
+
+  for (const { packed, unpacked } of searchRoots) {
+    const orderedRoots = preferUnpacked ? [unpacked, packed] : [packed, unpacked];
+    for (const root of orderedRoots) {
+      add(path.join(root, rel));
+    }
+  }
+
+  add(path.join(cwd || process.cwd(), rel));
+  return candidates;
+}
+
+function resolveBundledScript(relativePath) {
+  const candidates = buildBundledScriptCandidates(relativePath);
   return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
 }
 
 module.exports = {
   createInstallReporter,
   resolveBundledScript,
+  isSpawnableBundledScript,
+  getBundledScriptRoots,
+  buildBundledScriptCandidates,
 };
