@@ -114,7 +114,7 @@ async function probeWslRenderStack(userDataPath) {
     colossalai,
     tensornvme,
     wanReady,
-    ok: Boolean(torch && colossalai),
+    ok: Boolean(torch && (colossalai || wanReady)),
   };
 }
 

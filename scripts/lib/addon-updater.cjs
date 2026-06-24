@@ -906,23 +906,28 @@ async function checkAddonUpdates({ scan, userDataPath, openSoraPath }) {
     const wslProbe = wslOk ? await wslVenvExists(userDataPath) : false;
     const wslStack = wslProbe ? await probeWslRenderStack(userDataPath) : null;
     const wslRenderReady = Boolean(wslStack?.ok);
-    items.push({
-      id: "wsl",
-      label: wslCfg.label || "WSL2 Linux stack",
-      installed: wslOk && wslProbe && wslRenderReady,
-      currentVersion: wslRenderReady
-        ? "torch+colossalai+tensornvme+flash-attn"
+    const wslVersionLabel = wslStack?.colossalai
+      ? "torch+colossalai+tensornvme+flash-attn"
+      : wslStack?.wanReady
+        ? "torch+diffusers-wan"
         : wslStack?.torch
           ? "partial"
           : wslProbe
             ? "venv"
-            : null,
+            : null;
+    items.push({
+      id: "wsl",
+      label: wslCfg.label || "WSL2 Linux stack",
+      installed: wslOk && wslProbe && wslRenderReady,
+      currentVersion: wslVersionLabel,
       latestVersion: "torch+colossalai+tensornvme+flash-attn",
       updateAvailable: wslOk && (!wslProbe || !wslRenderReady),
       message: !wslOk
         ? "WSL2 not detected — optional for Linux-native torch/CUDA"
         : wslRenderReady
-          ? `WSL render stack OK — ${wslPy}`
+          ? wslStack?.wanReady && !wslStack?.colossalai
+            ? `WSL Wan stack OK (diffusers) — ${wslPy}`
+            : `WSL render stack OK — ${wslPy}`
           : wslStack?.torch
             ? "WSL venv has torch — run Update for colossalai/tensornvme/flash-attn (needs cmake + build-essential + libaio-dev)"
             : wslProbe
