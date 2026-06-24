@@ -2,6 +2,7 @@
  * Move repo-local .userdata aside during electron-builder.
  * WSL venv symlinks (e.g. lib64) cause EACCES when the packager scans the tree.
  */
+const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
@@ -16,6 +17,27 @@ function hidePath(repoRoot) {
   return path.join(repoRoot, "..", `${path.basename(repoRoot)}-dist-hide-userdata`);
 }
 
+function moveDirectory(src, dest) {
+  try {
+    fs.renameSync(src, dest);
+    return;
+  } catch (err) {
+    if (process.platform !== "win32" || (err.code !== "EPERM" && err.code !== "EACCES")) {
+      throw err;
+    }
+  }
+
+  // Windows: WSL-created .git trees often block rename — robocopy /MOVE is more reliable.
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  execSync(
+    `robocopy "${src}" "${dest}" /E /MOVE /COPY:DAT /R:2 /W:2 /NFL /NDL /NJH /NJS`,
+    { stdio: "pipe" },
+  );
+  if (fs.existsSync(src)) {
+    fs.rmSync(src, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+  }
+}
+
 function hideUserdataForDist(repoRoot) {
   const src = path.join(repoRoot, USERDATA_DIR);
   if (!fs.existsSync(src)) {
@@ -26,7 +48,7 @@ function hideUserdataForDist(repoRoot) {
   if (fs.existsSync(existingMarker)) {
     const priorDest = fs.readFileSync(existingMarker, "utf8").trim();
     if (priorDest && fs.existsSync(priorDest) && !fs.existsSync(src)) {
-      fs.renameSync(priorDest, src);
+      moveDirectory(priorDest, src);
       fs.rmSync(existingMarker, { force: true });
     }
   }
@@ -38,7 +60,7 @@ function hideUserdataForDist(repoRoot) {
     );
   }
 
-  fs.renameSync(src, dest);
+  moveDirectory(src, dest);
   fs.writeFileSync(markerPath(repoRoot), `${dest}\n`, "utf8");
   return { hidden: true, dest };
 }
@@ -63,7 +85,7 @@ function restoreUserdataAfterDist(repoRoot) {
     );
   }
 
-  fs.renameSync(dest, src);
+  moveDirectory(dest, src);
   fs.rmSync(marker, { force: true });
   return { restored: true, src };
 }
