@@ -38,6 +38,24 @@ function resolveBundledResource(resourcesPath, relativePath) {
   return fs.existsSync(candidate) ? candidate : null;
 }
 
+async function probeWanPipelineReady(pythonPath) {
+  const target = String(pythonPath || "").trim();
+  if (!target) return false;
+  try {
+    await execLocal(
+      target,
+      [
+        "-c",
+        "import importlib.metadata as m; v=m.version('diffusers'); assert tuple(int(x) for x in v.split('.')[:2])>=(0,38); import torch; assert torch.cuda.is_available()",
+      ],
+      { timeout: 60000 },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function probePythonExecutable(pythonPath) {
   const target = String(pythonPath || "").trim() || "python";
   try {
@@ -252,6 +270,7 @@ async function scanSetupEnvironment({
   const cudaOk = renderPython && torchOk ? await probeTorchCuda(renderPython) : false;
   const colossalaiOk = renderPython ? await probePythonModule(renderPython, "colossalai") : false;
   const diffusersOk = renderPython ? await probePythonModule(renderPython, "diffusers") : false;
+  const wanPipelineOk = renderPython ? await probeWanPipelineReady(renderPython) : false;
   let gpuVendor = null;
   try {
     gpuVendor = await resolveGpuVendor();
@@ -263,7 +282,8 @@ async function scanSetupEnvironment({
     cudaOk,
     colossalaiOk,
     diffusersOk,
-    wanRenderReady: Boolean(torchOk && cudaOk && diffusersOk),
+    wanPipelineOk,
+    wanRenderReady: Boolean(torchOk && cudaOk && wanPipelineOk),
     gpuVendor,
     gpuVendorEnv: GPU_VENDOR_ENV,
     winRenderReady: Boolean(torchOk && cudaOk && colossalaiOk),
@@ -338,6 +358,7 @@ async function scanSetupEnvironment({
           torchOk: stack.torch,
           colossalaiOk: stack.colossalai,
           tensornvmeOk: stack.tensornvme,
+          wanReady: stack.wanReady,
           available: true,
           path: wslPy,
           managed: true,

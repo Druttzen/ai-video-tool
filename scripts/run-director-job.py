@@ -17,6 +17,7 @@ from opensora_inference_support import (
     opensora_inference_argv,
     opensora_subprocess_env,
     opensora_wsl_inference_extras,
+    _is_wsl_env,
 )
 
 VIDEO_EXTS = {".mp4", ".mov", ".webm", ".mkv", ".gif"}
@@ -90,7 +91,7 @@ def run_opensora_job(job_path: Path, job: dict) -> int:
 
     prompt = job.get("prompt") or ""
     seed = int(job.get("seed") or 0) or int(time.time()) % 10_000_000
-    python = job.get("pythonPath") or sys.executable
+    python = resolve_render_python(job)
     resolution_tier = job.get("resolutionTier") or job.get("resolution") or "512px"
 
     inference_args = [
@@ -168,8 +169,18 @@ def run_opensora_job(job_path: Path, job: dict) -> int:
     return result.returncode
 
 
+def resolve_render_python(job: dict) -> str:
+    """Use the active interpreter in WSL — job JSON may carry a Windows pythonPath."""
+    configured = str(job.get("pythonPath") or "").strip()
+    if _is_wsl_env():
+        return sys.executable
+    if configured:
+        return configured
+    return sys.executable
+
+
 def run_diffusers_wan_job(job_path: Path, job: dict) -> int:
-    python = job.get("pythonPath") or sys.executable
+    python = resolve_render_python(job)
     wan_script = SCRIPT_DIR / "run-diffusers-wan-job.py"
     if not wan_script.is_file():
         print(f"Missing Wan runner: {wan_script}", file=sys.stderr)

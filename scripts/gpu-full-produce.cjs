@@ -10,7 +10,7 @@ const fs = require("fs");
 const path = require("path");
 const { scanSetupEnvironment } = require("./lib/environment-scan.cjs");
 const { resolveUserDataPath } = require("./lib/open-sora-paths.cjs");
-const { spawnLocal } = require("./lib/process-exec.cjs");
+const { spawnDirectorPythonJob } = require("./lib/wan-render-exec.cjs");
 
 const root = path.resolve(__dirname, "..");
 const userDataPath = resolveUserDataPath(root);
@@ -45,7 +45,8 @@ async function main() {
   });
 
   const pip = scan.pipDeps || {};
-  const wanReady = Boolean(pip.wanRenderReady);
+  const wslWanReady = Boolean(scan.wsl?.wanReady);
+  const wanReady = Boolean(pip.wanRenderReady || (scan.platform === "win32" && wslWanReady));
   const python = scan.venv?.ok ? scan.venv.path : scan.python?.path;
 
   if (!python || !wanReady) {
@@ -87,7 +88,13 @@ async function main() {
     };
     fs.writeFileSync(jobPath, JSON.stringify(job, null, 2));
     console.log(`\n=== Clip ${i + 1}/${clipPlan.length}: ${clip.label || "segment"} ===`);
-    await spawnLocal(python, [runner, jobPath], { cwd: root });
+    await spawnDirectorPythonJob({
+      scan,
+      python,
+      runner,
+      jobPath,
+      cwd: root,
+    });
 
     const staged = path.join(outDir, `clip-${i + 1}-output.mp4`);
     if (!fs.existsSync(staged)) {

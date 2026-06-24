@@ -7,6 +7,7 @@ const { promisify } = require("util");
 const { scanSetupEnvironment: scanHostEnvironment } = require("./scripts/lib/environment-scan.cjs");
 const { normalizeHostScan } = require("./scripts/lib/addon-updater.cjs");
 const { defaultOpenSoraPath, resolveUserDataPath } = require("./scripts/lib/open-sora-paths.cjs");
+const { isDiffusersWanEngine, normalizeLocalRenderEngine } = require("./scripts/lib/local-render-engine.cjs");
 
 const pkg = require("./package.json");
 const execFileAsync = promisify(execFile);
@@ -826,21 +827,30 @@ function setupDirectorIpc() {
       fs.writeFileSync(jobPath, JSON.stringify(job, null, 2));
       fs.writeFileSync(logPath, `[BUILD_PROGRESS] 1 Starting job\n`);
 
-      const pipelinePath = String(
+      const renderEngine = normalizeLocalRenderEngine(
+        job.localRenderEngine || payload?.settings?.localRenderEngine,
+      );
+      const isWanEngine = isDiffusersWanEngine(renderEngine);
+
+      let pipelinePath = String(
         payload?.settings?.localPipelinePath || job.localPipelinePath || "",
       ).trim();
-      if (!pipelinePath || !fs.existsSync(pipelinePath)) {
-        fs.appendFileSync(
-          logPath,
-          "No local pipeline configured — set Director → Advanced\n--- exit 1 ---\n",
-        );
-        return {
-          ok: false,
-          error:
-            "Local GPU render needs a pipeline folder (Director → Advanced). Export only saves job JSON — it does not create MP4.",
-          jobPath,
-          logPath,
-        };
+      if (!isWanEngine) {
+        if (!pipelinePath || !fs.existsSync(pipelinePath)) {
+          fs.appendFileSync(
+            logPath,
+            "No local pipeline configured — set Director → Advanced\n--- exit 1 ---\n",
+          );
+          return {
+            ok: false,
+            error:
+              "Local GPU render needs a pipeline folder (Director → Advanced). Export only saves job JSON — it does not create MP4.",
+            jobPath,
+            logPath,
+          };
+        }
+      } else if (!pipelinePath || !fs.existsSync(pipelinePath)) {
+        pipelinePath = path.dirname(jobPath);
       }
 
       const runnerScript = resolveAppScript("scripts/run-director-job.py");
@@ -872,7 +882,9 @@ function setupDirectorIpc() {
             : windowsPathToWsl(pythonPath);
           const wslRunner = windowsPathToWsl(runnerScript);
           const wslJob = windowsPathToWsl(runJobPath);
-          const wslCwd = windowsPathToWsl(pipelinePath);
+          const wslCwd = isWanEngine
+            ? windowsPathToWsl(path.dirname(runJobPath))
+            : windowsPathToWsl(pipelinePath);
           const cmd = `${wslTensornvmeEnvPrelude()}; cd ${shellQuoteBash(wslCwd)} && ${shellQuoteBash(wslPy)} ${shellQuoteBash(wslRunner)} ${shellQuoteBash(wslJob)}`;
           return spawn("wsl", ["bash", "-lc", cmd], {
             detached: true,
@@ -882,7 +894,7 @@ function setupDirectorIpc() {
         }
 
         return spawn(pythonPath, [runnerScript, runJobPath], {
-          cwd: pipelinePath,
+          cwd: isWanEngine ? path.dirname(runJobPath) : pipelinePath,
           detached: true,
           stdio: ["ignore", "pipe", "pipe"],
           shell: process.platform === "win32",

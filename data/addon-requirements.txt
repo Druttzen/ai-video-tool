@@ -5,7 +5,8 @@
 einops
 accelerate>=0.25.0
 transformers>=4.40.0
-diffusers>=0.25.0
+diffusers>=0.38.0
+peft>=0.17.0
 safetensors
 huggingface-hub>=0.20.0
 open-clip-torch

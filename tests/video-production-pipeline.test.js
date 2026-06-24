@@ -24,17 +24,34 @@ import {
 } from "../app/lib/video-production-pipeline.js";
 
 describe("video production pipeline", () => {
-  it("shouldPreferWslRender false for diffusers-wan when Windows has CUDA+diffusers", () => {
+  it("shouldPreferWslRender true for diffusers-wan on Windows when WSL Wan stack ready", () => {
     const raw = {
       platform: "win32",
       pipDeps: {
         ok: true,
         cudaOk: true,
         diffusersOk: true,
+        wanPipelineOk: true,
         colossalaiOk: false,
         wanRenderReady: true,
       },
-      wsl: { ok: true, path: "/mnt/c/AppData/addons/wsl-venv/bin/python3" },
+      wsl: { ok: true, wanReady: true, path: "F:\\AppData\\addons\\wsl-venv\\bin\\python3" },
+    };
+    expect(shouldPreferWslRender(raw, "diffusers-wan")).toBe(true);
+  });
+
+  it("shouldPreferWslRender false for diffusers-wan when only native Wan ready", () => {
+    const raw = {
+      platform: "win32",
+      pipDeps: {
+        ok: true,
+        cudaOk: true,
+        diffusersOk: true,
+        wanPipelineOk: true,
+        colossalaiOk: false,
+        wanRenderReady: true,
+      },
+      wsl: { ok: true, wanReady: false, path: "F:\\AppData\\addons\\wsl-venv\\bin\\python3" },
     };
     expect(shouldPreferWslRender(raw, "diffusers-wan")).toBe(false);
   });
@@ -49,11 +66,14 @@ describe("video production pipeline", () => {
   });
 
   it("resolveRenderPythonFromScan picks WSL path on Windows without colossalai", () => {
-    const result = resolveRenderPythonFromScan({
-      platform: "win32",
-      pipDeps: { ok: true, cudaOk: false, colossalaiOk: false, winRenderReady: false },
-      wsl: { ok: true, path: "/mnt/c/AppData/addons/wsl-venv/bin/python3" },
-    });
+    const result = resolveRenderPythonFromScan(
+      {
+        platform: "win32",
+        pipDeps: { ok: true, cudaOk: false, colossalaiOk: false, winRenderReady: false },
+        wsl: { ok: true, path: "/mnt/c/AppData/addons/wsl-venv/bin/python3" },
+      },
+      { localRenderEngine: "open-sora" },
+    );
     expect(result.source).toBe("wsl");
     expect(result.preferWslRender).toBe(true);
     expect(result.localPythonPath).toContain("wsl-venv");

@@ -74,15 +74,46 @@ async function probeWslPythonModule(userDataPath, moduleName = "torch") {
   }
 }
 
-/** @returns {Promise<{ ok: boolean, torch: boolean, colossalai: boolean, tensornvme: boolean }>} */
+async function probeWslPythonCode(userDataPath, code) {
+  if (process.platform !== "win32") return false;
+  const wslVenv = windowsPathToWsl(getManagedWslVenvDir(userDataPath));
+  const python = `${wslVenv}/bin/python3`;
+  const cmd = [
+    wslTensornvmeEnvPrelude(),
+    `test -x ${shellQuoteBash(python)}`,
+    `VIRTUAL_ENV=${shellQuoteBash(wslVenv)} ${shellQuoteBash(python)} -c ${shellQuoteBash(code)}`,
+  ].join(" && ");
+  try {
+    await execLocal("wsl", ["bash", "-lc", cmd], { timeout: 300000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function probeWslWanReady(userDataPath) {
+  const torchCuda = await probeWslPythonCode(
+    userDataPath,
+    "import torch; assert torch.cuda.is_available()",
+  );
+  if (!torchCuda) return false;
+  return probeWslPythonCode(
+    userDataPath,
+    "import importlib.metadata as m; v=m.version('diffusers'); assert tuple(int(x) for x in v.split('.')[:2])>=(0,38)",
+  );
+}
+
+/** @returns {Promise<{ ok: boolean, torch: boolean, colossalai: boolean, tensornvme: boolean, wanReady: boolean }>} */
 async function probeWslRenderStack(userDataPath) {
   const torch = await probeWslPythonModule(userDataPath, "torch");
   const colossalai = torch ? await probeWslPythonModule(userDataPath, "colossalai") : false;
   const tensornvme = torch ? await probeWslPythonModule(userDataPath, "tensornvme") : false;
+  const wanReady = torch ? await probeWslWanReady(userDataPath) : false;
   return {
     torch,
     colossalai,
     tensornvme,
+    wanReady,
     ok: Boolean(torch && colossalai),
   };
 }
@@ -241,6 +272,8 @@ module.exports = {
   normalizeUnixScript,
   npmExecutableName,
   probeWslPythonModule,
+  probeWslPythonCode,
+  probeWslWanReady,
   probeWslRenderStack,
   resolveEffectivePlatform,
   runWslBootstrap,

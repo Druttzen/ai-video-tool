@@ -119,6 +119,7 @@ def run_wan(job: dict, job_path: Path) -> int:
     use_bf16 = torch.cuda.is_bf16_supported() and sys.platform != "win32"
     dtype = torch.bfloat16 if use_bf16 else torch.float16
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+    os.environ.setdefault("DIFFUSERS_ATTN_BACKEND", "native")
     pipe = WanPipeline.from_pretrained(model_id, torch_dtype=dtype)
 
     pixel_budget = width * height * num_frames

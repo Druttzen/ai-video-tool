@@ -17,7 +17,7 @@ describe("local-render-engine", () => {
 
   it("isWinNativeRenderReady uses wan path without colossalai", () => {
     const raw = {
-      pipDeps: { ok: true, cudaOk: true, diffusersOk: true, colossalaiOk: false },
+      pipDeps: { ok: true, cudaOk: true, diffusersOk: true, wanPipelineOk: true, colossalaiOk: false },
     };
     expect(isWinNativeRenderReady(raw, "diffusers-wan")).toBe(true);
     expect(isWinNativeRenderReady(raw, "open-sora")).toBe(false);

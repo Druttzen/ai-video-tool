@@ -143,15 +143,18 @@ export function mergeProductionSession(session, patch = {}) {
  */
 export function shouldPreferWslRender(raw, localRenderEngine = DEFAULT_LOCAL_RENDER_ENGINE) {
   const engine = normalizeLocalRenderEngine(localRenderEngine);
-  if (engine === "diffusers-wan" && isWinNativeRenderReady(raw, engine)) {
+  const wslStack = raw?.wsl;
+  if (!wslStack?.path) return false;
+  if (raw?.platform && raw.platform !== "win32") return false;
+
+  if (engine === "diffusers-wan") {
+    const wslWan = Boolean(wslStack.wanReady);
+    if (wslWan) return true;
+    if (isWinNativeRenderReady(raw, engine)) return false;
     return false;
   }
-  const wslStack = raw?.wsl;
-  if (!wslStack?.ok || !wslStack?.path) return false;
-  if (raw?.platform && raw.platform !== "win32") return false;
-  if (engine === "diffusers-wan") {
-    return !isWinNativeRenderReady(raw, engine);
-  }
+
+  if (!wslStack?.ok) return false;
   const winRenderReady = Boolean(
     raw?.pipDeps?.winRenderReady ?? (raw?.pipDeps?.ok && raw?.pipDeps?.cudaOk !== false),
   );
@@ -175,9 +178,11 @@ export function resolveRenderPythonFromScan(hostScanRaw, directorSettings = {}) 
     if (!raw.pipDeps?.cudaOk) missing.push("CUDA torch");
     if (!raw.pipDeps?.colossalaiOk) missing.push("colossalai");
     const note =
-      missing.length > 0
-        ? `Using WSL CUDA venv — Windows venv missing ${missing.join(" + ")}`
-        : "Using WSL CUDA venv for local Open-Sora render";
+      engine === "diffusers-wan" && raw.wsl?.wanReady
+        ? "Using WSL CUDA venv for Wan (Diffusers) — stable path on Windows"
+        : missing.length > 0
+          ? `Using WSL CUDA venv — Windows venv missing ${missing.join(" + ")}`
+          : "Using WSL CUDA venv for local Open-Sora render";
     return {
       localPythonPath: String(raw.wsl.path),
       source: "wsl",
@@ -263,12 +268,14 @@ export function evaluateProductionReadiness(scan) {
 
   const pip = modules["pip-deps"];
   const wsl = modules.wsl;
+  const wslWanReady = Boolean(scan?.raw?.wsl?.wanReady);
   const wanReady =
     renderEngine === "diffusers-wan" &&
-    pip?.status === "ready" &&
-    (pip?.wanRenderReady || (pip?.cudaOk && pip?.diffusersOk));
+    (wslWanReady ||
+      (pip?.status === "ready" &&
+        (pip?.wanRenderReady || (pip?.cudaOk && pip?.diffusersOk))));
   if (renderEngine === "diffusers-wan") {
-    if (!wanReady && wsl?.status !== "ready") {
+    if (!wanReady) {
       blockers.push({
         id: "pip-deps",
         message: pip?.message || "CUDA torch + diffusers not ready for Wan render",

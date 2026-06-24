@@ -7,7 +7,7 @@ export const LOCAL_RENDER_ENGINES = [
     id: "diffusers-wan",
     label: "Wan 2.1 (Diffusers)",
     description:
-      "Native Windows/Linux CUDA — Hugging Face Diffusers + Wan 2.1 T2V 1.3B. No Open-Sora folder or WSL required.",
+      "Wan 2.1 T2V via Hugging Face Diffusers. On Windows, renders through WSL CUDA when available.",
     default: true,
   },
   {
@@ -54,7 +54,7 @@ export function isWinNativeRenderReady(raw, engine = DEFAULT_LOCAL_RENDER_ENGINE
   const pip = raw?.pipDeps;
   if (!pip?.ok || !pip?.cudaOk) return false;
   if (normalizeLocalRenderEngine(engine) === "diffusers-wan") {
-    return Boolean(pip.diffusersOk ?? pip.ok);
+    return Boolean(pip.wanPipelineOk ?? (pip.diffusersOk && pip.wanRenderReady));
   }
   return Boolean(pip.winRenderReady);
 }

@@ -38,7 +38,9 @@ export function summarizeSetupScan(scan) {
   ).length;
   const depsReady =
     moduleStatus(scan, "pip-deps") === "ready" || moduleStatus(scan, "wsl") === "ready";
-  const wanReady = Boolean(scan.raw?.pipDeps?.wanRenderReady);
+  const wanReady = Boolean(
+    scan.raw?.pipDeps?.wanRenderReady || scan.raw?.wsl?.wanReady,
+  );
   const openSoraStackReady =
     moduleStatus(scan, "pipeline") === "ready" && moduleStatus(scan, "models") === "ready";
   const localRenderReady =
@@ -160,6 +162,11 @@ export function buildSetupScanFromHost(hostScan, { coProducerLlmSettings } = {})
           status: "ready",
           message: `${scan.pipDeps.probeModule || "torch"} + CUDA + diffusers ready (Wan local render)`,
         }
+      : scan.wsl?.wanReady
+        ? {
+            status: "ready",
+            message: "Wan render via WSL CUDA venv (Windows native Diffusers unstable)",
+          }
       : scan.pipDeps?.winRenderReady
       ? { status: "ready", message: `${scan.pipDeps.probeModule || "torch"} + CUDA + colossalai OK in managed venv` }
       : scan.pipDeps?.ok
@@ -198,7 +205,12 @@ export function buildSetupScanFromHost(hostScan, { coProducerLlmSettings } = {})
             status: "missing",
             message: "Run Install Addons to create open-sora/ckpts and link models folder",
           },
-    wsl: scan.wsl?.ok
+    wsl: scan.wsl?.wanReady
+      ? {
+          status: "ready",
+          message: `WSL Wan (Diffusers) ready — ${scan.wsl.path}`,
+        }
+      : scan.wsl?.ok
       ? { status: "ready", message: `WSL render stack ready — ${scan.wsl.path}` }
       : scan.wsl?.available && scan.wsl?.torchOk
         ? {
