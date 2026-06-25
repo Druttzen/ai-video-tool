@@ -209,6 +209,34 @@ export default function App() {
         </p>
       ) : (
         <>
+          {payload.buildIntent ? (
+            <section className="card build-intent-card" data-testid="canvas-build-intent" style={{ marginBottom: 16 }}>
+              <h2>Build plan</h2>
+              <p style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600 }}>{payload.buildIntent.title}</p>
+              <p className="stat-label">{payload.buildIntent.reasoning}</p>
+              <div className="production-meta" style={{ marginTop: 10 }}>
+                <span className="badge">{payload.buildIntent.buildTarget}</span>
+                {payload.buildIntent.workflowPath ? (
+                  <span>Path {payload.buildIntent.workflowPath}</span>
+                ) : null}
+                {payload.buildIntent.multiClip ? (
+                  <span>{payload.buildIntent.clipCount} clips</span>
+                ) : null}
+                {payload.buildIntent.lipSync ? <span>lip-sync</span> : null}
+              </div>
+              {payload.buildIntent.directorBrief ? (
+                <pre className="production-sub" style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>
+                  {payload.buildIntent.directorBrief}
+                </pre>
+              ) : null}
+              {payload.buildIntent.canvasSummary ? (
+                <p className="production-sub" style={{ marginTop: 8 }}>
+                  {payload.buildIntent.canvasSummary}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+
           <section className="grid" style={{ marginBottom: 16 }}>
             <article className="card">
               <h2>Audio</h2>
@@ -371,6 +399,14 @@ export default function App() {
             </article>
             <article className="card">
               <h2>Image cues</h2>
+              {image?.visualMood ? (
+                <div className="stat-label" style={{ marginBottom: 8 }}>
+                  {image.visualMood}
+                  {image.hueLabel ? ` · ${image.hueLabel}` : ""}
+                  {image.aspectLabel ? ` · ${image.aspectLabel}` : ""}
+                  {image.colorTemperature ? ` · ${image.colorTemperature}` : ""}
+                </div>
+              ) : null}
               <div className="stat-label">Suggested rhythms</div>
               <PillList items={image?.suggestedRhythms} />
               <div style={{ marginTop: 10 }}>
@@ -451,4 +487,4 @@ export default function App() {
     </div>
   );
 }
-
+

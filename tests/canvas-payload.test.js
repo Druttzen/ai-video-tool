@@ -75,4 +75,26 @@ describe("canvas payload", () => {
     expect(payload.agentSummary).toEqual({ phase: "rendering", messageCount: 2 });
     expect(payload.coProducer).toEqual({ provider: "openai", model: "gpt-4o-mini" });
   });
+
+  it("includes buildIntent when audio, image, and user request are present", () => {
+    const payload = buildCanvasPayloadFromWorkspace({
+      idea: "Neon chase music video with dashboard",
+      audioAnalysis: {
+        fileName: "track.wav",
+        bpm: 120,
+        durationSec: 90,
+        beatSync: { clipPlan: [{ start: 0, end: 6 }] },
+      },
+      imageAnalysis: {
+        fileName: "cover.jpg",
+        dominantColors: ["#ff00aa"],
+        aspectRatio: 1.78,
+      },
+      agentMessages: [{ role: "user", content: "Open canvas dashboard for beat-sync preview" }],
+    });
+
+    expect(payload.buildIntent).toBeTruthy();
+    expect(payload.buildIntent.buildTarget).toBe("canvas");
+    expect(payload.buildIntent.userRequest).toMatch(/canvas/i);
+  });
 });

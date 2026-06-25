@@ -2,6 +2,7 @@
  * Build Canvas dashboard payload from current project workspace state.
  */
 import { loadDirectorSettingsFromStorage } from "./director-settings";
+import { determineBuildFromAnalyzersAndRequest, slimBuildIntent } from "./analyzers-addon";
 import { loadPersistedSetupScan, summarizeSetupScan } from "./setup-hub";
 import { APP_VERSION } from "./video-config";
 
@@ -12,6 +13,10 @@ function slimAudioAnalysis(audioAnalysis) {
     fileName: audioAnalysis.fileName,
     bpm: audioAnalysis.bpm,
     durationSec: audioAnalysis.durationSec ?? audioAnalysis.duration,
+    energy: audioAnalysis.energy,
+    estimatedKey: audioAnalysis.estimatedKey,
+    vocals: audioAnalysis.vocals,
+    source: audioAnalysis.source,
     highlightStart: audioAnalysis.highlightStart,
     highlightEnd: audioAnalysis.highlightEnd,
     sidecarImported: audioAnalysis.sidecarImported,
@@ -34,6 +39,14 @@ function slimImageAnalysis(imageAnalysis) {
     suggestedGenres: imageAnalysis.suggestedGenres,
     suggestedSounds: imageAnalysis.suggestedSounds,
     suggestedRhythms: imageAnalysis.suggestedRhythms,
+    visualMood: imageAnalysis.visualMood,
+    avgColor: imageAnalysis.avgColor,
+    dominantHue: imageAnalysis.dominantHue,
+    hueLabel: imageAnalysis.hueLabel,
+    colorTemperature: imageAnalysis.colorTemperature,
+    aspectLabel: imageAnalysis.aspectLabel,
+    aspectRatio: imageAnalysis.aspectRatio,
+    source: imageAnalysis.source,
   };
 }
 
@@ -133,13 +146,26 @@ export function buildCanvasPayloadFromWorkspace(workspace = {}) {
   const coProducer = slimCoProducer(workspace.coProducerLlmSettings);
   const agentSummary = buildAgentSummary(workspace.agentPhase, workspace.agentMessages);
   const appVersion = workspace.appVersion || APP_VERSION;
+  const buildIntent = slimBuildIntent(
+    determineBuildFromAnalyzersAndRequest({
+      audioAnalysis: workspace.audioAnalysis,
+      imageAnalysis: workspace.imageAnalysis,
+      idea,
+      userRequest: workspace.userRequest,
+      agentDraft: workspace.agentDraft,
+      manuscriptDraft: workspace.manuscriptDraft,
+      agentMessages: workspace.agentMessages,
+      sunoPasteStyle: workspace.sunoPasteStyle,
+      sunoPasteLyrics: workspace.sunoPasteLyrics,
+    }),
+  );
 
   let handoff;
   if (audioAnalysis || imageAnalysis) {
     const clipCount = audioAnalysis?.beatSync?.clipPlan?.length || 0;
     handoff = {
       source: audioAnalysis?.sidecarImported ? "ai-music-creator" : "ai-video-tool",
-      intent: clipCount >= 2 ? "music-video-path-e" : "project-only",
+      intent: buildIntent?.canvasIntent || (clipCount >= 2 ? "music-video-path-e" : "project-only"),
       audioAnalysis: audioAnalysis || undefined,
       imageAnalysis: imageAnalysis || undefined,
     };
@@ -163,5 +189,6 @@ export function buildCanvasPayloadFromWorkspace(workspace = {}) {
     agentSummary,
     coProducer,
     setup: buildSetupSummary(),
+    buildIntent,
   };
 }

@@ -19,7 +19,7 @@
     {
       "id": "analyzers",
       "label": "Analyzers",
-      "description": "Audio + image drop — BPM, mood, i2v reference",
+      "description": "Browser audio DSP + image palette — waveform, LUFS, highlight, hue/aspect, Path E i2v",
       "scrollTarget": "analyzers-panel"
     },
     {

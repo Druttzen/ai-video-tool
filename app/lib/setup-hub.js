@@ -74,7 +74,7 @@ export function buildSetupScanFromHost(hostScan, { coProducerLlmSettings } = {})
           : "Browser mode — export only",
     },
     director: { status: "ready", message: "Director Engine bundled" },
-    analyzers: { status: "ready", message: "Browser audio/image analyzers bundled" },
+    analyzers: { status: "ready", message: "Ultimate browser audio/image analyzers — DSP, palette, Path E" },
     git: scan.git?.ok
       ? { status: "ready", message: "Git on PATH" }
       : {

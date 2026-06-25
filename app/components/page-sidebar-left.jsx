@@ -23,6 +23,9 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
     agentProductionState,
     agentProductionPhase,
     agentMessages,
+    agentDraft,
+    sunoPasteStyle,
+    sunoPasteLyrics,
     coProducerLlmSettings,
     applyPreset,
     customPresets,
@@ -84,6 +87,9 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
                 coProducerLlmSettings,
                 agentPhase: agentProductionPhase,
                 agentMessages,
+                agentDraft,
+                sunoPasteStyle,
+                sunoPasteLyrics,
               });
               const res = await openCanvasDashboard(payload);
               if (!res?.ok) {

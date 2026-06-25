@@ -1,6 +1,38 @@
 import { buildImagePaletteSuggestions } from "./analyzer-suggestions";
 import { clamp, uniq } from "./music-helpers";
 
+function rgbToHue(r, g, b) {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max === min) return 0;
+  const d = max - min;
+  let h;
+  if (max === r) h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  h = Math.round(h * 60);
+  return h < 0 ? h + 360 : h;
+}
+
+function hueLabel(hue) {
+  if (hue < 15 || hue >= 345) return "red";
+  if (hue < 45) return "orange";
+  if (hue < 75) return "yellow";
+  if (hue < 165) return "green";
+  if (hue < 195) return "cyan";
+  if (hue < 255) return "blue";
+  if (hue < 285) return "violet";
+  return "magenta";
+}
+
+function resolveAspectLabel(width, height) {
+  if (!width || !height) return "unknown";
+  const ratio = width / height;
+  if (ratio > 1.2) return "landscape";
+  if (ratio < 0.85) return "portrait";
+  return "square";
+}
+
 /**
  * Aggregate RGBA sample buffer (160px-wide downscale) into color/mood traits.
  * @param {Uint8ClampedArray} data ImageData.data from canvas getImageData
@@ -65,8 +97,9 @@ export function computeImagePixelStats(data) {
 /**
  * @param {string} fileName
  * @param {ReturnType<typeof computeImagePixelStats>} stats
+ * @param {{ width?: number, height?: number }} [opts]
  */
-export function buildImageAnalysis(fileName, stats) {
+export function buildImageAnalysis(fileName, stats, opts = {}) {
   const {
     r,
     g,
@@ -105,6 +138,11 @@ export function buildImageAnalysis(fileName, stats) {
   const suggestedRhythms = uniq(palette.suggestedRhythms);
 
   const visualMood = `${dark ? "dark" : bright ? "bright" : "balanced"}, ${vivid ? "vivid" : "muted"}, ${highContrast ? "high-contrast" : "soft-contrast"}, ${warm ? "warm" : cool ? "cool" : "neutral"}`;
+  const dominantHue = rgbToHue(r, g, b);
+  const colorTemperature = warm ? "warm" : cool ? "cool" : "neutral";
+  const aspectLabel = resolveAspectLabel(opts.width, opts.height);
+  const aspectRatio =
+    opts.width && opts.height ? Math.round((opts.width / opts.height) * 100) / 100 : null;
 
   const summary = `File: ${fileName}
 Average color: rgb(${r}, ${g}, ${b})
@@ -118,8 +156,18 @@ Suggested rhythms: ${suggestedRhythms.join(", ") || "Minimal"}
 Interpretation: turn the image into a ${visualMood} music style with matching texture, space, and energy.`;
 
   return {
+    version: 2,
     fileName,
+    source: "browser-canvas",
+    analyzedAt: new Date().toISOString(),
     avgColor: `rgb(${r}, ${g}, ${b})`,
+    dominantHue,
+    hueLabel: hueLabel(dominantHue),
+    colorTemperature,
+    aspectRatio,
+    aspectLabel,
+    width: opts.width || null,
+    height: opts.height || null,
     brightness,
     saturation,
     contrast,
@@ -135,7 +183,8 @@ Interpretation: turn the image into a ${visualMood} music style with matching te
 /**
  * @param {Uint8ClampedArray} rgba
  * @param {string} fileName
+ * @param {{ width?: number, height?: number }} [opts]
  */
-export function analyzeImagePixelData(rgba, fileName) {
-  return buildImageAnalysis(fileName, computeImagePixelStats(rgba));
+export function analyzeImagePixelData(rgba, fileName, opts = {}) {
+  return buildImageAnalysis(fileName, computeImagePixelStats(rgba), opts);
 }

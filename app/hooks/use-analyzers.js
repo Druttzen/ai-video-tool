@@ -507,7 +507,9 @@ export function useAnalyzers({
           canvas.height = h;
           ctx.drawImage(img, 0, 0, w, h);
           const data = ctx.getImageData(0, 0, w, h).data;
-          setImageAnalysis(analyzeImagePixelData(data, file.name));
+          setImageAnalysis(
+            analyzeImagePixelData(data, file.name, { width: img.width, height: img.height }),
+          );
           setStatusWithTime("Image ready — add to style below when you want it in Suno fields");
         };
         img.onerror = () => setStatusWithTime("Image analysis failed");

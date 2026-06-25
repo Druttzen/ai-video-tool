@@ -358,6 +358,8 @@ export function analyzeAudioBuffer(buffer, fileName) {
   const report = {
     version: 2,
     fileName,
+    source: "browser-dsp",
+    analyzedAt: new Date().toISOString(),
     duration,
     waveformPeaks,
     waveformSource: "sample",

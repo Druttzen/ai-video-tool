@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
+import { AnalyzersDashboard } from "./analyzers-dashboard";
 import { AudioTrackEditor } from "./audio-track-editor";
 import { DropBox, Panel } from "./ui-blocks";
 import { PanelActions } from "./panel-actions";
@@ -170,6 +171,8 @@ export const CenterAnalyzersPanel = memo(function CenterAnalyzersPanel() {
           </div>
         ) : null}
       </Panel>
+
+      <AnalyzersDashboard />
 
       {ws.sourcePrompt.trim() ? (
         <Panel title="Extracted Source Prompt" hint="Copy only the prompt created from audio/image analysis.">

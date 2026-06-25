@@ -25,6 +25,14 @@ type CanvasHandoff = {
     suggestedGenres?: string[];
     suggestedSounds?: string[];
     suggestedRhythms?: string[];
+    visualMood?: string;
+    avgColor?: string;
+    dominantHue?: number;
+    hueLabel?: string;
+    colorTemperature?: string;
+    aspectLabel?: string;
+    aspectRatio?: number;
+    source?: string;
   };
 };
 
@@ -95,6 +103,24 @@ type CanvasCoProducer = {
   model?: string;
 };
 
+type CanvasBuildIntent = {
+  buildTarget?: string;
+  workflowPath?: number;
+  workflowIntent?: string;
+  recommendedActionId?: string | null;
+  durationMode?: string;
+  multiClip?: boolean;
+  clipCount?: number;
+  lipSync?: boolean;
+  title?: string;
+  concept?: string;
+  directorBrief?: string;
+  canvasSummary?: string;
+  canvasIntent?: string;
+  reasoning?: string;
+  userRequest?: string;
+};
+
 type CanvasPayload = {
   title?: string;
   exportedAt?: string;
@@ -106,6 +132,7 @@ type CanvasPayload = {
   agentSummary?: CanvasAgentSummary | null;
   coProducer?: CanvasCoProducer | null;
   setup?: CanvasSetupSummary | null;
+  buildIntent?: CanvasBuildIntent | null;
 };
 
 interface CanvasAPI {
@@ -119,4 +146,4 @@ interface CanvasAPI {
 interface Window {
   canvasAPI?: CanvasAPI;
 }
-
+

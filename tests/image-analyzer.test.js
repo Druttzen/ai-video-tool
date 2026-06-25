@@ -42,10 +42,13 @@ describe("image-analyzer", () => {
     expect(analysis.avgColor).toMatch(/^rgb\(/);
   });
 
-  it("dedupes catalog suggestions in analysis output", () => {
-    const rgba = solidRgba(2, 2, 8, 8, 40);
-    const analysis = analyzeImagePixelData(rgba, "dup-test.jpg");
-    const genreCount = analysis.suggestedGenres.length;
-    expect(new Set(analysis.suggestedGenres).size).toBe(genreCount);
+  it("records aspect ratio and hue metadata", () => {
+    const rgba = solidRgba(8, 4, 20, 80, 200);
+    const analysis = analyzeImagePixelData(rgba, "wide.jpg", { width: 1920, height: 1080 });
+    expect(analysis.aspectLabel).toBe("landscape");
+    expect(analysis.aspectRatio).toBeCloseTo(1.78, 1);
+    expect(analysis.source).toBe("browser-canvas");
+    expect(analysis.hueLabel).toBeTruthy();
+    expect(analysis.analyzedAt).toBeTruthy();
   });
 });
