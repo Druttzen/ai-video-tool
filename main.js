@@ -8,6 +8,13 @@ const { scanSetupEnvironment: scanHostEnvironment } = require("./scripts/lib/env
 const { normalizeHostScan } = require("./scripts/lib/addon-updater.cjs");
 const { defaultOpenSoraPath, resolveUserDataPath } = require("./scripts/lib/open-sora-paths.cjs");
 const { isDiffusersWanEngine, normalizeLocalRenderEngine } = require("./scripts/lib/local-render-engine.cjs");
+const {
+  createBundlePathGuard,
+  isAllowedExternalUrl,
+  resolveSafeExecutable,
+  validateMusicVideoAssemblePaths,
+  validateRevealPath,
+} = require("./scripts/lib/ipc-security.cjs");
 
 const pkg = require("./package.json");
 const execFileAsync = promisify(execFile);
@@ -18,6 +25,7 @@ let mainWindow = null;
 let canvasWindow = null;
 let pendingBundleImportPath = null;
 let pendingCanvasPayload = null;
+const bundlePathGuard = createBundlePathGuard();
 
 const BUNDLE_FILE_RE = /\.(json|aivbundle\.json)$/i;
 
@@ -44,6 +52,7 @@ function extractBundlePathFromArgv(argv) {
 function queueBundleImport(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return;
   pendingBundleImportPath = filePath;
+  bundlePathGuard.register(filePath);
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("project:pending-bundle-import", { path: filePath });
   }
@@ -719,6 +728,7 @@ function setupMusicVideoSyncIpc() {
         return { ok: false, error: "outputPath required" };
       }
 
+      const userDataPath = app.getPath("userData");
       const audioBuffer = payload?.audioBuffer;
       if (!audioPath && audioBuffer?.byteLength) {
         const fileName = String(payload?.fileName || "track.wav").replace(/[^\w.\-()+ ]/g, "_");
@@ -730,7 +740,16 @@ function setupMusicVideoSyncIpc() {
         return { ok: false, error: "audioPath or audioBuffer required" };
       }
 
-      const userDataPath = app.getPath("userData");
+      const pathCheck = validateMusicVideoAssemblePaths({
+        clipPaths,
+        audioPath,
+        outputPath,
+        userDataPath,
+      });
+      if (!pathCheck.ok) {
+        return pathCheck;
+      }
+
       try {
         return await assembleMusicVideo({ clipPaths, audioPath, outputPath, userDataPath });
       } finally {
@@ -836,7 +855,14 @@ function setupDirectorIpc() {
     try {
       const job = payload?.job || {};
       const imagePayload = payload?.imagePayload;
-      const pythonPath = payload?.settings?.localPythonPath || job.pythonPath || "python";
+      const pythonResolved = resolveSafeExecutable(
+        payload?.settings?.localPythonPath || job.pythonPath,
+        "python",
+      );
+      if (!pythonResolved.ok) {
+        return { ok: false, error: pythonResolved.error };
+      }
+      const pythonPath = pythonResolved.executable;
 
       const jobsDir = path.join(app.getPath("userData"), "video-jobs");
       fs.mkdirSync(jobsDir, { recursive: true });
@@ -925,7 +951,7 @@ function setupDirectorIpc() {
           cwd: isWanEngine ? path.dirname(runJobPath) : pipelinePath,
           detached: true,
           stdio: ["ignore", "pipe", "pipe"],
-          shell: process.platform === "win32",
+          shell: false,
           env,
         });
       };
@@ -1002,7 +1028,11 @@ function setupOpenSoraIpc() {
     try {
       const job = payload?.job || {};
       const imagePayload = payload?.imagePayload;
-      const pythonPath = payload?.pythonPath || job.pythonPath || "python";
+      const pythonResolved = resolveSafeExecutable(payload?.pythonPath || job.pythonPath, "python");
+      if (!pythonResolved.ok) {
+        return { ok: false, error: pythonResolved.error };
+      }
+      const pythonPath = pythonResolved.executable;
       const mode = payload?.mode || "pipeline";
 
       const jobsDir = path.join(app.getPath("userData"), "open-sora-jobs");
@@ -1032,7 +1062,7 @@ function setupOpenSoraIpc() {
           cwd: installPath,
           detached: true,
           stdio: "ignore",
-          shell: process.platform === "win32",
+          shell: false,
         });
         uiProc.unref();
         return { ok: true, jobPath, logPath, ui: true, message: "Open-Sora UI launched" };
@@ -1066,7 +1096,7 @@ function setupOpenSoraIpc() {
         cwd: __dirname,
         detached: true,
         stdio: ["ignore", "pipe", "pipe"],
-        shell: process.platform === "win32",
+        shell: false,
         env: { ...process.env, PYTHONUNBUFFERED: "1" },
       });
 
@@ -1103,7 +1133,11 @@ function setupOpenSoraIpc() {
   ipcMain.handle("open-sora:open-ui", async (_event, payload) => {
     try {
       const installPath = payload?.installPath || defaultOpenSoraPath();
-      const pythonPath = payload?.pythonPath || "python";
+      const pythonResolved = resolveSafeExecutable(payload?.pythonPath, "python");
+      if (!pythonResolved.ok) {
+        return { ok: false, error: pythonResolved.error };
+      }
+      const pythonPath = pythonResolved.executable;
       const appPro = path.join(installPath, "app_pro.py");
       if (!fs.existsSync(appPro)) {
         return { ok: false, error: `app_pro.py not found: ${appPro}` };
@@ -1112,7 +1146,7 @@ function setupOpenSoraIpc() {
         cwd: installPath,
         detached: true,
         stdio: "ignore",
-        shell: process.platform === "win32",
+        shell: false,
       });
       uiProc.unref();
       return { ok: true, message: "Open-Sora UI launched" };
@@ -1261,10 +1295,11 @@ function setupCanvasIpc() {
   ipcMain.handle("canvas:reveal-path", async (_event, filePath) => {
     try {
       const target = String(filePath || "").trim();
-      if (!target || !fs.existsSync(target)) {
-        return { ok: false, error: "Path not found" };
+      const pathCheck = validateRevealPath(target, { userDataPath: app.getPath("userData") });
+      if (!pathCheck.ok) {
+        return pathCheck;
       }
-      shell.showItemInFolder(target);
+      shell.showItemInFolder(pathCheck.resolved);
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e?.message || "reveal failed" };
@@ -1279,10 +1314,13 @@ function setupCanvasIpc() {
 function setupProjectImportIpc() {
   ipcMain.handle("project:read-bundle-file", async (_event, filePath) => {
     try {
-      const resolved = path.resolve(String(filePath || ""));
-      if (!fs.existsSync(resolved)) {
-        return { ok: false, error: `Bundle not found: ${resolved}` };
+      const pathCheck = bundlePathGuard.validate(filePath, {
+        pendingPath: pendingBundleImportPath,
+      });
+      if (!pathCheck.ok) {
+        return pathCheck;
       }
+      const resolved = pathCheck.resolved;
       const raw = JSON.parse(fs.readFileSync(resolved, "utf8"));
       let audioSidecarPath = null;
       let audioSidecarBuffer = null;
@@ -1303,7 +1341,11 @@ function setupProjectImportIpc() {
   ipcMain.handle("project:consume-pending-bundle", async () => {
     const current = pendingBundleImportPath;
     pendingBundleImportPath = null;
-    return current ? { ok: true, path: current } : { ok: false };
+    if (current) {
+      bundlePathGuard.register(current);
+      return { ok: true, path: current };
+    }
+    return { ok: false };
   });
 }
 
@@ -1312,6 +1354,9 @@ function setupAppIpc() {
     try {
       const target = String(url || "").trim();
       if (!target) return { ok: false, error: "URL required" };
+      if (!isAllowedExternalUrl(target)) {
+        return { ok: false, error: "Only http, https, and mailto URLs are allowed" };
+      }
       await shell.openExternal(target);
       return { ok: true };
     } catch (e) {
@@ -1416,7 +1461,10 @@ function openReadmeOnce() {
 
 app.whenReady().then(() => {
   const startupBundle = extractBundlePathFromArgv(process.argv);
-  if (startupBundle) pendingBundleImportPath = startupBundle;
+  if (startupBundle) {
+    pendingBundleImportPath = startupBundle;
+    bundlePathGuard.register(startupBundle);
+  }
 
   if (!app.isPackaged && process.defaultApp) {
     app.setAsDefaultProtocolClient("aivideo", process.execPath, [path.resolve(process.argv[1])]);

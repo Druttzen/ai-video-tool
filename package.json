@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.37",
+  "version": "1.0.38",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -98,6 +98,7 @@
       "scripts/lib/install-time-estimate.cjs",
       "scripts/lib/process-exec.cjs",
       "scripts/lib/local-render-engine.cjs",
+      "scripts/lib/ipc-security.cjs",
       "scripts/lib/wan-render-exec.cjs",
       "scripts/lib/wsl-paths.cjs",
       "scripts/lib/addon-updater.cjs",

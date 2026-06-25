@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  buildIntentBadges,
+  formatTimestamp,
+  hasCanvasOutputPath,
+  progressPercent,
+} from "./canvas-display";
 
 function PillList({ items }: { items?: string[] }) {
   if (!items?.length) return <span className="empty">—</span>;
@@ -45,17 +51,6 @@ function PathRow({
   );
 }
 
-function progressPercent(production?: CanvasProduction | null) {
-  if (!production?.multiClip || !production.clipTotal) return 0;
-  const total = Math.max(1, production.clipTotal);
-  const rendered = production.clipsRendered ?? 0;
-  if (production.clipStatus === "assembling" || production.phase === "done") return 100;
-  if (production.clipStatus === "rendering") {
-    return Math.min(99, Math.round(((rendered + 0.45) / total) * 100));
-  }
-  return Math.min(100, Math.round((rendered / total) * 100));
-}
-
 function ClipTimeline({ clipPlan }: { clipPlan: Array<{ start: number; end: number; label?: string }> }) {
   if (!clipPlan.length) return null;
   const maxEnd = Math.max(...clipPlan.map((c) => c.end), 1);
@@ -77,11 +72,6 @@ function ClipTimeline({ clipPlan }: { clipPlan: Array<{ start: number; end: numb
       })}
     </div>
   );
-}
-
-function formatTimestamp(value?: number | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString();
 }
 
 export default function App() {
@@ -164,7 +154,8 @@ export default function App() {
   const setupSummary = payload?.setup?.summary;
   const setupReady = setupSummary?.localRenderReady;
   const displayVersion = payload?.appVersion || appVersion;
-  const hasOutputPath = Boolean(production?.assembledOutputPath || production?.lastOutputPath);
+  const hasOutputPath = hasCanvasOutputPath(production);
+  const buildBadges = useMemo(() => buildIntentBadges(payload?.buildIntent), [payload?.buildIntent]);
 
   return (
     <div className="app-shell">
@@ -215,14 +206,11 @@ export default function App() {
               <p style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600 }}>{payload.buildIntent.title}</p>
               <p className="stat-label">{payload.buildIntent.reasoning}</p>
               <div className="production-meta" style={{ marginTop: 10 }}>
-                <span className="badge">{payload.buildIntent.buildTarget}</span>
-                {payload.buildIntent.workflowPath ? (
-                  <span>Path {payload.buildIntent.workflowPath}</span>
-                ) : null}
-                {payload.buildIntent.multiClip ? (
-                  <span>{payload.buildIntent.clipCount} clips</span>
-                ) : null}
-                {payload.buildIntent.lipSync ? <span>lip-sync</span> : null}
+                {buildBadges.map((badge) => (
+                  <span key={badge} className="badge">
+                    {badge}
+                  </span>
+                ))}
               </div>
               {payload.buildIntent.directorBrief ? (
                 <pre className="production-sub" style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>
