@@ -1,12 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { _electron as electron } from "playwright";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import { execSync } from "child_process";
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const indexPath = path.join(root, "out", "index.html");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const indexPath = join(root, "out", "index.html");
 const MULTI_CLIP_PRODUCTION = {
   phase: "rendering",
   multiClip: true,
@@ -22,7 +22,7 @@ test.describe("Electron live UI — multiclip progress", () => {
   test.skip(!process.env.E2E_ELECTRON, "Set E2E_ELECTRON=1 for live Electron UI tests");
 
   test.beforeAll(() => {
-    if (!fs.existsSync(indexPath)) {
+    if (!existsSync(indexPath)) {
       execSync("npm run build", {
         cwd: root,
         stdio: "inherit",
