@@ -60,7 +60,7 @@ async function scanMissingAddons({ userDataPath } = {}) {
     summary:
       missing.length === 0
         ? "All managed tools installed"
-        : `${missing.length} missing: ${missing.map((i) => i.label || i.id).join(", ")}`,
+        : `${missing.length} to install: ${missing.map((i) => i.label || i.id).join(", ")}`,
   };
 }
 
@@ -77,6 +77,23 @@ const SAFE_SCAN_CRITICAL = new Set([
 
 const SAFE_SCAN_OPTIONAL = new Set(["ffmpeg", "models", "wsl", "music-video-sync"]);
 
+/** Pip stack only — skip full force-reinstall when base stack (git/python/venv) is already ready. */
+const PIP_STACK_ONLY_IDS = new Set(["pip-deps", "music-video-sync"]);
+
+function isOnlyPipStackMissing(audit) {
+  const missingIds = audit?.missingIds || [];
+  return missingIds.length > 0 && missingIds.every((id) => PIP_STACK_ONLY_IDS.has(id));
+}
+
+function formatInstallPhase2Message(audit) {
+  if (isOnlyPipStackMissing(audit)) {
+    return `Phase 2/4 — installing pip stack (torch + Python deps, ~2–4 GB download)…`;
+  }
+  if (audit.missingCount > 0) {
+    return `Phase 2/4 — installing managed addons in protocol order (${audit.missingCount} to install)…`;
+  }
+  return "Phase 2/4 — verifying managed stack in protocol order…";
+}
 /**
  * Final verification scan — critical vs optional issues.
  * @param {object} params
@@ -153,19 +170,19 @@ async function forceInstallPipeline({ userDataPath, onProgress = () => {}, pipVi
   if (needsForceReinstall) {
     onProgress({
       phase: "force-reinstall",
-      message: `Phase 2/4 — force reinstalling all managed addons in protocol order (${audit.missingCount} missing)…`,
+      message: formatInstallPhase2Message(audit),
     });
   } else {
     onProgress({
       phase: "force-reinstall",
-      message: "Phase 2/4 — verifying managed stack (force reinstall in protocol order)…",
+      message: "Phase 2/4 — verifying managed stack (protocol order)…",
     });
   }
 
   const reinstall = await updateAllAddons({
     userDataPath: base,
     scan: await freshScan(),
-    forceReinstall: true,
+    forceReinstall: !isOnlyPipStackMissing(audit),
     onProgress,
     pipViaPython,
   });
@@ -273,8 +290,10 @@ async function installTools({
 
 module.exports = {
   forceInstallPipeline,
+  formatInstallPhase2Message,
   getInstallProtocol,
   installTools,
+  isOnlyPipStackMissing,
   runSafeScan,
   scanMissingAddons,
 };
