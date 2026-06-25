@@ -11,6 +11,7 @@ describe("install-console", () => {
     reporter.report({ phase: "addon-start", addonId: "python", label: "Python", forceReinstall: true });
     reporter.finish({ ok: true, message: "Done" });
     const logText = fs.readFileSync(reporter.logPath, "utf8");
+    expect(logText).toMatch(/Started \(local\):/);
     expect(logText).toMatch(/INSTALL -> Python/);
     expect(logText).toMatch(/Done/);
   });

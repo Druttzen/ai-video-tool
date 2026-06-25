@@ -29,15 +29,17 @@ function appendProgressLine(userDataPath, message, options = {}) {
   fs.appendFileSync(logPath, `${formatLine(message, options)}\r\n`, "utf8");
 }
 
-function initProgressLog(userDataPath, { version = "" } = {}) {
+function initProgressLog(userDataPath, { version = "", startedAtLocal = "", startedAtEst = "" } = {}) {
   const logPath = getLogPath(userDataPath);
   activeLogPath = logPath;
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  const startedLocal = startedAtLocal || new Date().toISOString().replace("T", " ").slice(0, 19);
   const header = [
     "============================================================",
     "  AI Video Creator — Install Addons / Update Progress",
     version ? `  Version: ${version}` : "",
-    `  Started: ${new Date().toISOString()}`,
+    `  Started (local): ${startedLocal}`,
+    startedAtEst ? `  Started (Eastern): ${startedAtEst}` : "",
     `  Log file: ${logPath}`,
     "============================================================",
     "",

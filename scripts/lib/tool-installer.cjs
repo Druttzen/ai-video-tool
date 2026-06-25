@@ -161,6 +161,7 @@ async function forceInstallPipeline({ userDataPath, onProgress = () => {}, pipVi
     message: audit.summary,
     report: audit,
     missingCount: audit.missingCount,
+    missingIds: audit.missingIds,
   });
 
   const needsForceReinstall =
