@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/** Exit 1 when addon updates are pending; use --allow-pending for CI-friendly exit 0. */
 const path = require("path");
 const { scanSetupEnvironment } = require("./lib/environment-scan.cjs");
 const { checkAddonUpdates } = require("./lib/addon-updater.cjs");
@@ -11,7 +12,8 @@ async function main() {
   const report = await checkAddonUpdates({ scan, userDataPath });
   console.log(JSON.stringify(report, null, 2));
   const pending = report.items?.filter((i) => i.updateAvailable) || [];
-  process.exit(pending.length ? 1 : 0);
+  const allowPending = process.argv.includes("--allow-pending");
+  process.exit(pending.length && !allowPending ? 1 : 0);
 }
 
 main().catch((err) => {

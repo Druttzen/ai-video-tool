@@ -7,6 +7,7 @@ import {
   isAllowedExternalUrl,
   resolveSafeExecutable,
   validateMusicVideoAssemblePaths,
+  validateMusicVideoAudioBuffer,
   validateRevealPath,
 } from "../scripts/lib/ipc-security.cjs";
 
@@ -122,6 +123,14 @@ describe("ipc-security", () => {
         userDataPath: os.tmpdir(),
       });
       expect(res.ok).toBe(false);
+    });
+  });
+
+  describe("validateMusicVideoAudioBuffer", () => {
+    it("rejects oversized audio buffers", () => {
+      const big = new Uint8Array(49 * 1024 * 1024);
+      expect(validateMusicVideoAudioBuffer(big).ok).toBe(false);
+      expect(validateMusicVideoAudioBuffer(new Uint8Array(1024)).ok).toBe(true);
     });
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.38",
+  "version": "1.0.39",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -16,7 +16,7 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:electron": "powershell -NoProfile -Command \"$env:E2E_ELECTRON='1'; npx playwright test tests/e2e/electron-multiclip-progress.spec.js\"",
+    "test:e2e:electron": "node scripts/run-e2e-electron.cjs",
     "smoke:gpu-e2e": "node scripts/gpu-e2e-smoke.cjs",
     "smoke:gpu-e2e:render": "node scripts/gpu-e2e-smoke.cjs --render",
     "smoke:gpu-full-produce": "node scripts/gpu-full-produce.cjs",

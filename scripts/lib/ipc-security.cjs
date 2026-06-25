@@ -9,6 +9,8 @@ const SHELL_META_RE = /[;&|`$<>]/;
 const BUNDLE_FILE_RE = /\.(json|aivbundle\.json)$/i;
 const VIDEO_EXT_RE = /\.(mp4|mov|webm|mkv|m4v)$/i;
 const AUDIO_EXT_RE = /\.(wav|mp3|flac|ogg|m4a|aac)$/i;
+/** ~48 MB — keeps IPC beat-analysis payloads bounded for long tracks. */
+const MUSIC_VIDEO_MAX_AUDIO_BYTES = 48 * 1024 * 1024;
 
 function normalizeResolvedPath(filePath) {
   return path.resolve(String(filePath || "").trim());
@@ -155,6 +157,20 @@ function validateMusicVideoAssemblePaths({ clipPaths, audioPath, outputPath, use
   return { ok: true };
 }
 
+function validateMusicVideoAudioBuffer(audioBuffer) {
+  const bytes = audioBuffer?.byteLength ?? 0;
+  if (!bytes) {
+    return { ok: false, error: "Audio buffer required for beat analysis" };
+  }
+  if (bytes > MUSIC_VIDEO_MAX_AUDIO_BYTES) {
+    return {
+      ok: false,
+      error: `Audio buffer too large (${Math.round(bytes / (1024 * 1024))} MB). Max ${Math.round(MUSIC_VIDEO_MAX_AUDIO_BYTES / (1024 * 1024))} MB for beat analysis — trim range or use a shorter clip.`,
+    };
+  }
+  return { ok: true };
+}
+
 function validateRevealPath(filePath, { userDataPath } = {}) {
   const resolved = normalizeResolvedPath(filePath);
   if (!fs.existsSync(resolved)) {
@@ -169,6 +185,7 @@ function validateRevealPath(filePath, { userDataPath } = {}) {
 
 module.exports = {
   BUNDLE_FILE_RE,
+  MUSIC_VIDEO_MAX_AUDIO_BYTES,
   createBundlePathGuard,
   getMediaPathRoots,
   isAllowedBundleFilename,
@@ -177,5 +194,6 @@ module.exports = {
   isPathUnderRoot,
   resolveSafeExecutable,
   validateMusicVideoAssemblePaths,
+  validateMusicVideoAudioBuffer,
   validateRevealPath,
 };

@@ -13,6 +13,7 @@ const {
   isAllowedExternalUrl,
   resolveSafeExecutable,
   validateMusicVideoAssemblePaths,
+  validateMusicVideoAudioBuffer,
   validateRevealPath,
 } = require("./scripts/lib/ipc-security.cjs");
 
@@ -80,7 +81,7 @@ function appendMainLog(message) {
   }
 }
 
-if (!app.requestSingleInstanceLock()) {
+if (process.env.E2E_ELECTRON !== "1" && !app.requestSingleInstanceLock()) {
   app.quit();
   process.exit(0);
 }
@@ -119,7 +120,6 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
       preload: path.join(__dirname, "preload.js"),
     },
   };
@@ -684,8 +684,9 @@ function setupMusicVideoSyncIpc() {
     try {
       const audioBuffer = payload?.audioBuffer;
       const fileName = String(payload?.fileName || "track.wav").replace(/[^\w.\-()+ ]/g, "_");
-      if (!audioBuffer || !audioBuffer.byteLength) {
-        return { ok: false, error: "Audio buffer required for beat analysis" };
+      const bufferCheck = validateMusicVideoAudioBuffer(audioBuffer);
+      if (!bufferCheck.ok) {
+        return bufferCheck;
       }
 
       const userDataPath = app.getPath("userData");
@@ -1198,7 +1199,6 @@ function createCanvasWindow(payload) {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
       preload: preloadPath,
     },
   };

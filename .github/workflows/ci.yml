@@ -44,3 +44,5 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install chromium
       - run: npm run test:e2e:electron
+        env:
+          ELECTRON_RUN_AS_NODE: ""

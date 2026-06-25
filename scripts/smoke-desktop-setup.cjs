@@ -4,7 +4,7 @@
  *
  * Usage:
  *   node scripts/smoke-desktop-setup.cjs
- *   node scripts/smoke-desktop-setup.cjs --json
+ *   node scripts/smoke-desktop-setup.cjs --allow-incomplete
  *   OPEN_SORA_ROOT=~/Open-Sora node scripts/smoke-desktop-setup.cjs --pipeline ~/Open-Sora
  */
 const path = require("path");
@@ -21,6 +21,7 @@ async function main() {
   const pipeline = readArg("--pipeline") || readArg("--open-sora");
   const python = readArg("--python");
   const jsonOut = process.argv.includes("--json");
+  const allowIncomplete = process.argv.includes("--allow-incomplete");
 
   const userDataPath = resolveUserDataPath(path.join(__dirname, ".."));
   const scan = await scanSetupEnvironment({
@@ -57,7 +58,7 @@ async function main() {
     console.log(report.label);
   }
 
-  process.exit(localRenderReady ? 0 : 1);
+  process.exit(localRenderReady || allowIncomplete ? 0 : 1);
 }
 
 main().catch((err) => {

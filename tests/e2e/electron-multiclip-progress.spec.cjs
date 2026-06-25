@@ -1,11 +1,10 @@
-import { test, expect } from "@playwright/test";
-import { _electron as electron } from "playwright";
-import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
+const { test, expect } = require("@playwright/test");
+const { _electron: electron } = require("playwright");
+const { existsSync } = require("fs");
+const { join, resolve } = require("path");
+const { execSync } = require("child_process");
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const root = resolve(__dirname, "../..");
 const indexPath = join(root, "out", "index.html");
 const MULTI_CLIP_PRODUCTION = {
   phase: "rendering",
@@ -22,22 +21,31 @@ test.describe("Electron live UI — multiclip progress", () => {
   test.skip(!process.env.E2E_ELECTRON, "Set E2E_ELECTRON=1 for live Electron UI tests");
 
   test.beforeAll(() => {
+    if (process.env.E2E_FORCE_REBUILD === "1") return;
     if (!existsSync(indexPath)) {
+      const env = { ...process.env, NEXT_PUBLIC_E2E_HOOKS: "1" };
+      delete env.ELECTRON_RUN_AS_NODE;
       execSync("npm run build", {
         cwd: root,
         stdio: "inherit",
-        env: { ...process.env, NEXT_PUBLIC_E2E_HOOKS: "1" },
+        env,
       });
     }
   });
 
   test("renders beat-sync progress bar in packaged Electron window", async () => {
+    const launchEnv = {
+      ...process.env,
+      ELECTRON_DISABLE_SECURITY_WARNINGS: "true",
+    };
+    delete launchEnv.ELECTRON_RUN_AS_NODE;
+
+    const electronPath = require("electron");
     const app = await electron.launch({
-      args: [root],
-      env: {
-        ...process.env,
-        ELECTRON_DISABLE_SECURITY_WARNINGS: "true",
-      },
+      executablePath: electronPath,
+      cwd: root,
+      args: ["."],
+      env: launchEnv,
     });
 
     try {
