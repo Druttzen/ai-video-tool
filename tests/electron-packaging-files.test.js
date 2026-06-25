@@ -14,6 +14,7 @@ const SETUP_HUB_MAIN_SCRIPTS = [
   "scripts/lib/setup-install-progress-bridge.cjs",
   "scripts/lib/setup-hub-console.cjs",
   "scripts/lib/install-console.cjs",
+  "scripts/lib/install-time-estimate.cjs",
   "scripts/tool-installer.cjs",
   "scripts/install-addons-runner.cjs",
   "scripts/install-addons-pip.py",

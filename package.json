@@ -95,6 +95,7 @@
       "scripts/lib/setup-hub-console.cjs",
       "scripts/lib/setup-install-progress-bridge.cjs",
       "scripts/lib/install-console.cjs",
+      "scripts/lib/install-time-estimate.cjs",
       "scripts/lib/process-exec.cjs",
       "scripts/lib/local-render-engine.cjs",
       "scripts/lib/wan-render-exec.cjs",
