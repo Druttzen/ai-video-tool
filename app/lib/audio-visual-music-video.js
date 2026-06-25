@@ -33,7 +33,7 @@ import {
   resolveBeatTimesForRange,
 } from "./music-video-sync-engine";
 
-export { MAX_MEDIA_DURATION_SEC, MAX_MEDIA_DURATION_SEC as MAX_SONG_DURATION_SEC } from "./media-duration-limits";
+export { MAX_MEDIA_DURATION_SEC } from "./media-duration-limits";
 
 /** @typedef {"full"|"highlight"} MusicVideoDurationMode */
 

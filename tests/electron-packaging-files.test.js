@@ -105,7 +105,9 @@ describe("electron packaging files", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
     const files = new Set(pkg.build?.files || []);
-    const packagedCjs = [...files].filter((rel) => rel.startsWith("scripts/") && rel.endsWith(".cjs"));
+    const packagedCjs = [...files].filter(
+      (rel) => rel.startsWith("scripts/") && rel.endsWith(".cjs") && !rel.includes("*"),
+    );
     const required = new Set();
 
     for (const rel of packagedCjs) {

@@ -1,9 +1,6 @@
 /** Max music track / video output length (seconds). */
 export const MAX_MEDIA_DURATION_SEC = 480;
 
-/** @deprecated use MAX_MEDIA_DURATION_SEC */
-export const MAX_SONG_DURATION_SEC = MAX_MEDIA_DURATION_SEC;
-
 /**
  * @param {number} sec
  * @returns {number}

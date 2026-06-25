@@ -38,9 +38,6 @@ export const PRODUCTION_PHASES = ["idle", "validating", "rendering", "assembled"
 
 export const PRODUCTION_REQUIRED_MODULES = ["python", "venv", "pip-deps"];
 
-/** @deprecated use productionRequiredModulesForEngine */
-export const PRODUCTION_OPEN_SORA_MODULES = ["python", "pipeline", "models"];
-
 const MULTI_CLIP_CAP_NOTE = (planned, total) =>
   `Beat-sync plan: rendering ${planned} of ${total} segments (cap ${DEFAULT_PRODUCTION_MAX_CLIPS})`;
 

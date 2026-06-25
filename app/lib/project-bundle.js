@@ -17,7 +17,7 @@ import {
 } from "./voice-character-studio-session";
 
 export const PROJECT_BUNDLE_FORMAT = "ai-video-creator-bundle";
-/** @deprecated Import-only alias — exports use PROJECT_BUNDLE_FORMAT */
+/** Legacy AI Music Creator imports — still accepted on load */
 export const PROJECT_BUNDLE_FORMAT_LEGACY = "ai-music-creator-bundle";
 export const PROJECT_BUNDLE_FORMATS = [PROJECT_BUNDLE_FORMAT, PROJECT_BUNDLE_FORMAT_LEGACY];
 export const PROJECT_BUNDLE_VERSION = 2;
