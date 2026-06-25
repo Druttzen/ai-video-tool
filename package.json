@@ -1,6 +1,6 @@
 {
   "name": "ai-video-tool",
-  "version": "1.0.34",
+  "version": "1.0.35",
   "description": "AI Video Creator — Director Engine, standalone video prompt studio, export to any video AI",
   "author": "DJ M@D",
   "private": true,
@@ -135,20 +135,31 @@
       "output": "electron-dist"
     },
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "arm64"]
+        }
+      ],
       "icon": "icon.ico",
-      "executableName": "ai-video-tool"
+      "executableName": "ai-video-tool",
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": false,
+      "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "selectPerMachineByDefault": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": false,
       "include": "build/installer.nsh",
       "license": "build/LICENSE.txt",
       "shortcutName": "AI Video Creator",
-      "uninstallDisplayName": "AI Video Creator"
+      "uninstallDisplayName": "AI Video Creator",
+      "installerLanguages": ["en_US"],
+      "displayLanguageSelector": false
     },
     "publish": [
       {
