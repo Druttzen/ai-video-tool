@@ -484,8 +484,27 @@ async function pipInstallOptionalPackages(userDataPath) {
 async function runPipInstallPythonScript(userDataPath, reqPath) {
   const { resolveBundledScript } = require("./install-console.cjs");
   const scriptPath = resolveBundledScript("scripts/install-addons-pip.py");
+  const gpuVendorPath = resolveBundledScript("scripts/lib/gpu_vendor.py");
   if (!fileExists(scriptPath)) {
     return { ok: false, error: `Missing pip install script: ${scriptPath}`, requirementsPath: reqPath };
+  }
+  if (
+    String(scriptPath).includes(`${path.sep}app.asar${path.sep}`) &&
+    !String(scriptPath).includes(`${path.sep}app.asar.unpacked${path.sep}`)
+  ) {
+    return {
+      ok: false,
+      error:
+        "Pip install script resolved inside app.asar (not executable by Python). Reinstall AI Video Creator v1.0.33 or newer.",
+      requirementsPath: reqPath,
+    };
+  }
+  if (!fileExists(gpuVendorPath)) {
+    return {
+      ok: false,
+      error: `Missing pip support module: ${gpuVendorPath}. Reinstall AI Video Creator v1.0.33 or newer.`,
+      requirementsPath: reqPath,
+    };
   }
 
   const venvPy = requireManagedVenvPython(userDataPath, true);

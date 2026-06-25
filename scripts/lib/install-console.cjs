@@ -108,9 +108,20 @@ function buildBundledScriptCandidates(relativePath, { roots, cwd } = {}) {
   return candidates;
 }
 
-function resolveBundledScript(relativePath) {
-  const candidates = buildBundledScriptCandidates(relativePath);
-  return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+function isInsidePackedAsar(filePath) {
+  const normalized = String(filePath || "").replace(/\//g, path.sep);
+  const marker = `${path.sep}app.asar${path.sep}`;
+  return normalized.includes(marker) && !normalized.includes(`${path.sep}app.asar.unpacked${path.sep}`);
+}
+
+function resolveBundledScript(relativePath, { roots, cwd } = {}) {
+  const candidates = buildBundledScriptCandidates(relativePath, { roots, cwd });
+  const resolved = candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+  if (isSpawnableBundledScript(relativePath) && isInsidePackedAsar(resolved)) {
+    const unpacked = candidates.find((c) => c.includes(`${path.sep}app.asar.unpacked${path.sep}`) && fs.existsSync(c));
+    if (unpacked) return unpacked;
+  }
+  return resolved;
 }
 
 module.exports = {

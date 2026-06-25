@@ -34,6 +34,29 @@ describe("install-addons packaging", () => {
     }
   });
 
+  it("never resolves spawnable scripts inside app.asar when unpacked copy exists", () => {
+    const packed = path.join(root, "tests", "fixtures", "asar-pack", "resources", "app.asar");
+    const unpacked = `${packed}.unpacked`;
+    const rel = "scripts/install-addons-pip.py";
+    const unpackedScript = path.join(unpacked, rel);
+    const packedScript = path.join(packed, rel);
+    fs.mkdirSync(path.dirname(unpackedScript), { recursive: true });
+    fs.mkdirSync(path.dirname(packedScript), { recursive: true });
+    fs.writeFileSync(unpackedScript, "# fixture\n", "utf8");
+    fs.writeFileSync(packedScript, "# fixture\n", "utf8");
+
+    try {
+      const resolved = resolveBundledScript(rel, {
+        roots: [{ packed, unpacked }],
+        cwd: root,
+      });
+      expect(resolved).toBe(unpackedScript);
+      expect(resolved).not.toMatch(/app\.asar[\\/]scripts/);
+    } finally {
+      fs.rmSync(path.join(root, "tests", "fixtures", "asar-pack"), { recursive: true, force: true });
+    }
+  });
+
   it("keeps app.asar first for Node runner scripts", () => {
     const packed = path.join(root, "tests", "fixtures", "asar-pack", "resources", "app.asar");
     const unpacked = `${packed}.unpacked`;
