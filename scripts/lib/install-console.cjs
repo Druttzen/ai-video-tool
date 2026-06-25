@@ -13,7 +13,12 @@ const {
 } = require("./install-time-estimate.cjs");
 
 const ANSI_RED = "\x1b[91m";
+const ANSI_BLUE = "\x1b[94m";
 const ANSI_RESET = "\x1b[0m";
+
+function isPhaseInfoMessage(message) {
+  return /^Phase \d\/\d\b/i.test(String(message || "").trim());
+}
 
 function formatInstallLine(message, { level = "info" } = {}) {
   const stamp = formatLocalDateTime();
@@ -28,10 +33,13 @@ function createInstallReporter(userDataPath, { version = "", echoToConsole = tru
 
   let lastEtaKey = "";
 
-  function emit(message, { level = "info", highlight = false } = {}) {
+  function emit(message, { level = "info", highlight = false, phase = false } = {}) {
     const line = formatInstallLine(message, { level });
+    const usePhase = phase || (level === "info" && isPhaseInfoMessage(message));
     if (echoToConsole) {
-      if (highlight) {
+      if (usePhase) {
+        process.stdout.write(`${ANSI_BLUE}${line}${ANSI_RESET}\r\n`);
+      } else if (highlight) {
         process.stdout.write(`${ANSI_RED}${line}${ANSI_RESET}\r\n`);
       } else {
         process.stdout.write(`${line}\r\n`);
@@ -76,7 +84,7 @@ function createInstallReporter(userDataPath, { version = "", echoToConsole = tru
         const highlight = /pip stack|2–4 GB|to install/i.test(String(payload.message));
         emit(payload.message, { level: payload.phase === "error" ? "error" : "info", highlight });
       } else if (payload?.phase) {
-        emit(`Phase: ${payload.phase}`);
+        emit(`Phase: ${payload.phase}`, { phase: true });
       }
     },
     finish({ ok, message } = {}) {
@@ -181,4 +189,5 @@ module.exports = {
   getBundledScriptRoots,
   buildBundledScriptCandidates,
   formatInstallLine,
+  isPhaseInfoMessage,
 };
