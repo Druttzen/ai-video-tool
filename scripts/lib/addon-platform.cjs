@@ -21,10 +21,17 @@ function shellQuoteBash(value) {
 }
 
 function windowsPathToWsl(mixedPath) {
+  const raw = String(mixedPath || "").trim().replace(/\\/g, "/");
+  const driveMatch = raw.match(/^([A-Za-z]):\/?(.*)/);
+  if (driveMatch) {
+    return `/mnt/${driveMatch[1].toLowerCase()}/${driveMatch[2]}`;
+  }
   const normalized = path.resolve(mixedPath).replace(/\\/g, "/");
-  const match = normalized.match(/^([A-Za-z]):\/*(.*)/);
-  if (!match) return normalized;
-  return `/mnt/${match[1].toLowerCase()}/${match[2]}`;
+  const resolvedDrive = normalized.match(/^([A-Za-z]):\/*(.*)/);
+  if (resolvedDrive) {
+    return `/mnt/${resolvedDrive[1].toLowerCase()}/${resolvedDrive[2]}`;
+  }
+  return normalized;
 }
 
 async function wslAvailable() {
