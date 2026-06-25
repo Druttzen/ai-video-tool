@@ -189,7 +189,7 @@ describe("electron packaging files", () => {
   it("ships current version with Setup Hub manifest v2 and WSL script unpack", () => {
     const root = path.join(import.meta.dirname, "..");
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-    expect(pkg.version).toBe("1.0.33");
+    expect(pkg.version).toBe("1.0.34");
     expect((pkg.build?.asarUnpack || []).some((entry) => entry.includes("wsl-addon-bootstrap"))).toBe(true);
     const hub = JSON.parse(fs.readFileSync(path.join(root, "data/setup-hub-manifest.json"), "utf8"));
     expect(hub.version).toBe("2.0.0");

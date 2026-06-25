@@ -122,7 +122,7 @@ describe("tool-installer", () => {
     });
     expect(report).toHaveProperty("missingCount");
     expect(report).toHaveProperty("items");
-    expect(report.summary).toMatch(/missing|All managed/i);
+    expect(report.summary).toMatch(/to install|All managed/i);
   });
 
   it("runSafeScan returns critical vs optional issues", async () => {
