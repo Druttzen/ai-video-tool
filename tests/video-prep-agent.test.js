@@ -48,6 +48,8 @@ describe("video-prep-agent", () => {
     });
 
     expect(ctx.project.idea).toBe("Neon highway synthwave MV");
+    expect(ctx.buildIntent?.buildTarget).toBeTruthy();
+    expect(ctx.buildIntent?.recommendedActionId).toBeTruthy();
     expect(ctx.workflowReadiness[5].ready).toBe(true);
     expect(ctx.workflowIntent.recommendedPath).toBe(5);
     expect(ctx.nextSteps.length).toBeGreaterThan(0);

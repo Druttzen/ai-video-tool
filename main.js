@@ -119,6 +119,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
       preload: path.join(__dirname, "preload.js"),
     },
   };
@@ -799,18 +800,11 @@ function setupMusicVideoSyncIpc() {
 }
 
 function setupAgentSessionIpc() {
-  const sessionDir = () => path.join(app.getPath("userData"), "agent-memory");
-  const sessionPath = () => path.join(sessionDir(), "video-prep-agent-session.json");
+  const { loadAgentSessionFile, saveAgentSessionFile } = require("./scripts/lib/agent-session-storage.cjs");
 
   ipcMain.handle("agent:load-session", async () => {
     try {
-      const fp = sessionPath();
-      if (!fs.existsSync(fp)) {
-        return { ok: true, session: null, path: fp };
-      }
-      const raw = fs.readFileSync(fp, "utf8");
-      const session = JSON.parse(raw);
-      return { ok: true, session, path: fp };
+      return loadAgentSessionFile(app.getPath("userData"));
     } catch (e) {
       return { ok: false, error: e?.message || "agent session load failed" };
     }
@@ -818,10 +812,7 @@ function setupAgentSessionIpc() {
 
   ipcMain.handle("agent:save-session", async (_event, session) => {
     try {
-      fs.mkdirSync(sessionDir(), { recursive: true });
-      const fp = sessionPath();
-      fs.writeFileSync(fp, JSON.stringify(session ?? {}, null, 2), "utf8");
-      return { ok: true, path: fp };
+      return saveAgentSessionFile(app.getPath("userData"), session);
     } catch (e) {
       return { ok: false, error: e?.message || "agent session save failed" };
     }
@@ -1207,6 +1198,7 @@ function createCanvasWindow(payload) {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
       preload: preloadPath,
     },
   };

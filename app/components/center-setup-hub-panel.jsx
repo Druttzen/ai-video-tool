@@ -7,7 +7,7 @@ import { useProjectWorkspace } from "../context/project-workspace-context";
 import { loadDirectorSettingsFromStorage, saveDirectorSettingsToStorage } from "../lib/director-settings";
 import { resolveRenderPythonFromScan } from "../lib/video-production-pipeline";
 import { loadOpenSoraSettingsFromStorage } from "../lib/open-sora-settings";
-import { getDefaultOpenSoraInstallPath } from "../lib/open-sora-paths";
+import { getDefaultOpenSoraInstallPath, OPEN_SORA_PATH_PLACEHOLDER } from "../lib/open-sora-paths";
 import {
   applyMaxedStandaloneProfile,
   clearPersistedSetupScan,
@@ -580,7 +580,7 @@ export const CenterSetupHubPanel = memo(function CenterSetupHubPanel() {
             value={linkPath}
             onChange={(e) => setLinkPath(e.target.value)}
             readOnly={forceManaged}
-            placeholder={getDefaultOpenSoraInstallPath()}
+            placeholder={OPEN_SORA_PATH_PLACEHOLDER}
             className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/30 p-3 text-sm text-white outline-none focus:border-cyan-300 read-only:opacity-70"
             data-testid="setup-hub-link-path"
           />

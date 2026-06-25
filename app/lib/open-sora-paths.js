@@ -1,3 +1,6 @@
+/** Stable placeholder for Setup Hub input (SSR-safe — no absolute cwd paths). */
+export const OPEN_SORA_PATH_PLACEHOLDER = ".userdata/addons/open-sora";
+
 /** Default Open-Sora install folder — managed under Electron userData/addons/open-sora. */
 const APP_DATA_DIR = "AI Video Creator";
 const LOCAL_USERDATA_DIR = ".userdata";
@@ -11,9 +14,9 @@ function repoLocalOpenSoraPath() {
 
 /** Shown in UI when Electron userData path is not available (browser mode). */
 export function getDefaultOpenSoraInstallPath() {
-  const repoLocal = repoLocalOpenSoraPath();
-  if (repoLocal && typeof process !== "undefined" && process.env?.AI_VIDEO_USE_APPDATA !== "1") {
-    return repoLocal.replace(/\//g, "\\");
+  if (typeof process !== "undefined" && process.env?.AI_VIDEO_USE_REPO_LOCAL_OPEN_SORA === "1") {
+    const repoLocal = repoLocalOpenSoraPath();
+    if (repoLocal) return repoLocal.replace(/\//g, "\\");
   }
 
   if (typeof window !== "undefined") {

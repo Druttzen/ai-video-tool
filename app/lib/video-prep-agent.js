@@ -41,6 +41,7 @@ import {
 import { PANEL_HELP } from "./panel-help";
 import { buildRenderHonestyNoteFromDirectorSettings } from "./render-segment-hints";
 import { loadAgentSessionFromHost, saveAgentSessionToHost } from "./electron-bridge";
+import { determineBuildFromAnalyzersAndRequest, slimBuildIntent } from "./analyzer-build-intent";
 import { createDefaultProductionState, normalizeProductionState } from "./video-production-pipeline";
 
 export const VIDEO_PREP_AGENT_STORAGE_KEY = "ai_video_creator_manuscript_chat_v1";
@@ -1250,6 +1251,17 @@ export function buildVideoPrepContext({
   });
   const whatsNext = buildWhatsNextBlock(workflowIntent, workflowPhase, nextSteps);
   const productKnowledge = buildProductKnowledge();
+  const buildIntent = slimBuildIntent(
+    determineBuildFromAnalyzersAndRequest({
+      idea: project.idea,
+      audioAnalysis,
+      imageAnalysis,
+      sunoPasteStyle: sunoPaste.style,
+      sunoPasteLyrics: sunoPaste.lyrics,
+      agentMessages: messages,
+      agentDraft: project.agentDraft,
+    }),
+  );
 
   return {
     project: {
@@ -1307,6 +1319,7 @@ export function buildVideoPrepContext({
       renderHonesty: productKnowledge.renderHonesty,
     },
     analysisChips: buildAnalysisChips(audioAnalysis, imageAnalysis),
+    buildIntent,
   };
 }
 
@@ -1389,6 +1402,7 @@ ${knowledgeJson}
 ${learningHints ? `${learningHints}\n` : ""}
 Current workflow phase: ${context.workflowPhase || "start"}. Checklist: ${JSON.stringify(context.workflowChecklist || {})}.
 Detected workflow intent: ${JSON.stringify(context.workflowIntent || {})}.
+Analyzer build plan (audio + image + chat): ${JSON.stringify(context.buildIntent || {})}.
 Proactive suggestions for this phase: ${(context.workflowSuggestions || []).map((s) => s.label).join("; ") || "none"}.
 
 Reply with ONLY valid JSON using this schema:
