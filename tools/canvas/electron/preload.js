@@ -8,4 +8,7 @@ contextBridge.exposeInMainWorld("canvasAPI", {
     ipcRenderer.on("canvas:payload", handler);
     return () => ipcRenderer.removeListener("canvas:payload", handler);
   },
+  getAppVersion: () => ipcRenderer.invoke("canvas:get-version"),
+  revealPath: (filePath) => ipcRenderer.invoke("canvas:reveal-path", filePath),
+  requestRefresh: () => ipcRenderer.invoke("canvas:request-refresh"),
 });

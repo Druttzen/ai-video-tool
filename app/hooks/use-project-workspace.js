@@ -12,6 +12,7 @@ import { useSplashAutoDismiss, useSplashOverlay } from "./use-splash-seen";
 import { useStatusMessage } from "./use-status-message";
 import { useWorkspaceBindings } from "./use-workspace-bindings";
 import { useBundleImportListener } from "./use-bundle-import-listener";
+import { useCanvasSync } from "./use-canvas-sync";
 import { APP_VERSION } from "../lib/video-config";
 
 /**
@@ -87,6 +88,22 @@ export function useProjectWorkspaceProvider() {
   });
 
   useBundleImportListener(workspace.importProjectBundleFromPath);
+
+  useCanvasSync({
+    idea: workspace.idea,
+    tempo: workspace.tempo,
+    structure: workspace.structure,
+    selectedGenres: workspace.selectedGenres,
+    selectedRhythms: workspace.selectedRhythms,
+    selectedSounds: workspace.selectedSounds,
+    audioAnalysis: workspace.audioAnalysis,
+    imageAnalysis: workspace.imageAnalysis,
+    production: workspace.agentProductionState,
+    agentProductionState: workspace.agentProductionState,
+    coProducerLlmSettings: workspace.coProducerLlmSettings,
+    agentPhase: workspace.agentProductionPhase,
+    agentMessages: workspace.agentMessages,
+  });
 
   return {
     avgScore,

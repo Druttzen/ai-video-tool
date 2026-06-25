@@ -1196,6 +1196,50 @@ function setupCanvasIpc() {
     pendingCanvasPayload = null;
     return payload;
   });
+
+  ipcMain.handle("canvas:update", async (_event, payload) => {
+    try {
+      if (payload !== undefined) {
+        pendingCanvasPayload = payload;
+      }
+      if (canvasWindow && !canvasWindow.isDestroyed()) {
+        canvasWindow.webContents.send("canvas:payload", payload);
+        return { ok: true, pushed: true };
+      }
+      return { ok: true, pushed: false };
+    } catch (e) {
+      return { ok: false, error: e?.message || "canvas update failed" };
+    }
+  });
+
+  ipcMain.handle("canvas:request-refresh", async () => {
+    try {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("canvas:refresh-requested");
+        return { ok: true };
+      }
+      return { ok: false, error: "Main window not available" };
+    } catch (e) {
+      return { ok: false, error: e?.message || "canvas refresh failed" };
+    }
+  });
+
+  ipcMain.handle("canvas:reveal-path", async (_event, filePath) => {
+    try {
+      const target = String(filePath || "").trim();
+      if (!target || !fs.existsSync(target)) {
+        return { ok: false, error: "Path not found" };
+      }
+      shell.showItemInFolder(target);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e?.message || "reveal failed" };
+    }
+  });
+
+  ipcMain.handle("canvas:get-version", async () => {
+    return { ok: true, version: pkg.version };
+  });
 }
 
 function setupProjectImportIpc() {

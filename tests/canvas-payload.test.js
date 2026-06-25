@@ -23,11 +23,56 @@ describe("canvas payload", () => {
     expect(payload.title).toBe("Neon city chase");
     expect(payload.handoff?.intent).toBe("music-video-path-e");
     expect(payload.handoff?.audioAnalysis?.beatSync?.clipPlan).toHaveLength(2);
+    expect(payload.appVersion).toBeTruthy();
   });
 
   it("omits handoff when no analyzers", () => {
     const payload = buildCanvasPayloadFromWorkspace({ idea: "Solo prompt" });
     expect(payload.handoff).toBeUndefined();
     expect(payload.project.idea).toBe("Solo prompt");
+  });
+
+  it("includes expanded production fields and agent/co-producer summaries", () => {
+    const payload = buildCanvasPayloadFromWorkspace({
+      idea: "Full render",
+      appVersion: "2.5.0",
+      agentPhase: "rendering",
+      agentMessages: [{ role: "user" }, { role: "assistant" }],
+      coProducerLlmSettings: {
+        apiUrl: "https://api.openai.com/v1/chat/completions",
+        model: "gpt-4o-mini",
+      },
+      production: {
+        phase: "rendering",
+        multiClip: true,
+        clipTotal: 4,
+        clipCurrent: 2,
+        clipsRendered: 1,
+        clipPlannedTotal: 4,
+        clipIndex: 2,
+        clipStart: 6,
+        clipEnd: 12,
+        clipDuration: 6,
+        assembledOutputPath: "C:/out/final.mp4",
+        logPath: "C:/out/render.log",
+        updatedAt: 1_700_000_000_000,
+        renderPythonSource: "wsl",
+        lastOutputPath: "C:/out/clip1.mp4",
+      },
+    });
+
+    expect(payload.appVersion).toBe("2.5.0");
+    expect(payload.production).toMatchObject({
+      clipPlannedTotal: 4,
+      clipIndex: 2,
+      clipStart: 6,
+      clipEnd: 12,
+      clipDuration: 6,
+      assembledOutputPath: "C:/out/final.mp4",
+      logPath: "C:/out/render.log",
+      renderPythonSource: "wsl",
+    });
+    expect(payload.agentSummary).toEqual({ phase: "rendering", messageCount: 2 });
+    expect(payload.coProducer).toEqual({ provider: "openai", model: "gpt-4o-mini" });
   });
 });

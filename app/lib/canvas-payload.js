@@ -3,6 +3,7 @@
  */
 import { loadDirectorSettingsFromStorage } from "./director-settings";
 import { loadPersistedSetupScan, summarizeSetupScan } from "./setup-hub";
+import { APP_VERSION } from "./video-config";
 
 function slimAudioAnalysis(audioAnalysis) {
   if (!audioAnalysis || typeof audioAnalysis !== "object") return null;
@@ -48,6 +49,15 @@ function slimProductionState(production) {
     renderMessage: production.renderMessage,
     lastOutputPath: production.lastOutputPath,
     lastError: production.lastError,
+    clipPlannedTotal: production.clipPlannedTotal,
+    clipIndex: production.clipIndex,
+    clipStart: production.clipStart,
+    clipEnd: production.clipEnd,
+    clipDuration: production.clipDuration,
+    assembledOutputPath: production.assembledOutputPath,
+    logPath: production.logPath,
+    updatedAt: production.updatedAt,
+    renderPythonSource: production.renderPythonSource,
   };
 }
 
@@ -62,6 +72,32 @@ function slimDirectorSettings(settings) {
     fps: settings.fps,
     durationSeconds: settings.durationSeconds,
     wanModelId: settings.wanModelId,
+  };
+}
+
+function slimCoProducer(settings) {
+  if (!settings || typeof settings !== "object") return null;
+  let provider = settings.provider;
+  if (!provider && settings.apiUrl) {
+    try {
+      const host = new URL(String(settings.apiUrl)).hostname;
+      provider = host.replace(/^api\./, "").split(".")[0] || host;
+    } catch {
+      /* ignore invalid URL */
+    }
+  }
+  return {
+    provider: provider || undefined,
+    model: settings.model || undefined,
+  };
+}
+
+function buildAgentSummary(agentPhase, agentMessages) {
+  const messageCount = Array.isArray(agentMessages) ? agentMessages.length : 0;
+  if (!agentPhase && messageCount === 0) return null;
+  return {
+    phase: agentPhase || undefined,
+    messageCount,
   };
 }
 
@@ -92,6 +128,9 @@ export function buildCanvasPayloadFromWorkspace(workspace = {}) {
     workspace.directorSettings || loadDirectorSettingsFromStorage(),
   );
   const production = slimProductionState(workspace.production || workspace.agentProductionState);
+  const coProducer = slimCoProducer(workspace.coProducerLlmSettings);
+  const agentSummary = buildAgentSummary(workspace.agentPhase, workspace.agentMessages);
+  const appVersion = workspace.appVersion || APP_VERSION;
 
   let handoff;
   if (audioAnalysis || imageAnalysis) {
@@ -107,6 +146,7 @@ export function buildCanvasPayloadFromWorkspace(workspace = {}) {
   return {
     title: idea ? idea.slice(0, 72) : "AI Video Creator Canvas",
     exportedAt: new Date().toISOString(),
+    appVersion,
     project: {
       idea,
       tempo: workspace.tempo,
@@ -118,6 +158,8 @@ export function buildCanvasPayloadFromWorkspace(workspace = {}) {
     handoff,
     directorSettings,
     production,
+    agentSummary,
+    coProducer,
     setup: buildSetupSummary(),
   };
 }

@@ -146,3 +146,25 @@ export async function openCanvasDashboard(payload) {
   }
   return window.electronAPI.openCanvas(payload);
 }
+
+/**
+ * Push an updated payload to the canvas window if it is open.
+ * @param {object} payload
+ * @returns {Promise<{ ok: boolean, pushed?: boolean, error?: string }>}
+ */
+export async function pushCanvasUpdate(payload) {
+  if (!isElectronApp() || !window.electronAPI?.pushCanvasUpdate) {
+    return { ok: false, error: "Canvas sync requires the desktop app" };
+  }
+  return window.electronAPI.pushCanvasUpdate(payload);
+}
+
+/**
+ * Listen for refresh requests from the canvas dashboard.
+ * @param {() => void} callback
+ * @returns {() => void}
+ */
+export function onCanvasRefreshRequest(callback) {
+  if (!isElectronApp() || typeof callback !== "function") return () => {};
+  return window.electronAPI.onCanvasRefreshRequest(callback);
+}

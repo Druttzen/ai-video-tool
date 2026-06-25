@@ -21,6 +21,9 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
     selectedRhythms,
     selectedSounds,
     agentProductionState,
+    agentProductionPhase,
+    agentMessages,
+    coProducerLlmSettings,
     applyPreset,
     customPresets,
     deleteCustomPreset,
@@ -78,6 +81,9 @@ export const PageSidebarLeft = memo(function PageSidebarLeft() {
                 imageAnalysis,
                 production: agentProductionState,
                 agentProductionState,
+                coProducerLlmSettings,
+                agentPhase: agentProductionPhase,
+                agentMessages,
               });
               const res = await openCanvasDashboard(payload);
               if (!res?.ok) {
