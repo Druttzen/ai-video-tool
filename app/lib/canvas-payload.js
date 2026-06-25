@@ -19,8 +19,10 @@ function slimAudioAnalysis(audioAnalysis) {
       ? {
           clipPlan: beatSync.clipPlan,
           beatCount: beatSync.beatCount,
+          onsetCount: beatSync.onsetCount,
           bpm: beatSync.bpm,
           source: beatSync.source,
+          vocalsLikely: beatSync.vocalsLikely,
         }
       : undefined,
   };

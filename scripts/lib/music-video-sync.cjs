@@ -33,6 +33,9 @@ async function analyzeMusicVideoBeats({
   userDataPath,
   rangeStart = 0,
   rangeEnd = -1,
+  minSec,
+  maxSec,
+  maxClips,
 }) {
   const scriptPath = resolveMusicVideoSyncScript();
   if (!scriptPath) {
@@ -52,6 +55,15 @@ async function analyzeMusicVideoBeats({
   const args = [scriptPath, "--audio", audioPath, "--range-start", String(rangeStart)];
   if (Number(rangeEnd) >= 0) {
     args.push("--range-end", String(rangeEnd));
+  }
+  if (Number(minSec) > 0) {
+    args.push("--min-sec", String(minSec));
+  }
+  if (Number(maxSec) > 0) {
+    args.push("--max-sec", String(maxSec));
+  }
+  if (Number(maxClips) > 0) {
+    args.push("--max-clips", String(maxClips));
   }
 
   try {

@@ -119,6 +119,14 @@ export async function assembleMusicVideoFromHost(payload) {
   return window.electronAPI.assembleMusicVideo(payload);
 }
 
+/** @returns {Promise<{ ok: boolean, beatSync?: object, ffmpeg?: object, capabilities?: string[], error?: string }>} */
+export async function probeMusicVideoAddonFromHost() {
+  if (!isElectronApp() || !window.electronAPI?.probeMusicVideoAddon) {
+    return { ok: false, error: "Music video addon probe requires the desktop app" };
+  }
+  return window.electronAPI.probeMusicVideoAddon();
+}
+
 /** @returns {Promise<{ ok: boolean, session?: object|null, path?: string, error?: string }>} */
 export async function loadAgentSessionFromHost() {
   if (!isElectronApp() || !window.electronAPI?.loadAgentSession) {

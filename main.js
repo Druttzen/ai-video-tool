@@ -691,6 +691,9 @@ function setupMusicVideoSyncIpc() {
           userDataPath,
           rangeStart: Number(payload?.rangeStart) || 0,
           rangeEnd: Number(payload?.rangeEnd ?? -1),
+          minSec: Number(payload?.minSec) || undefined,
+          maxSec: Number(payload?.maxSec) || undefined,
+          maxClips: Number(payload?.maxClips) || undefined,
         });
       } finally {
         try {
@@ -741,6 +744,37 @@ function setupMusicVideoSyncIpc() {
       }
     } catch (e) {
       return { ok: false, error: e?.message || "music video assembly failed" };
+    }
+  });
+
+  ipcMain.handle("music-video:probe-ready", async () => {
+    try {
+      const { probeMusicVideoSyncReady } = require("./scripts/lib/music-video-sync.cjs");
+      const { resolveFfmpegExecutable } = require("./scripts/lib/music-video-assemble.cjs");
+      const userDataPath = app.getPath("userData");
+      const beatSync = await probeMusicVideoSyncReady(userDataPath);
+      const ffmpegPath = resolveFfmpegExecutable(userDataPath);
+      const ffmpegManaged = ffmpegPath !== "ffmpeg" && fs.existsSync(ffmpegPath);
+      return {
+        ok: Boolean(beatSync.ok),
+        beatSync,
+        ffmpeg: {
+          ok: ffmpegManaged || ffmpegPath === "ffmpeg",
+          path: ffmpegPath,
+          managed: ffmpegManaged,
+        },
+        capabilities: [
+          "beat-analysis",
+          "onset-detection",
+          "clip-plan",
+          "vocal-hint",
+          "highlight-range",
+          "ffmpeg-assemble",
+          "multi-clip-mux",
+        ],
+      };
+    } catch (e) {
+      return { ok: false, error: e?.message || "music video addon probe failed" };
     }
   });
 }

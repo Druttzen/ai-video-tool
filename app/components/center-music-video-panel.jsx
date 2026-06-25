@@ -6,6 +6,7 @@ import { PanelActions } from "./panel-actions";
 import { useProjectWorkspace } from "../context/project-workspace-context";
 import { promptSymbolOverview } from "../lib/suno-language-index";
 import { MV_DURATION_MODES } from "../lib/audio-visual-music-video";
+import { MusicVideoBeatSyncDashboard } from "./music-video-beat-sync-dashboard";
 
 export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
   const ws = useProjectWorkspace();
@@ -179,6 +180,8 @@ export const CenterMusicVideoPanel = memo(function CenterMusicVideoPanel() {
       ) : (
         <p className="mt-3 text-xs text-white/40">Drop audio in Analyzers above to enable Path A / C / E.</p>
       )}
+
+      <MusicVideoBeatSyncDashboard durationMode={durationMode} />
 
       <details className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3">
         <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-white/55">

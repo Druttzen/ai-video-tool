@@ -7,16 +7,24 @@ import json
 import sys
 
 
-def build_clip_plan(beat_times: list[float], range_start: float, range_end: float) -> list[dict]:
+def build_clip_plan(
+    beat_times: list[float],
+    range_start: float,
+    range_end: float,
+    *,
+    min_sec: float = 4.0,
+    max_sec: float = 8.0,
+    max_clips: int = 0,
+) -> list[dict]:
     beats = [t for t in beat_times if range_start <= t <= range_end]
     if len(beats) < 2:
         return []
 
-    min_sec = 4.0
-    max_sec = 8.0
     clips: list[dict] = []
     i = 0
     while i < len(beats) - 1:
+        if max_clips > 0 and len(clips) >= max_clips:
+            break
         start = beats[i]
         j = i + 1
         while j < len(beats) and beats[j] - start < min_sec:
@@ -33,10 +41,29 @@ def build_clip_plan(beat_times: list[float], range_start: float, range_end: floa
                     "start": round(start, 3),
                     "end": round(end, 3),
                     "duration": round(end - start, 3),
+                    "label": f"Segment {len(clips) + 1}",
                 }
             )
         i = end_idx
     return clips
+
+
+def estimate_vocals_likely(y, sr: int) -> bool:
+    try:
+        import numpy as np
+        import librosa
+
+        rms = librosa.feature.rms(y=y)[0]
+        zcr = librosa.feature.zero_crossing_rate(y)[0]
+        centroid = librosa.feature.spectral_centroid(y=y, sr=sr)[0]
+        if len(rms) < 4:
+            return False
+        dynamic = float(np.std(rms) / (np.mean(rms) + 1e-6))
+        zcr_mean = float(np.mean(zcr))
+        centroid_mean = float(np.mean(centroid))
+        return dynamic > 0.35 and zcr_mean > 0.04 and centroid_mean > 1200
+    except Exception:
+        return False
 
 
 def main() -> int:
@@ -44,6 +71,9 @@ def main() -> int:
     parser.add_argument("--audio", required=True, help="Path to audio file")
     parser.add_argument("--range-start", type=float, default=0.0)
     parser.add_argument("--range-end", type=float, default=-1.0)
+    parser.add_argument("--min-sec", type=float, default=4.0)
+    parser.add_argument("--max-sec", type=float, default=8.0)
+    parser.add_argument("--max-clips", type=int, default=0)
     args = parser.parse_args()
 
     try:
@@ -105,7 +135,16 @@ def main() -> int:
             beat_times.append(round(t, 4))
             t += interval
 
-    clip_plan = build_clip_plan(beat_times, range_start, range_end)
+    clip_plan = build_clip_plan(
+        beat_times,
+        range_start,
+        range_end,
+        min_sec=max(2.0, float(args.min_sec)),
+        max_sec=max(3.0, float(args.max_sec)),
+        max_clips=max(0, int(args.max_clips)),
+    )
+    vocals_likely = estimate_vocals_likely(segment, sr)
+    clip_duration = round(sum(c.get("duration", 0) for c in clip_plan), 3)
 
     print(
         json.dumps(
@@ -120,7 +159,11 @@ def main() -> int:
                 "beatTimes": beat_times,
                 "onsetTimes": onset_times,
                 "beatCount": len(beat_times),
+                "onsetCount": len(onset_times),
+                "vocalsLikely": vocals_likely,
                 "clipPlan": clip_plan,
+                "clipCount": len(clip_plan),
+                "clipDurationSec": clip_duration,
             }
         )
     )

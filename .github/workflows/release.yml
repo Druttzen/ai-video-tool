@@ -19,7 +19,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
-      - run: npm run build && npm run build:readme-pdf && npm run build:installer-license && npm run prepare:electron-dist
+      - run: npm run build && npm run canvas:build && npm run build:readme-pdf && npm run build:installer-license && npm run prepare:electron-dist
       - name: Build and publish Windows installer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

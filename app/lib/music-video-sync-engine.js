@@ -20,9 +20,13 @@ export function enrichAudioAnalysisWithBeatSync(audioAnalysis, beatSyncResult) {
       beatTimes: beatSyncResult.beatTimes || [],
       onsetTimes: beatSyncResult.onsetTimes || [],
       beatCount: beatSyncResult.beatCount || (beatSyncResult.beatTimes || []).length,
+      onsetCount: beatSyncResult.onsetCount || (beatSyncResult.onsetTimes || []).length,
       clipPlan: beatSyncResult.clipPlan || [],
+      clipCount: beatSyncResult.clipCount || (beatSyncResult.clipPlan || []).length,
+      clipDurationSec: beatSyncResult.clipDurationSec,
       rangeStart: beatSyncResult.rangeStart,
       rangeEnd: beatSyncResult.rangeEnd,
+      vocalsLikely: beatSyncResult.vocalsLikely,
       analyzedAt: new Date().toISOString(),
     },
   };
@@ -64,6 +68,7 @@ export function buildClipPlanFromBeatTimes(
         start: Math.round(start * 1000) / 1000,
         end: Math.round(end * 1000) / 1000,
         duration: Math.round((end - start) * 1000) / 1000,
+        label: `Segment ${clips.length + 1}`,
       });
     }
     i = endIdx;

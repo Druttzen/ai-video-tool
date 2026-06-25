@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getToolInstallProtocol: () => ipcRenderer.invoke("setup:tool-install-protocol"),
   analyzeMusicVideoBeats: (payload) => ipcRenderer.invoke("music-video:analyze-beats", payload),
   assembleMusicVideo: (payload) => ipcRenderer.invoke("music-video:assemble", payload),
+  probeMusicVideoAddon: () => ipcRenderer.invoke("music-video:probe-ready"),
   loadAgentSession: () => ipcRenderer.invoke("agent:load-session"),
   saveAgentSession: (session) => ipcRenderer.invoke("agent:save-session", session),
   openExternal: (url) => ipcRenderer.invoke("app:open-external", url),

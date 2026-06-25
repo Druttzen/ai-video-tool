@@ -107,7 +107,7 @@
     },
     "music-video-sync": {
       "label": "Music video sync",
-      "description": "Librosa beat/onset analysis + clip plan for Paths A–E",
+      "description": "Librosa beat/onset analysis, vocal hints, clip plan, and FFmpeg mux for Paths A–E",
       "probeModule": "librosa",
       "script": "scripts/run-music-video-sync.py",
       "dependsOn": ["pip-deps", "venv"]

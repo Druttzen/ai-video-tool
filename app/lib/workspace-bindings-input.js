@@ -153,6 +153,7 @@ export function pickWorkspaceContextExtras(projectState, analyzers, pipeline, sn
     imageAnalysis: analyzers.imageAnalysis,
     imagePreview: analyzers.imagePreview,
     readImageSourceForOpenSora: analyzers.readImageSourceForOpenSora,
+    reanalyzeBeatSync: analyzers.reanalyzeBeatSync,
     instrumentalVocalFx: projectState.instrumentalVocalFx,
     intensityText: pipeline.intensityText,
     lyricDensity: projectState.lyricDensity,

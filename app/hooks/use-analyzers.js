@@ -349,6 +349,32 @@ export function useAnalyzers({
     setGuidedStep(resolvePolishStepIndex());
   }, [setGuidedStep]);
 
+  const reanalyzeBeatSync = useCallback(
+    async (durationMode = MV_DURATION_MODES.FULL) => {
+      if (!audioAnalysis) {
+        setStatusWithTime("No audio analysis yet");
+        return null;
+      }
+      const mode =
+        durationMode === MV_DURATION_MODES.HIGHLIGHT
+          ? MV_DURATION_MODES.HIGHLIGHT
+          : MV_DURATION_MODES.FULL;
+      setStatusWithTime("Re-analyzing beats (librosa)...");
+      const refined = await refineAudioAnalysisWithBeatSync(audioAnalysis, null, { durationMode: mode });
+      if (refined !== audioAnalysis) {
+        setAudioAnalysis(refined);
+      }
+      const syncSource = refined?.beatSync?.source ? ` (${refined.beatSync.source})` : "";
+      const clipCount = refined?.beatSync?.clipPlan?.length || 0;
+      setStatusWithTime(
+        `Beat sync updated${syncSource}${clipCount ? ` — ${clipCount} segments` : ""}`,
+        "info",
+      );
+      return refined;
+    },
+    [audioAnalysis, setAudioAnalysis, setStatusWithTime],
+  );
+
   const applyAudioToMusicVideo = useCallback(async () => {
     if (!audioAnalysis) {
       setStatusWithTime("No audio analysis yet");
@@ -617,6 +643,7 @@ export function useAnalyzers({
     imageAnalysis,
     imagePreview,
     readImageSourceForOpenSora,
+    reanalyzeBeatSync,
     resetAnalyzers,
     setAudioAnalysis: setAudioAnalysisNormalized,
     setImageAnalysis,

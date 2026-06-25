@@ -68,6 +68,7 @@ export function buildProjectWorkspaceValue(s) {
     imageAnalysis: s.imageAnalysis,
     imagePreview: s.imagePreview,
     readImageSourceForOpenSora: s.readImageSourceForOpenSora,
+    reanalyzeBeatSync: s.reanalyzeBeatSync,
     importProject: s.importProject,
     instrumentalVocalFx: s.instrumentalVocalFx,
     intensityText: s.intensityText,
